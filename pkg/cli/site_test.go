@@ -52,6 +52,19 @@ func TestSiteHasPageForEachVerb(t *testing.T) {
 	}
 }
 
+// The site never names the Forgejo host.
+func TestSiteNamesNoForgejoHost(t *testing.T) {
+	files, err := BuildSite(filepath.Join("..", "..", "docs", "Site"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for n, b := range files {
+		if strings.Contains(string(b), "git.grey.ooo") {
+			t.Errorf("%s names the Forgejo host", n)
+		}
+	}
+}
+
 // Each verb page shows an example, and each example belongs to a verb.
 func TestEachVerbHasExample(t *testing.T) {
 	files, err := BuildSite(filepath.Join("..", "..", "docs", "Site"))
