@@ -1,8 +1,8 @@
-# vcs session status
+# The `vcs session status` command
 
 Tell whether the kept session is still good.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
