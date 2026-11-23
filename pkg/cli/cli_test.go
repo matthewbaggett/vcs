@@ -65,6 +65,19 @@ func (f fake) PRReady(_ context.Context, n int) error {
 	}
 	return f.err
 }
+func (f fake) PREdit(_ context.Context, n int, in forge.PREdit) error {
+	if f.comment != nil {
+		t, b := "-", "-"
+		if in.Title != nil {
+			t = *in.Title
+		}
+		if in.Body != nil {
+			b = *in.Body
+		}
+		*f.comment = fmt.Sprintf("edit %d|%s|%s", n, t, b)
+	}
+	return f.err
+}
 func (f fake) BoardList(_ context.Context, closed bool) ([]forge.Board, error) {
 	return []forge.Board{{ID: "1", Title: "Plan", URL: "https://git.example/o/r/projects/1"}}, f.err
 }
@@ -429,6 +442,32 @@ func TestIssueCreateAndReady(t *testing.T) {
 	}
 	if code, _, _ := run(t, c, nil, false, "pr", "ready"); code != ExitUsage {
 		t.Errorf("ready no n: %d", code)
+	}
+}
+
+func TestPREdit(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	code, out, _ := run(t, c, nil, false, "pr", "edit", "12", "--title", "New title")
+	if code != ExitOK || out != "edited\t12\n" || got != "edit 12|New title|-" {
+		t.Fatalf("title: code=%d out=%q got=%q", code, out, got)
+	}
+	code, out, _ = run(t, c, nil, false, "pr", "edit", "12", "--body", "New body.")
+	if code != ExitOK || out != "edited\t12\n" || got != "edit 12|-|New body." {
+		t.Fatalf("body: code=%d out=%q got=%q", code, out, got)
+	}
+	got = ""
+	if code, out, errb := run(t, c, nil, false, "pr", "edit", "12", "--body", "🤖 Generated with Claude"); code != ExitLint || out != "" || got != "" || !strings.Contains(errb, "guard:") {
+		t.Errorf("credit: code=%d out=%q got=%q err=%q", code, out, got, errb)
+	}
+	for _, a := range [][]string{
+		{"pr", "edit", "12"},
+		{"pr", "edit", "x", "--title", "T"},
+		{"pr", "edit", "12", "--body", "a", "--body-file", "-"},
+	} {
+		if code, _, _ := run(t, c, nil, false, a...); code != ExitUsage {
+			t.Errorf("%v: %d", a, code)
+		}
 	}
 }
 
