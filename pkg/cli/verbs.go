@@ -5,6 +5,7 @@ const (
 	ExitOK          = 0
 	ExitFail        = 1
 	ExitUsage       = 64
+	ExitLint        = 65
 	ExitUnavailable = 69
 	ExitNoSession   = 77
 )
@@ -14,6 +15,7 @@ const (
 	OutOK          = "ok"
 	OutFail        = "fail"
 	OutUsage       = "usage"
+	OutLint        = "lint"
 	OutUnavailable = "unavailable"
 	OutNoSession   = "nosession"
 )
@@ -28,7 +30,9 @@ type Verb struct {
 	Flags   []Flag
 	// Session is true when the verb needs a web session.
 	Session bool
-	Exits   []string
+	// Sends is true when the verb sends text that the prose linters check first.
+	Sends bool
+	Exits []string
 	// Hints holds the agent message of each outcome. A person never sees it.
 	// An empty text means the human message is enough.
 	Hints map[string]string
@@ -52,6 +56,23 @@ var Tree = []Verb{
 			OutOK:          "if ci is failure, run vcs ci runs --sha <head sha> --limit 3, then vcs ci jobs <run-id>",
 			OutFail:        "check the number with vcs pr list, then run the command again",
 			OutUsage:       "run vcs pr status <n> with the number of one pull request",
+			OutUnavailable: "stop and ask the user. This host has no driver yet",
+		},
+	},
+	{
+		Noun: "pr", Name: "watch",
+		Usage:   "vcs pr watch <n> [--interval <seconds>] [--timeout <seconds>]",
+		Summary: "Poll the checks and the merge state of one pull request until both are good.",
+		Output:  "One row each time the state changes, in the format of vcs pr status.",
+		Flags: []Flag{
+			{"--interval", "Seconds between two polls. The default is 30."},
+			{"--timeout", "Seconds to wait before the command gives up. The default is 3600."},
+		},
+		Exits: []string{"0 the pull request merged, or its checks are green and its merge state is clean", "1 a check failed, the pull request has a conflict or closed, the call failed, or the wait timed out", "64 usage error", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "the pull request is good. Hand it off, or mark it ready with vcs pr ready <n>",
+			OutFail:        "read the last row. If ci is failure, run vcs ci runs --sha <head sha> --limit 3 and vcs ci log. If conflicted files show, merge main in. Then run vcs pr watch <n> again",
+			OutUsage:       "run vcs pr watch <n> with the number of one pull request",
 			OutUnavailable: "stop and ask the user. This host has no driver yet",
 		},
 	},
@@ -117,7 +138,7 @@ var Tree = []Verb{
 		},
 	},
 	{
-		Noun: "attach", Name: "",
+		Noun: "attach", Name: "", Sends: true,
 		Usage:   "vcs attach <n> <file>... [--comment] [--title <text>]",
 		Summary: "Upload files to an issue or a pull request, and optionally post one comment that shows them.",
 		Output:  "One row for each file: name, download address. With --comment, a last line `comment posted`.",
@@ -125,11 +146,12 @@ var Tree = []Verb{
 			{"--comment", "Post one comment that embeds each file as an image."},
 			{"--title", "The first line of the comment. The default is Screenshots."},
 		},
-		Exits: []string{"0 uploaded", "1 an upload or the comment failed", "64 usage error, or a file isn't a plain file", "69 no usable driver"},
+		Exits: []string{"0 uploaded", "1 an upload or the comment failed", "64 usage error, or a file isn't a plain file", "65 the comment text fails the prose lint, and the command sends nothing", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "check the token. Run the command again for the files that didn't upload",
 			OutUsage:       "give the number, then one or more plain files",
+			OutLint:        "fix each finding that vcs printed in the comment text or the --title, then run the command again",
 			OutUnavailable: "stop and ask the user. This host has no upload route",
 		},
 	},
