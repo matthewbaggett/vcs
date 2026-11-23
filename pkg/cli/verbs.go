@@ -83,13 +83,13 @@ var Tree = []Verb{
 	{
 		Noun: "issue", Name: "create", Sends: true,
 		Usage:   "vcs issue create <title> (--body <text> | --body-file <path>)",
-		Summary: "Open an issue. The AI credit line is refused, and the prose lint runs on the title and body.",
+		Summary: "Open an issue. The command refuses the AI credit line, and the prose lint runs on the title and body.",
 		Output:  "One row: the number and the web address.",
 		Flags: []Flag{
 			{"--body", "The body text."},
 			{"--body-file", "A file that holds the body. Use - for standard input."},
 		},
-		Exits: []string{"0 opened", "1 the call failed", "64 usage error", "65 a guard rule or the prose lint refuses the text, and nothing is sent", "69 no usable driver"},
+		Exits: []string{"0 opened", "1 the call failed", "64 usage error", "65 a guard rule or the prose lint refuses the text, and the command sends nothing", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "check the token, then run the command again",
@@ -101,9 +101,9 @@ var Tree = []Verb{
 	{
 		Noun: "pr", Name: "ready",
 		Usage:   "vcs pr ready <n>",
-		Summary: "Take a pull request out of draft. A pull request that is not a draft stays as it is.",
+		Summary: "Take a pull request out of draft. A pull request that isn't a draft stays as it is.",
 		Output:  "One line: `ready` and the number.",
-		Exits:   []string{"0 ready", "1 the call failed or the pull request is not found", "64 usage error", "69 no usable driver"},
+		Exits:   []string{"0 ready", "1 the call failed or the pull request isn't found", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "run vcs pr status <n> to check the merge state",
 			OutFail:        "check the number and the token",
