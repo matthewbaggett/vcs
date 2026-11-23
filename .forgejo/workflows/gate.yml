@@ -17,8 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          submodules: true
           fetch-depth: 0
+      # The submodule URL is ssh. The runner has no key, so read it over https with the job token.
+      - name: Fetch the submodule
+        run: |
+          git config --global url."https://oauth2:${{ github.token }}@git.grey.ooo/".insteadOf "ssh://git@git.grey.ooo:222/"
+          git submodule update --init --recursive
       - name: Format
         run: test -z "$(gofmt -l .)"
       - name: Vet
