@@ -123,10 +123,10 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true}
 
 // boolean flags take no value.
-var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true}
+var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true}
 
 func parse(args []string) (opts, error) {
 	o := opts{flags: map[string]string{}}
@@ -237,6 +237,28 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		}
 		if code := lintText(env, o.flags["body"]); code != ExitOK {
 			return code
+		}
+	case "pr list", "issue list":
+		if len(o.pos) != 0 {
+			return usage(env, v)
+		}
+		if s := o.flags["state"]; s != "" && s != "open" && s != "closed" && s != "all" {
+			return usage(env, v)
+		}
+		if limit, good = intFlag(o, "limit", 0); !good {
+			return usage(env, v)
+		}
+		if v.Noun == "issue" && o.flags["ci"] != "" {
+			return usage(env, v)
+		}
+	case "issue view":
+		if len(o.pos) != 1 || !isNum(o.pos[0]) {
+			return usage(env, v)
+		}
+		n, _ = strconv.Atoi(o.pos[0])
+	case "ci failed":
+		if len(o.pos) != 1 || !regexp.MustCompile(`^([0-9]{1,6}|[0-9A-Fa-f]{7,40})$`).MatchString(o.pos[0]) {
+			return usage(env, v)
 		}
 	case "board list":
 		if len(o.pos) != 0 || (o.flags["state"] != "" && o.flags["state"] != "open" && o.flags["state"] != "closed") {
@@ -621,6 +643,58 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			return fail(env, err)
 		}
 		row(env, "ready", strconv.Itoa(n))
+	case "pr list":
+		rd, ok := c.(forge.Reader)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no pr list yet")
+			return ExitUnavailable
+		}
+		prs, err := rd.PRList(ctx, listFilter(o, limit))
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, p := range prs {
+			ci := ""
+			if o.flags["ci"] == "true" {
+				s, err := c.PRStatus(ctx, p.Number)
+				if err != nil {
+					return fail(env, err)
+				}
+				ci = s.CI
+			}
+			row(env, strconv.Itoa(p.Number), p.Title, p.Head, p.Base, strconv.FormatBool(p.Mergeable), ci,
+				strings.Join(p.Labels, ","), p.Milestone)
+		}
+	case "issue list":
+		rd, ok := c.(forge.Reader)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no issue list yet")
+			return ExitUnavailable
+		}
+		is, err := rd.IssueList(ctx, listFilter(o, limit))
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, i := range is {
+			row(env, strconv.Itoa(i.Number), i.Title, i.State, strings.Join(i.Labels, ","), i.Milestone)
+		}
+	case "issue view":
+		rd, ok := c.(forge.Reader)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no issue view yet")
+			return ExitUnavailable
+		}
+		i, err := rd.IssueView(ctx, n)
+		if err != nil {
+			return fail(env, err)
+		}
+		row(env, strconv.Itoa(i.Number), i.Title, i.State, strings.Join(i.Labels, ","), i.Milestone)
+		fmt.Fprintf(env.Stdout, "\n%s\n", strings.TrimRight(i.Body, "\n"))
+		for _, cm := range i.Comments {
+			fmt.Fprintf(env.Stdout, "\ncomment\t%s\t%s\n%s\n", field(cm.Author), field(cm.Created), strings.TrimRight(cm.Body, "\n"))
+		}
+	case "ci failed":
+		return ciFailed(ctx, c, env, o.pos[0])
 	case "pr edit":
 		ed, ok := c.(forge.PREditor)
 		if !ok {
@@ -883,4 +957,80 @@ func readText(env Env, name string) (string, error) {
 func isNum(s string) bool {
 	n, err := strconv.Atoi(s)
 	return err == nil && n > 0
+}
+
+// listFilter builds the filter of a list verb from its flags. --label takes names separated
+// by commas, and an item must carry every one.
+func listFilter(o opts, limit int) forge.ListFilter {
+	f := forge.ListFilter{State: o.flags["state"], Milestone: o.flags["milestone"], Limit: limit}
+	for _, l := range strings.Split(o.flags["label"], ",") {
+		if l = strings.TrimSpace(l); l != "" {
+			f.Labels = append(f.Labels, l)
+		}
+	}
+	return f
+}
+
+// ciFailed prints one row for each red job of a pull request head or a commit: run id, job id,
+// job name, and the first error line of the log. It checks that each run belongs to the commit.
+func ciFailed(ctx context.Context, c forge.Client, env Env, target string) int {
+	sha := target
+	if len(target) <= 6 {
+		n, _ := strconv.Atoi(target)
+		s, err := c.PRStatus(ctx, n)
+		if err != nil {
+			return fail(env, err)
+		}
+		sha = s.HeadSHA
+	}
+	runs, err := c.CIRuns(ctx, forge.RunFilter{SHA: sha, Limit: 0})
+	if err != nil {
+		return fail(env, err)
+	}
+	for _, r := range runs {
+		if !strings.HasPrefix(r.SHA, strings.ToLower(sha)) && !strings.HasPrefix(strings.ToLower(sha), strings.ToLower(r.SHA)) {
+			fmt.Fprintf(env.Stderr, "vcs: run %d belongs to commit %s, not %s\n", r.ID, r.SHA, sha)
+			return ExitFail
+		}
+		if r.Status != "failure" && r.Status != "error" {
+			continue
+		}
+		jobs, err := c.CIJobs(ctx, r.ID)
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, j := range jobs {
+			if j.Status != "failure" && j.Status != "error" {
+				continue
+			}
+			first := ""
+			if !j.NoLog {
+				log, err := c.CILog(ctx, j.ID)
+				switch {
+				case err != nil:
+					first = "(log unreadable)"
+				default:
+					first = firstError(log)
+				}
+			}
+			row(env, strconv.FormatInt(r.ID, 10), strconv.FormatInt(j.ID, 10), j.Name, first)
+		}
+	}
+	return ExitOK
+}
+
+// firstError returns the text of the first ::error:: line of a log.
+func firstError(log string) string {
+	for _, line := range strings.Split(log, "\n") {
+		if i := strings.Index(line, "::error"); i >= 0 {
+			rest := line[i:]
+			if j := strings.Index(rest, "::"); j >= 0 {
+				if k := strings.Index(rest[j+2:], "::"); k >= 0 {
+					return strings.TrimSpace(rest[j+2+k+2:])
+				}
+			}
+			return strings.TrimSpace(rest)
+		}
+	}
+	return ""
 }
