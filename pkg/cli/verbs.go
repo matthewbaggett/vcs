@@ -226,7 +226,7 @@ var Tree = []Verb{
 		Usage:   "vcs board view <board-id>",
 		Summary: "Show the cards of one board.",
 		Output:  "One row for each card: column id, column title, item id, number, title. A column with no cards gives no row.",
-		Exits:   []string{"0 shown", "1 the call failed or the board is not found", "64 usage error", "69 no usable driver"},
+		Exits:   []string{"0 shown", "1 the call failed or the board isn't found", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "move a card with vcs board move <board-id> <column> <n>",
 			OutFail:        "get the board id again with vcs board list",
@@ -239,7 +239,7 @@ var Tree = []Verb{
 		Usage:   "vcs board add <board-id> <n>...",
 		Summary: "Put issues or pull requests on a board. Forgejo needs a web session for this.",
 		Output:  "One line: `ok`.",
-		Exits:   []string{"0 added", "1 the call failed or an issue is not found", "64 usage error", "69 no usable driver", "77 no web session, or the server no longer accepts it"},
+		Exits:   []string{"0 added", "1 the call failed or an issue isn't found", "64 usage error", "69 no usable driver", "77 no web session, or the server no longer accepts it"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "check the board id and the numbers",
@@ -253,7 +253,7 @@ var Tree = []Verb{
 		Usage:   "vcs board move <board-id> <column> <n>...",
 		Summary: "Move cards to a column, by column id or title. Forgejo needs a web session for this.",
 		Output:  "One line: `ok`.",
-		Exits:   []string{"0 moved", "1 the call failed, or the board, column or issue is not found", "64 usage error", "69 no usable driver", "77 no web session, or the server no longer accepts it"},
+		Exits:   []string{"0 moved", "1 the call failed, or the board, column or issue isn't found", "64 usage error", "69 no usable driver", "77 no web session, or the server no longer accepts it"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "read the column ids with vcs board view <board-id>",
