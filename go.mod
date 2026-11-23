@@ -4,12 +4,13 @@ go 1.27.3
 
 require (
 	git.grey.ooo/grey.ooo/lexi v0.2.1-0.20261123133525-a51b8100664f
-	github.com/vale-cli/vale/v3 v3.0.0
+	github.com/matthewbaggett/vale/v3 v3.28.2-fork.1
 	github.com/yuin/goldmark v1.8.6
 )
 
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
+	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/adrg/frontmatter v0.2.0 // indirect
 	github.com/adrg/strutil v0.3.1 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
@@ -30,6 +31,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/niklasfasching/go-org v1.7.0 // indirect
+	github.com/otiai10/copy v1.14.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.5-0.20250826075308-a0e846496753 // indirect
 	github.com/pterm/pterm v0.12.40 // indirect
 	github.com/remeh/sizedwaitgroup v1.0.0 // indirect
@@ -40,6 +42,7 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
 	golang.org/x/net v0.62.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
@@ -47,7 +50,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// Temporary. The Vale facade lives on the feat/public-facade branch of the fork. Drop this
-// replace when the facade is published. See issue 19.
-replace github.com/vale-cli/vale/v3 => github.com/matthewbaggett/vale/v3 v3.28.2-0.20261123132156-00d45fd0c371
