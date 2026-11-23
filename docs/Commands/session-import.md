@@ -1,8 +1,8 @@
-# vcs session import
+# The `vcs session import` command
 
 Keep the i_like_gitea cookie of a browser session, read from standard input. Use it for an account with a second factor.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -17,7 +17,7 @@ vcs session import < cookie-value
 ## Exit codes
 
 - 0 saved
-- 1 the server did not accept the cookie
+- 1 the server didn't accept the cookie
 - 64 usage error
 
 ## Agent hints
