@@ -1,8 +1,8 @@
-# vcs pr watch
+# The `vcs pr watch` command
 
 Poll the checks and the merge state of one pull request until both are good.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -23,8 +23,8 @@ One row each time the state changes, in the format of vcs pr status.
 
 ## Exit codes
 
-- 0 the pull request is merged, or its checks are green and its merge state is clean
-- 1 a check failed, the pull request has a conflict or is closed, the call failed, or the wait timed out
+- 0 the pull request merged, or its checks are green and its merge state is clean
+- 1 a check failed, the pull request has a conflict or closed, the call failed, or the wait timed out
 - 64 usage error
 - 69 no usable driver
 
