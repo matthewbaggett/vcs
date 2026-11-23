@@ -1,8 +1,8 @@
-# vcs ci artifacts
+# The `vcs ci artifacts` command
 
 List the artifacts of one CI run.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -12,12 +12,12 @@ vcs ci artifacts <run-id|run-address>
 
 ## Output
 
-One row for each artifact, tab-separated: artifact-id, name, uncompressed size in bytes, note. The note is `expired` for an artifact that the server removed. An empty list is not an error.
+One row for each artifact, tab-separated: artifact-id, name, uncompressed size in bytes, note. The note is `expired` for an artifact that the server removed. An empty list isn't an error.
 
 ## Exit codes
 
 - 0 printed the rows
-- 1 the call failed or the run is not found
+- 1 the call failed or the run isn't found
 - 64 usage error
 - 69 no usable driver, or the host has no artifact route
 

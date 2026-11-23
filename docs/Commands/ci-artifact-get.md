@@ -1,8 +1,8 @@
-# vcs ci artifact get
+# The `vcs ci artifact get` command
 
-Download one artifact of a CI run, or every artifact with --all. The server sends each artifact as a zip archive, and the command writes it as it is. It does not unpack it.
+Download one artifact of a CI run, or every artifact with --all. The server sends each artifact as a zip archive, and the command writes it as it is. It doesn't unpack it.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -19,13 +19,13 @@ One row for each file written, tab-separated: path, uncompressed size in bytes.
 
 | Flag | Meaning |
 |---|---|
-| `--all` | Download every artifact that has not expired. Give no name. |
+| `--all` | Download every artifact that hasn't expired. Give no name. |
 | `-o` | The file to write. The default is `<name>.zip` in the current directory, and the command refuses to replace a file that exists. With --all, the path is an existing directory that takes each `<name>.zip`. |
 
 ## Exit codes
 
 - 0 wrote the files
-- 1 the call failed, the run or the artifact is not found, the artifact expired, or a default file exists
+- 1 the call failed, the run or the artifact isn't found, the artifact expired, or a default file exists
 - 64 usage error
 - 69 no usable driver, or the host has no artifact route
 

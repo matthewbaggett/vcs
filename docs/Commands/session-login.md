@@ -1,8 +1,8 @@
-# vcs session login
+# The `vcs session login` command
 
 Sign in to the web side of the forge and keep the session. The password comes from VCS_PASSWORD, never from an argument.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -23,7 +23,7 @@ VCS_PASSWORD=... vcs session login --user <name>
 ## Exit codes
 
 - 0 signed in
-- 1 the login was refused, or the account needs a second factor
+- 1 the server refused the login, or the account needs a second factor
 - 64 usage error
 
 ## Agent hints

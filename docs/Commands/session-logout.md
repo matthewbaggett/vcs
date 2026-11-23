@@ -1,8 +1,8 @@
-# vcs session logout
+# The `vcs session logout` command
 
 Delete the kept session of this host.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
