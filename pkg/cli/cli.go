@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -78,6 +79,9 @@ func Run(ctx context.Context, args []string, env Env) int {
 	if noun != "attach" { // attach is a noun with no verb
 		name, rest = o.pos[1], o.pos[2:]
 	}
+	if noun == "ci" && name == "artifact" && len(rest) > 0 && rest[0] == "get" {
+		name, rest = "artifact get", rest[1:]
+	}
 	verb, ok := Find(noun, name)
 	if !ok {
 		fmt.Fprintf(env.Stderr, "vcs: no verb %q %q\n", noun, name)
@@ -110,15 +114,18 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true}
 
 // boolean flags take no value.
-var boolean = map[string]bool{"failed": true, "comment": true}
+var boolean = map[string]bool{"failed": true, "comment": true, "all": true}
 
 func parse(args []string) (opts, error) {
 	o := opts{flags: map[string]string{}}
 	for i := 0; i < len(args); i++ {
 		a := args[i]
+		if a == "-o" {
+			a = "--o"
+		}
 		if !strings.HasPrefix(a, "--") {
 			o.pos = append(o.pos, a)
 			continue
@@ -202,7 +209,21 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		if s := o.flags["sha"]; s != "" && !regexp.MustCompile(`^[0-9A-Fa-f]{4,64}$`).MatchString(s) {
 			return usage(env, v)
 		}
-	case "ci jobs", "ci rerun":
+	case "ci artifact get":
+		if len(o.pos) < 1 || len(o.pos) > 2 || (o.flags["all"] == "true") != (len(o.pos) == 1) {
+			return usage(env, v)
+		}
+		runArg = o.pos[0]
+		if o.flags["all"] == "true" {
+			if st, err := os.Stat(o.flags["o"]); o.flags["o"] != "" && (err != nil || !st.IsDir()) {
+				fmt.Fprintf(env.Stderr, "vcs: %s is not a directory\n", o.flags["o"])
+				return ExitUsage
+			}
+		} else if name := o.pos[1]; name == "" || name == "." || name == ".." || strings.ContainsAny(name, "/\\") {
+			fmt.Fprintln(env.Stderr, "vcs: an artifact name has no path separator")
+			return ExitUsage
+		}
+	case "ci jobs", "ci rerun", "ci artifacts":
 		if len(o.pos) != 1 {
 			return usage(env, v)
 		}
@@ -307,6 +328,9 @@ func fail(env Env, err error) int {
 	if errors.Is(err, forge.ErrNoSession) {
 		return ExitNoSession
 	}
+	if errors.Is(err, forge.ErrUnsupported) {
+		return ExitUnavailable
+	}
 	var fe *forge.Error
 	if errors.As(err, &fe) && fe.Status == 501 {
 		return ExitUnavailable
@@ -358,6 +382,28 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			}
 			row(env, strconv.FormatInt(j.ID, 10), j.Name, j.Status, strconv.Itoa(j.Attempt), note)
 		}
+		// The server ties an artifact to the run. A host without artifacts adds no row.
+		arts, err := c.CIArtifacts(ctx, id)
+		if err != nil && !errors.Is(err, forge.ErrUnsupported) {
+			fmt.Fprintf(env.Stderr, "vcs: the artifact list failed: %v\n", err)
+		}
+		for _, a := range arts {
+			row(env, append([]string{"artifact"}, artifactCols(a)...)...)
+		}
+	case "ci artifacts":
+		id, err := resolveRun(ctx, c, runIndex)
+		if err != nil {
+			return fail(env, err)
+		}
+		arts, err := c.CIArtifacts(ctx, id)
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, a := range arts {
+			row(env, artifactCols(a)...)
+		}
+	case "ci artifact get":
+		return artifactGet(ctx, c, env, o, runIndex)
 	case "ci rerun":
 		id, err := resolveRun(ctx, c, runIndex)
 		if err != nil {
@@ -487,5 +533,85 @@ func sessionVerb(ctx context.Context, v Verb, o opts, env Env) int {
 		}
 	}
 	fmt.Fprintln(env.Stdout, "ok")
+	return ExitOK
+}
+
+func artifactCols(a forge.Artifact) []string {
+	note := ""
+	if a.Expired {
+		note = "expired"
+	}
+	return []string{strconv.FormatInt(a.ID, 10), a.Name, strconv.FormatInt(a.Size, 10), note}
+}
+
+// artifactGet writes each wanted artifact as the zip the server sent. It writes no other file.
+func artifactGet(ctx context.Context, c forge.Client, env Env, o opts, runIndex int64) int {
+	id, err := resolveRun(ctx, c, runIndex)
+	if err != nil {
+		return fail(env, err)
+	}
+	arts, err := c.CIArtifacts(ctx, id)
+	if err != nil {
+		return fail(env, err)
+	}
+	all := o.flags["all"] == "true"
+	var want []forge.Artifact
+	if all {
+		for _, a := range arts {
+			if !a.Expired {
+				want = append(want, a)
+			}
+		}
+		if len(want) == 0 {
+			fmt.Fprintf(env.Stderr, "vcs: run %d has no artifact that can be downloaded\n", id)
+			return ExitFail
+		}
+	} else {
+		name := o.pos[1]
+		for _, a := range arts {
+			if a.Name == name {
+				want = append(want, a)
+			}
+		}
+		if len(want) == 0 {
+			names := make([]string, 0, len(arts))
+			for _, a := range arts {
+				names = append(names, a.Name)
+			}
+			fmt.Fprintf(env.Stderr, "vcs: run %d has no artifact named %q. It has: %s\n", id, name, strings.Join(names, ", "))
+			return ExitFail
+		}
+		if want[0].Expired {
+			fmt.Fprintf(env.Stderr, "vcs: artifact %q expired and the server removed it\n", name)
+			return ExitFail
+		}
+	}
+	for _, a := range want {
+		path, overwrite := a.Name+".zip", false
+		switch out := o.flags["o"]; {
+		case all && out != "":
+			path = filepath.Join(out, path)
+		case !all && out != "":
+			path, overwrite = out, true
+		}
+		flag := os.O_WRONLY | os.O_CREATE | os.O_EXCL
+		if overwrite {
+			flag = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+		}
+		f, err := os.OpenFile(path, flag, 0o644)
+		if err != nil {
+			fmt.Fprintf(env.Stderr, "vcs: %v\n", err)
+			return ExitFail
+		}
+		n, err := c.CIArtifactGet(ctx, a, f)
+		if cerr := f.Close(); err == nil {
+			err = cerr
+		}
+		if err != nil {
+			os.Remove(path) // never leave a half file
+			return fail(env, err)
+		}
+		row(env, path, strconv.FormatInt(n, 10))
+	}
 	return ExitOK
 }

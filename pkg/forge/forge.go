@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 )
 
 // PRStatus is the state of one pull request.
@@ -38,6 +39,14 @@ type Job struct {
 	NoLog   bool // a wrapper job that calls a reusable workflow has no log
 }
 
+// Artifact is one file bundle that a CI run uploaded. The server ties it to the run, not to a job.
+type Artifact struct {
+	ID      int64
+	Name    string
+	Size    int64
+	Expired bool
+}
+
 // RunFilter narrows a list of runs. A Limit of 0 reads every run, up to MaxRuns.
 type RunFilter struct {
 	Branch string
@@ -55,6 +64,10 @@ type Client interface {
 	CIRuns(ctx context.Context, f RunFilter) ([]Run, error)
 	CIJobs(ctx context.Context, runID int64) ([]Job, error)
 	CILog(ctx context.Context, jobID int64) (string, error)
+	// CIArtifacts lists the artifacts of one run.
+	CIArtifacts(ctx context.Context, runID int64) ([]Artifact, error)
+	// CIArtifactGet writes the zip archive of one artifact to w and returns the bytes written.
+	CIArtifactGet(ctx context.Context, a Artifact, w io.Writer) (int64, error)
 	// CIRerun restarts a run. With failedOnly it restarts the failed jobs only.
 	// It needs a web session and returns ErrNoSession without one.
 	CIRerun(ctx context.Context, runID int64, failedOnly bool) error
