@@ -1,7 +1,7 @@
 package lint
 
 import (
-	"github.com/vale-cli/vale/v3/pkg/vale"
+	"github.com/matthewbaggett/vale/v3/pkg/vale"
 )
 
 // Vale checks a text with the Vale facade, in process.

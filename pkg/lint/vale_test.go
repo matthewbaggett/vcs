@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/vale-cli/vale/v3/pkg/vale"
+	"github.com/matthewbaggett/vale/v3/pkg/vale"
 )
 
 func TestValeFindsAlert(t *testing.T) {

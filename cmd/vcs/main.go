@@ -19,7 +19,7 @@ import (
 	"git.grey.ooo/packages/vcs/pkg/forge/github"
 	"git.grey.ooo/packages/vcs/pkg/lint"
 	"git.grey.ooo/packages/vcs/pkg/session"
-	"github.com/vale-cli/vale/v3/pkg/vale"
+	"github.com/matthewbaggett/vale/v3/pkg/vale"
 )
 
 func isTTY(f *os.File) bool {
