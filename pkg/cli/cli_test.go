@@ -613,6 +613,57 @@ func TestPRMergeVerb(t *testing.T) {
 	}
 }
 
+func (f fake) MilestoneList(_ context.Context, state string) ([]forge.Milestone, error) {
+	if f.comment != nil {
+		*f.comment = "list " + state
+	}
+	return []forge.Milestone{{ID: 2, Title: "v1", State: "open", Open: 3, Closed: 1, Due: "2026-12-01"}}, f.err
+}
+func (f fake) MilestoneView(_ context.Context, ref string) (forge.Milestone, error) {
+	return forge.Milestone{ID: 2, Title: ref, State: "open", Open: 3, Closed: 1, Description: "a\nb"}, f.err
+}
+func (f fake) MilestoneCreate(_ context.Context, title, due, desc string) error {
+	if f.comment != nil {
+		*f.comment = "create " + title + "|" + due + "|" + desc
+	}
+	return f.err
+}
+
+func TestMilestoneVerbs(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	if code, out, _ := run(t, c, nil, false, "milestone", "list"); code != ExitOK || out != "2\tv1\topen\t3\t1\t2026-12-01\n" || got != "list open" {
+		t.Errorf("list: %d %q %q", code, out, got)
+	}
+	if code, _, _ := run(t, c, nil, false, "milestone", "list", "--state", "all"); code != ExitOK || got != "list all" {
+		t.Errorf("list all: %d %q", code, got)
+	}
+	if code, out, _ := run(t, c, nil, false, "milestone", "view", "v1"); code != ExitOK || out != "2\tv1\topen\t3\t1\t\ta\\nb\n" {
+		t.Errorf("view: %d %q", code, out)
+	}
+	if code, out, _ := run(t, c, nil, false, "milestone", "create", "v2", "--due", "2027-01-31", "--desc", "Next release."); code != ExitOK || out != "created\tv2\n" || got != "create v2|2027-01-31|Next release." {
+		t.Errorf("create: %d %q %q", code, out, got)
+	}
+	got = ""
+	if code, _, errb := run(t, c, nil, false, "milestone", "create", "v2", "--desc", "🤖 Generated with Claude"); code != ExitLint || got != "" || !strings.Contains(errb, "guard:") {
+		t.Errorf("credit: %d %q %q", code, got, errb)
+	}
+	for _, a := range [][]string{
+		{"milestone", "list", "x"},
+		{"milestone", "list", "--state", "weird"},
+		{"milestone", "view"},
+		{"milestone", "create"},
+		{"milestone", "create", "v2", "--due", "soon"},
+	} {
+		if code, _, _ := run(t, c, nil, false, a...); code != ExitUsage {
+			t.Errorf("%v: %d", a, code)
+		}
+	}
+	if code, _, _ := run(t, fake{err: forge.ErrNotFound}, nil, false, "milestone", "view", "nope"); code != ExitFail {
+		t.Errorf("fail: %d", code)
+	}
+}
+
 func TestBoardVerbs(t *testing.T) {
 	var got string
 	c := fake{comment: &got}

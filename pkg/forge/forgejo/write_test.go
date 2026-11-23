@@ -249,6 +249,51 @@ func TestPRMerge(t *testing.T) {
 	}
 }
 
+func TestMilestones(t *testing.T) {
+	var posted map[string]string
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/milestones"):
+			if r.URL.Query().Get("state") != "all" && r.URL.Query().Get("state") != "open" {
+				t.Errorf("state %q", r.URL.Query().Get("state"))
+			}
+			w.Write([]byte(`[{"id":2,"title":"v1","state":"open","open_issues":3,"closed_issues":1,"due_on":"2026-12-01T00:00:00Z","description":"First"},{"id":3,"title":"v0","state":"closed","open_issues":0,"closed_issues":5,"due_on":null,"description":""}]`))
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/milestones/2"):
+			w.Write([]byte(`{"id":2,"title":"v1","state":"open","open_issues":3,"closed_issues":1,"due_on":"2026-12-01T00:00:00Z","description":"First"}`))
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/milestones"):
+			b, _ := io.ReadAll(r.Body)
+			posted = nil
+			json.Unmarshal(b, &posted)
+			w.Write([]byte(`{}`))
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+	})
+	ctx := context.Background()
+	ms, err := c.MilestoneList(ctx, "open")
+	if err != nil || len(ms) != 2 || ms[0].Due != "2026-12-01" || ms[1].Due != "" || ms[0].Open != 3 {
+		t.Fatalf("list: %v %v", ms, err)
+	}
+	if m, err := c.MilestoneView(ctx, "2"); err != nil || m.Title != "v1" {
+		t.Fatalf("view by id: %v %v", m, err)
+	}
+	if m, err := c.MilestoneView(ctx, "v0"); err != nil || m.ID != 3 || m.State != "closed" {
+		t.Fatalf("view by title: %v %v", m, err)
+	}
+	if _, err := c.MilestoneView(ctx, "nope"); !errors.Is(err, forge.ErrNotFound) {
+		t.Fatalf("missing: %v", err)
+	}
+	if err := c.MilestoneCreate(ctx, "V1", "", ""); err == nil || !strings.Contains(err.Error(), "exists already") {
+		t.Fatalf("duplicate: %v", err)
+	}
+	if err := c.MilestoneCreate(ctx, "v2", "2027-01-31", "Next"); err != nil || posted["title"] != "v2" || posted["due_on"] != "2027-01-31T00:00:00Z" || posted["description"] != "Next" {
+		t.Fatalf("create: %v %v", err, posted)
+	}
+	if err := c.MilestoneCreate(ctx, "v3", "", ""); err != nil || posted["due_on"] != "" {
+		t.Fatalf("create no due: %v %v", err, posted)
+	}
+}
+
 const boardPage = `<div class="project-column" data-id="5">
 <span class="project-column-title-label">Doing</span>
 <div class="issue-card tw-x" data-issue="90">
