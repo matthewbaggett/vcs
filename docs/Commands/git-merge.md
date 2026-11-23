@@ -1,13 +1,13 @@
 # The `vcs git merge` command
 
-Merge with the guard checks: never on main, no AI credit line in a message, no hook bypass. The flags --abort, --continue and --quit skip the checks.
+Merge with the guard checks: never on main, no AI credit line in a message, no hook bypass. The flags --abort and --quit skip the checks. --continue runs only the wiring check. When the wiring check fails on a clean tree, vcs runs the merge anyway, checks again, and puts the branch back if the check still fails.
 
 The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
 ```text
-vcs git merge <git merge arguments>...
+vcs git [-C <dir>] merge <git merge arguments>...
 ```
 
 ## Output

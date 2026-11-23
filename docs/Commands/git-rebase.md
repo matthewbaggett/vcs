@@ -7,7 +7,7 @@ The command tree generates this page. Don't edit it by hand.
 ## Usage
 
 ```text
-vcs git rebase <git rebase arguments>...
+vcs git [-C <dir>] rebase <git rebase arguments>...
 ```
 
 ## Output

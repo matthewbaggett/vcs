@@ -22,12 +22,46 @@ type gitSim struct {
 	held     bool // origin holds the branch
 	hasMain  bool
 	calls    []string
-	fail     map[string]int // a call prefix to an exit code
+	fail     map[string]int   // a call prefix to an exit code
+	dir      string           // the last -C directory
+	dirty    bool             // the tree has changes
+	merging  bool             // a merge is in progress
+	scripts  map[string][]int // a project script to its successive exit codes. The last one repeats
+	ran      []string         // each project script that ran, with its arguments
 }
 
 func (s *gitSim) exec(_ context.Context, name string, args []string, stdout, _ io.Writer) int {
+	if strings.HasPrefix(name, s.top) && s.scripts != nil {
+		base := filepath.Base(name)
+		s.ran = append(s.ran, base+" "+strings.Join(args, " "))
+		codes := s.scripts[base]
+		if len(codes) == 0 {
+			return 0
+		}
+		c := codes[0]
+		if len(codes) > 1 {
+			s.scripts[base] = codes[1:]
+		}
+		return c
+	}
+	if name == "git" && len(args) >= 2 && args[0] == "-C" {
+		s.dir, args = args[1], args[2:]
+	}
 	line := name + " " + strings.Join(args, " ")
 	switch {
+	case line == "git status --porcelain --untracked-files=no":
+		if s.dirty {
+			io.WriteString(stdout, " M file\n")
+		}
+		return 0
+	case line == "git rev-parse --verify --quiet MERGE_HEAD":
+		if s.merging {
+			return 0
+		}
+		return 1
+	case line == "git rev-parse --verify --quiet HEAD":
+		io.WriteString(stdout, "abc123\n")
+		return 0
 	case line == "git symbolic-ref --quiet --short HEAD":
 		if s.branch == "" {
 			return 1
@@ -338,5 +372,107 @@ func TestGitBranchRenameRemote(t *testing.T) {
 	if code, _ := gitRunForge(t, s, r, "branch", "rename", "--remote", "fix/new"); code != ExitOK || len(r.got) != 0 ||
 		strings.Join(s.calls, "|") != "git branch -m feature/old fix/new|git push -u origin fix/new" {
 		t.Errorf("not held: %d %v", code, s.calls)
+	}
+}
+
+// scriptSim makes a project with the scripts that the test names. Each script exits as scripts says.
+func scriptSim(t *testing.T, scripts map[string][]int) *gitSim {
+	t.Helper()
+	top := t.TempDir()
+	os.MkdirAll(filepath.Join(top, ".claude"), 0o755)
+	os.MkdirAll(filepath.Join(top, "scripts"), 0o755)
+	for name := range scripts {
+		dir := "scripts"
+		if name == "check-wiring.sh" {
+			dir = ".claude"
+		}
+		os.WriteFile(filepath.Join(top, dir, name), []byte("#!/bin/sh\n"), 0o755)
+	}
+	return &gitSim{branch: "feature/x", top: top, scripts: scripts}
+}
+
+func TestGitDashC(t *testing.T) {
+	s := &gitSim{branch: "feature/x", top: t.TempDir()}
+	if code, _, _ := gitRun(t, s, "-C", "/work/repo", "commit", "-m", "A"); code != ExitOK || s.dir != "/work/repo" || s.calls[0] != "git commit -m A" {
+		t.Errorf("commit: %d dir=%q %v", code, s.dir, s.calls)
+	}
+	s = &gitSim{branch: "feature/x", top: t.TempDir()}
+	if code, _, _ := gitRun(t, s, "-C", "/work/repo", "push"); code != ExitOK || s.dir != "/work/repo" {
+		t.Errorf("push: %d dir=%q", code, s.dir)
+	}
+	for _, a := range [][]string{{"-C"}, {"-C", ""}} {
+		s = &gitSim{branch: "feature/x", top: t.TempDir()}
+		if code, _, _ := gitRun(t, s, append(a, "commit", "-m", "A")...); code != ExitUsage || len(s.calls) != 0 {
+			t.Errorf("%v: %d", a, code)
+		}
+	}
+}
+
+func TestGitBranchNameScript(t *testing.T) {
+	s := scriptSim(t, map[string][]int{"lint-branch-name.sh": {1}})
+	if code, _, errb := gitRun(t, s, "commit", "-m", "A"); code != ExitFail || len(s.calls) != 0 || !strings.Contains(errb, "lint-branch-name.sh") {
+		t.Errorf("commit: %d %v %q", code, s.calls, errb)
+	}
+	s = scriptSim(t, map[string][]int{"lint-branch-name.sh": {1}})
+	if code, _, _ := gitRun(t, s, "branch", "create", "feature/ok-name"); code != ExitFail || len(s.calls) != 0 || s.ran[0] != "lint-branch-name.sh feature/ok-name" {
+		t.Errorf("create: %d %v %v", code, s.calls, s.ran)
+	}
+	s = scriptSim(t, map[string][]int{"lint-branch-name.sh": {1}})
+	if code, _, _ := gitRun(t, s, "branch", "rename", "feature/new-name"); code != ExitFail || len(s.calls) != 0 {
+		t.Errorf("rename: %d %v", code, s.calls)
+	}
+	s = scriptSim(t, map[string][]int{"lint-branch-name.sh": {0}})
+	if code, _, _ := gitRun(t, s, "commit", "-m", "A"); code != ExitOK || s.ran[0] != "lint-branch-name.sh feature/x" {
+		t.Errorf("pass: %d %v", code, s.ran)
+	}
+}
+
+func TestGitMergeWiringRetry(t *testing.T) {
+	// The wiring fails, then passes after the merge. The merge stays.
+	s := scriptSim(t, map[string][]int{"check-wiring.sh": {1, 0}})
+	code, out, errb := gitRun(t, s, "merge", "origin/main")
+	if code != ExitOK || s.calls[0] != "git merge origin/main" || len(s.calls) != 1 || !strings.Contains(out, "wiring (after the merge): ok") || !strings.Contains(errb, "runs the merge") {
+		t.Errorf("heals: %d %v %q %q", code, s.calls, out, errb)
+	}
+	// The wiring still fails after the merge. The branch goes back.
+	s = scriptSim(t, map[string][]int{"check-wiring.sh": {1}})
+	if code, _, errb := gitRun(t, s, "merge", "origin/main"); code != ExitFail || len(s.calls) != 2 || s.calls[1] != "git reset -q --hard abc123" || !strings.Contains(errb, "still fails") {
+		t.Errorf("still fails: %d %v %q", code, s.calls, errb)
+	}
+	// A dirty tree can't take the trial merge.
+	s = scriptSim(t, map[string][]int{"check-wiring.sh": {1}})
+	s.dirty = true
+	if code, _, _ := gitRun(t, s, "merge", "origin/main"); code != ExitFail || len(s.calls) != 0 {
+		t.Errorf("dirty: %d %v", code, s.calls)
+	}
+	s = scriptSim(t, map[string][]int{"check-wiring.sh": {1}})
+	s.merging = true
+	if code, _, _ := gitRun(t, s, "merge", "origin/main"); code != ExitFail || len(s.calls) != 0 {
+		t.Errorf("in merge: %d %v", code, s.calls)
+	}
+	// A failed merge keeps its exit code, and nothing resets.
+	s = scriptSim(t, map[string][]int{"check-wiring.sh": {1}})
+	s.fail = map[string]int{"git merge": 1}
+	if code, _, _ := gitRun(t, s, "merge", "origin/main"); code != ExitFail || len(s.calls) != 1 {
+		t.Errorf("conflict: %d %v", code, s.calls)
+	}
+	// A good wiring check merges once, with no retry.
+	s = scriptSim(t, map[string][]int{"check-wiring.sh": {0}})
+	if code, out, _ := gitRun(t, s, "merge", "origin/main"); code != ExitOK || strings.Contains(out, "after the merge") || len(s.ran) != 1 {
+		t.Errorf("good: %d %q %v", code, out, s.ran)
+	}
+	// --continue runs the wiring check, and refuses when it fails.
+	s = scriptSim(t, map[string][]int{"check-wiring.sh": {1}})
+	if code, _, _ := gitRun(t, s, "merge", "--continue"); code != ExitFail || len(s.calls) != 0 {
+		t.Errorf("continue fail: %d %v", code, s.calls)
+	}
+	s = scriptSim(t, map[string][]int{"check-wiring.sh": {0}})
+	if code, _, _ := gitRun(t, s, "merge", "--continue"); code != ExitOK || s.calls[0] != "git merge --continue" {
+		t.Errorf("continue: %d %v", code, s.calls)
+	}
+	// --abort skips every check.
+	s = scriptSim(t, map[string][]int{"check-wiring.sh": {1}})
+	if code, _, _ := gitRun(t, s, "merge", "--abort"); code != ExitOK || len(s.ran) != 0 {
+		t.Errorf("abort: %d %v", code, s.ran)
 	}
 }

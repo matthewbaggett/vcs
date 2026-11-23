@@ -593,8 +593,8 @@ var Tree = []Verb{
 	},
 	{
 		Noun: "git", Name: "commit", Sends: true,
-		Usage:   "vcs git commit <git commit arguments>...",
-		Summary: "Commit with the guard checks. It refuses a hook bypass, a commit on main, a bad branch name, and an AI credit line. It runs the prose lint and the project checks. Then it runs git commit.",
+		Usage:   "vcs git [-C <dir>] commit <git commit arguments>...",
+		Summary: "Commit with the guard checks. It refuses a hook bypass, a commit on main, a bad branch name, and an AI credit line. It runs the prose lint, the project's scripts/lint-branch-name.sh, and the project checks. Then it runs git commit. A leading -C <dir> works as it does for git.",
 		Output:  "The whole output of git commit, after one line for each check.",
 		Exits:   []string{"0 committed", "1 a check or git failed", "64 usage error, or a refused flag", "65 the message has a credit line or fails the prose lint", "69 this build can't run git"},
 		Hints: map[string]string{
@@ -607,7 +607,7 @@ var Tree = []Verb{
 	},
 	{
 		Noun: "git", Name: "push",
-		Usage:   "vcs git push [<git push arguments>...]",
+		Usage:   "vcs git [-C <dir>] push [<git push arguments>...]",
 		Summary: "Push with the guard checks: never a force-push, never a hook bypass. With no arguments it pushes the current branch, and sets the upstream when the branch has none that carries its name.",
 		Output:  "The whole output of git push, after one line for each check.",
 		Exits:   []string{"0 pushed", "1 a check or git failed", "64 usage error, or a refused flag", "69 this build can't run git"},
@@ -620,8 +620,8 @@ var Tree = []Verb{
 	},
 	{
 		Noun: "git", Name: "merge", Sends: true,
-		Usage:   "vcs git merge <git merge arguments>...",
-		Summary: "Merge with the guard checks: never on main, no AI credit line in a message, no hook bypass. The flags --abort, --continue and --quit skip the checks.",
+		Usage:   "vcs git [-C <dir>] merge <git merge arguments>...",
+		Summary: "Merge with the guard checks: never on main, no AI credit line in a message, no hook bypass. The flags --abort and --quit skip the checks. --continue runs only the wiring check. When the wiring check fails on a clean tree, vcs runs the merge anyway, checks again, and puts the branch back if the check still fails.",
 		Output:  "The whole output of git merge, after one line for each check.",
 		Exits:   []string{"0 merged", "1 a check, a conflict, or git failed", "64 usage error, or a refused flag", "65 the message fails", "69 this build can't run git"},
 		Hints: map[string]string{
@@ -634,7 +634,7 @@ var Tree = []Verb{
 	},
 	{
 		Noun: "git", Name: "rebase",
-		Usage:   "vcs git rebase <git rebase arguments>...",
+		Usage:   "vcs git [-C <dir>] rebase <git rebase arguments>...",
 		Summary: "Rebase a branch that origin doesn't hold yet. It refuses a branch that origin holds, because that needs a force-push. It refuses an interactive rebase.",
 		Output:  "The whole output of git rebase, after one line for each check.",
 		Exits:   []string{"0 rebased", "1 a check or git failed", "64 usage error, or a refused flag", "69 this build can't run git"},
@@ -647,7 +647,7 @@ var Tree = []Verb{
 	},
 	{
 		Noun: "git", Name: "branch",
-		Usage:   "vcs git branch create|switch|rename|delete|list <args>...",
+		Usage:   "vcs git [-C <dir>] branch create|switch|rename|delete|list <args>...",
 		Summary: "Make, switch, rename, delete, or list branches. create checks the name with the type/short-description rule, and starts from origin/main unless you name a start point. rename --remote also renames the branch on the server, when the driver can. An open pull request keeps its number. delete refuses the default branch and the current one.",
 		Output:  "The whole output of the git command.",
 		Exits:   []string{"0 done", "1 a check or git failed", "64 usage error", "69 this build can't run git, or the driver has no branch rename"},
