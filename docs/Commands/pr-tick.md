@@ -14,6 +14,16 @@ vcs pr tick [--dry-run]
 
 One row for each pull request that needs attention: a word, the number, the head sha. The words: `MERGED`, `MERGED-BUT-NOT-LANDED`, `MERGE-FAILED`, `RED`, `NOT-MERGEABLE` (with ci=<state>), `DRAFT-GREEN`, `DRAFT-RED`, and `WOULD-MERGE`. With nothing to report, it prints `QUIET`.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs pr tick --dry-run
+WOULD-MERGE	12	5888000a1bc3
+DRAFT-RED	13	29a8b0f4c2d1
+```
+
 ## Flags
 
 | Flag | Meaning |

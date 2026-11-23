@@ -14,6 +14,15 @@ vcs label create <name> <color> [--desc <text>]
 
 One row: `created` and the name.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs label create ci 5319e7 --desc "Build and test"
+created	ci
+```
+
 ## Flags
 
 | Flag | Meaning |

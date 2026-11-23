@@ -14,6 +14,16 @@ vcs site gen <source> <dir>
 
 One line for each file written.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs site gen docs/Site site
+index.html
+commands/pr-status.html
+```
+
 ## Exit codes
 
 - 0 built the site

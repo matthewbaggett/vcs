@@ -18,6 +18,12 @@
 </code></pre>
 <h2 id="output">Output</h2>
 <p><code>ensure</code> prints <code>created</code> or <code>exists</code>. <code>add</code> prints <code>ok</code>. <code>remove</code> prints <code>ok</code>, or <code>absent</code> when the pull request has no mark. <code>sweep</code> prints one row for each mark it cleared: <code>cleared</code>, the number, and the reason (<code>closed</code>, <code>no-worker</code>, or <code>healthy</code>).</p>
+<h2 id="example">Example</h2>
+<p>The output below is an example with made-up data, not a real run.</p>
+<pre><code class="language-text">$ vcs pr heal sweep --live 12,13
+cleared	9	closed
+cleared	10	no-worker
+</code></pre>
 <h2 id="flags">Flags</h2>
 <table>
 <thead>

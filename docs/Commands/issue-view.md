@@ -14,6 +14,20 @@ vcs issue view <n>
 
 A first row, tab-separated: number, title, state, labels, milestone. Then a blank line and the body. Then each comment: a blank line, a row of `comment`, the writer, and the date, and the text.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs issue view 14
+14	Fix the retry	open	bug	v1.2
+
+The client gives up after one failed call.
+
+comment	maria	2026-11-20
+I can reproduce this.
+```
+
 ## Exit codes
 
 - 0 printed the issue

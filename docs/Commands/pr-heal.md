@@ -14,6 +14,16 @@ vcs pr heal ensure | add <n> | remove <n> | sweep --live <n,n,...|none>
 
 `ensure` prints `created` or `exists`. `add` prints `ok`. `remove` prints `ok`, or `absent` when the pull request has no mark. `sweep` prints one row for each mark it cleared: `cleared`, the number, and the reason (`closed`, `no-worker`, or `healthy`).
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs pr heal sweep --live 12,13
+cleared	9	closed
+cleared	10	no-worker
+```
+
 ## Flags
 
 | Flag | Meaning |

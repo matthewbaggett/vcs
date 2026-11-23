@@ -14,6 +14,15 @@ vcs milestone view <id|title>
 
 One row: id, title, state, open issues, closed issues, due date, description. The description fits on one line, and each newline shows as the two characters \n.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs milestone view v1.2
+3	v1.2	open	4	11	2026-12-01	The retry release.
+```
+
 ## Exit codes
 
 - 0 shown

@@ -18,6 +18,12 @@
 </code></pre>
 <h2 id="output">Output</h2>
 <p>One row for each pull request, tab-separated: number, title, head branch, base branch, mergeable, ci, labels, milestone. The ci column is empty unless you pass --ci. Labels are comma-separated.</p>
+<h2 id="example">Example</h2>
+<p>The output below is an example with made-up data, not a real run.</p>
+<pre><code class="language-text">$ vcs pr list --state open --ci
+12	Add the retry	fix/retry	main	true	success	bug	v1.2
+15	Docs for the board	docs/board	main	true	pending		
+</code></pre>
 <h2 id="flags">Flags</h2>
 <table>
 <thead>

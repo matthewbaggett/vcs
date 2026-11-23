@@ -18,6 +18,9 @@ func Pages() map[string]string {
 		b.WriteString("The command tree generates this page. Don't edit it by hand.\n\n")
 		fmt.Fprintf(&b, "## Usage\n\n```text\n%s\n```\n\n", v.Usage)
 		fmt.Fprintf(&b, "## Output\n\n%s\n\n", v.Output)
+		if ex := Examples[v.Key()]; ex != "" {
+			fmt.Fprintf(&b, "## Example\n\nThe output below is an example with made-up data, not a real run.\n\n```text\n%s\n```\n\n", ex)
+		}
 		if len(v.Flags) > 0 {
 			b.WriteString("## Flags\n\n| Flag | Meaning |\n|---|---|\n")
 			for _, f := range v.Flags {

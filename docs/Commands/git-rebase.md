@@ -14,6 +14,16 @@ vcs git [-C <dir>] rebase <git rebase arguments>...
 
 The whole output of git rebase, after one line for each check.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs git rebase origin/main
+vcs: check not-default-branch: ok
+Successfully rebased and updated refs/heads/fix/retry.
+```
+
 ## Exit codes
 
 - 0 rebased

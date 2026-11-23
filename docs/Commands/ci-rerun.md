@@ -14,6 +14,15 @@ vcs ci rerun <run-id|run-address> [--failed]
 
 One row: `rerun` and the run-id.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs ci rerun 331 --failed
+rerun	331
+```
+
 ## Flags
 
 | Flag | Meaning |

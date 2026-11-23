@@ -14,6 +14,15 @@ VCS_PASSWORD=... vcs session login --user <name>
 
 `ok`.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ VCS_PASSWORD=... vcs session login --user maria
+ok
+```
+
 ## Flags
 
 | Flag | Meaning |

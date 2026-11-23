@@ -14,6 +14,15 @@ vcs session import < cookie-value
 
 `ok`.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs session import < cookie-value
+ok
+```
+
 ## Exit codes
 
 - 0 saved

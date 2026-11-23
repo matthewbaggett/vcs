@@ -14,6 +14,16 @@ vcs git [-C <dir>] merge <git merge arguments>...
 
 The whole output of git merge, after one line for each check.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs git merge origin/main
+vcs: check not-default-branch: ok
+Already up to date.
+```
+
 ## Exit codes
 
 - 0 merged

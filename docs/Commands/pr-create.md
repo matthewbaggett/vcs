@@ -14,6 +14,15 @@ vcs pr create <title> --head <branch> [--base <branch>] (--body <text> | --body-
 
 One row: the number and the web address.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs pr create "Add the retry" --head fix/retry --body-file body.md --draft
+13	https://forge.example/acme/app/pulls/13
+```
+
 ## Flags
 
 | Flag | Meaning |

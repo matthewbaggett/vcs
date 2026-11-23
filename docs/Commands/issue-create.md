@@ -14,6 +14,15 @@ vcs issue create <title> (--body <text> | --body-file <path>)
 
 One row: the number and the web address.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs issue create "Fix the retry" --body-file body.md
+14	https://forge.example/acme/app/issues/14
+```
+
 ## Flags
 
 | Flag | Meaning |

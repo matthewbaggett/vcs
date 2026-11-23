@@ -14,6 +14,15 @@ vcs pr ready <n>
 
 One line: `ready` and the number.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs pr ready 13
+ready 13
+```
+
 ## Exit codes
 
 - 0 ready

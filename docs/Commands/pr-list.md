@@ -14,6 +14,16 @@ vcs pr list [--state open|closed|all] [--label <name,name>] [--milestone <title>
 
 One row for each pull request, tab-separated: number, title, head branch, base branch, mergeable, ci, labels, milestone. The ci column is empty unless you pass --ci. Labels are comma-separated.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs pr list --state open --ci
+12	Add the retry	fix/retry	main	true	success	bug	v1.2
+15	Docs for the board	docs/board	main	true	pending		
+```
+
 ## Flags
 
 | Flag | Meaning |

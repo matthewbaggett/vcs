@@ -15,6 +15,15 @@ vcs ci artifact get <run-id|run-address> <name> [-o <path>]
 
 One row for each file written, tab-separated: path, uncompressed size in bytes.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs ci artifact get 331 coverage -o out/coverage.txt
+out/coverage.txt	20480
+```
+
 ## Flags
 
 | Flag | Meaning |

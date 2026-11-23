@@ -14,6 +14,17 @@ vcs ci jobs <run-id|run-address>
 
 One row for each job, tab-separated: job-id, name, status, attempt, note. The note is `no-log` on a wrapper job. When the run made artifacts, one row follows for each artifact: `artifact`, artifact-id, name, uncompressed size in bytes, note. The note is `expired` for an artifact that the server removed. The server ties an artifact to the run, not to a job, so these rows come after all the job rows.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs ci jobs 331
+902	gate	failure	1	
+903	publish	skipped	1	no-log
+artifact	77	coverage	20480	
+```
+
 ## Exit codes
 
 - 0 printed the rows

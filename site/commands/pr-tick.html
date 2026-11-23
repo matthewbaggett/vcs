@@ -18,6 +18,12 @@
 </code></pre>
 <h2 id="output">Output</h2>
 <p>One row for each pull request that needs attention: a word, the number, the head sha. The words: <code>MERGED</code>, <code>MERGED-BUT-NOT-LANDED</code>, <code>MERGE-FAILED</code>, <code>RED</code>, <code>NOT-MERGEABLE</code> (with ci=<state>), <code>DRAFT-GREEN</code>, <code>DRAFT-RED</code>, and <code>WOULD-MERGE</code>. With nothing to report, it prints <code>QUIET</code>.</p>
+<h2 id="example">Example</h2>
+<p>The output below is an example with made-up data, not a real run.</p>
+<pre><code class="language-text">$ vcs pr tick --dry-run
+WOULD-MERGE	12	5888000a1bc3
+DRAFT-RED	13	29a8b0f4c2d1
+</code></pre>
 <h2 id="flags">Flags</h2>
 <table>
 <thead>

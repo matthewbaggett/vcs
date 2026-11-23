@@ -14,6 +14,17 @@ vcs ci log <job-id> [--tail <n>]
 
 The plain log text. The command strips terminal colour codes and nothing else.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs ci log 902 --tail 3
+go vet ./...
+pkg/cli/cli.go:41:2: unreachable code
+Error: Process completed with exit code 1.
+```
+
 ## Flags
 
 | Flag | Meaning |

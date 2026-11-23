@@ -14,6 +14,16 @@ vcs label list
 
 One row for each label, tab-separated: id, name, color, description.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs label list
+1	bug	d73a4a	Something is broken
+2	docs	0075ca	Documentation
+```
+
 ## Exit codes
 
 - 0 listed

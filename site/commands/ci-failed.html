@@ -18,6 +18,11 @@
 </code></pre>
 <h2 id="output">Output</h2>
 <p>One row for each red job, tab-separated: run-id, job-id, job-name, first error. The first error is the text of the first <code>::error::</code> line. The column is blank when the log has none, and <code>(log unreadable)</code> when the read failed. A wrapper job has no log and a blank column.</p>
+<h2 id="example">Example</h2>
+<p>The output below is an example with made-up data, not a real run.</p>
+<pre><code class="language-text">$ vcs ci failed 12
+331	902	gate	go vet found a problem in pkg/cli/cli.go
+</code></pre>
 <h2 id="exit-codes">Exit codes</h2>
 <ul>
 <li>0 printed the rows (a commit with no red job prints nothing)</li>

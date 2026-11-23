@@ -18,6 +18,13 @@
 </code></pre>
 <h2 id="output">Output</h2>
 <p>The plain log text. The command strips terminal colour codes and nothing else.</p>
+<h2 id="example">Example</h2>
+<p>The output below is an example with made-up data, not a real run.</p>
+<pre><code class="language-text">$ vcs ci log 902 --tail 3
+go vet ./...
+pkg/cli/cli.go:41:2: unreachable code
+Error: Process completed with exit code 1.
+</code></pre>
 <h2 id="flags">Flags</h2>
 <table>
 <thead>

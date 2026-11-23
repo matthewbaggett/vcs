@@ -14,6 +14,18 @@ vcs git [-C <dir>] commit <git commit arguments>...
 
 The whole output of git commit, after one line for each check.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs git commit -m "Add the retry"
+vcs: check not-default-branch: ok
+vcs: check attribution: ok
+[fix/retry 29a8b0f] Add the retry
+ 2 files changed, 18 insertions(+)
+```
+
 ## Exit codes
 
 - 0 committed

@@ -14,6 +14,15 @@ vcs milestone create <title> [--due <date>] [--desc <text>]
 
 One row: `created` and the title.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs milestone create v1.4 --due 2027-01-31
+created	v1.4
+```
+
 ## Flags
 
 | Flag | Meaning |

@@ -14,6 +14,16 @@ vcs issue list [--state open|closed|all] [--label <name,name>] [--milestone <tit
 
 One row for each issue, tab-separated: number, title, state, labels, milestone. Labels are comma-separated.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs issue list --state open --limit 2
+14	Fix the retry	open	bug	v1.2
+16	Add the board	open		
+```
+
 ## Flags
 
 | Flag | Meaning |
