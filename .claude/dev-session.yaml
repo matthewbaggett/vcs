@@ -1,0 +1,55 @@
+# The room file for the /dev-session skill. See docs/Topics/Dev-Session.md in agent-standards.
+project: vcs
+workspace: ~/Projects/Grey.ooo
+main_checkout: <workspace>/vcs
+handoff: docs/HANDOFF.md
+rules_file: CLAUDE.md
+read_first:
+  - docs/Plans/vcs-go-cli.md
+gate: |
+  test -z "$(gofmt -l .)" && go vet ./... && go test ./...
+  # Chain the commands. A session reads the exit code, never a count or a pipe.
+
+limits: |
+  Run at most one heavy job at a time. Check `uptime` first, and wait while the load is high.
+project_rules: |
+  Forgejo is canonical. Never push to the GitHub mirror.
+  Each build-order step of docs/Plans/vcs-go-cli.md is one issue and one pull request.
+  A new verb needs a hint table entry for agents, a test, and a page in the generated docs.
+
+merger:
+  enabled: false
+
+watch_interval: 10m
+idle_limit: 15m
+
+repos:
+  - name: packages/vcs
+    short: vcs
+    path: <workspace>/vcs
+
+sessions:
+  - key: lead
+    role: lead
+    title: "vcs: development (lead)"
+    repo: packages/vcs
+    use_worktree: true
+    source_branch: main
+    context: fresh
+    start: always
+    brief: lead
+    notes: |
+      Work: the open issues of packages/vcs, in the build order of docs/Plans/vcs-go-cli.md.
+
+  - key: patrol
+    role: patrol
+    title: "vcs: patrol (pr-patrol + triage-loop)"
+    cwd: <workspace>/vcs
+    use_worktree: false
+    context: fresh
+    start: always
+    brief: patrol
+    interval: 60m
+    workers: true
+    repos:
+      - packages/vcs

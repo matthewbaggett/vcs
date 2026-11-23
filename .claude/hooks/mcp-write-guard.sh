@@ -1,0 +1,1 @@
+../agent-standards/hooks/mcp-write-guard.sh
