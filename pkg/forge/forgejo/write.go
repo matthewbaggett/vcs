@@ -265,6 +265,48 @@ func (c *Client) PREdit(ctx context.Context, n int, in forge.PREdit) error {
 	return err
 }
 
+var _ forge.PRMerger = (*Client)(nil)
+
+// PRMerge merges a pull request. A refused merge reports that the pull request is merged
+// already, when it is, because that is the one refusal the caller can act on.
+func (c *Client) PRMerge(ctx context.Context, n int, in forge.PRMerge) error {
+	method := in.Method
+	if method == "" {
+		method = "merge"
+	}
+	path := fmt.Sprintf("repos/%s/pulls/%d", c.cfg.Repo, n)
+	payload := map[string]any{"Do": method}
+	if in.DeleteBranch {
+		payload["delete_branch_after_merge"] = true
+	}
+	raw, _ := json.Marshal(payload)
+	post, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+"/api/v1/"+path+"/merge", bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	post.Header.Set("Content-Type", "application/json")
+	c.authorize(post)
+	if _, err = c.send(post, path+"/merge"); err == nil {
+		return nil
+	}
+	get, gerr := http.NewRequestWithContext(ctx, http.MethodGet, c.cfg.BaseURL+"/api/v1/"+path, nil)
+	if gerr != nil {
+		return err
+	}
+	c.authorize(get)
+	body, gerr := c.send(get, path)
+	if gerr != nil {
+		return err
+	}
+	var pr struct {
+		Merged bool `json:"merged"`
+	}
+	if json.Unmarshal(body, &pr) == nil && pr.Merged {
+		return fmt.Errorf("pull request %d is merged already", n)
+	}
+	return err
+}
+
 // PRReady removes the WIP: prefix from the title, which takes the pull request out of draft.
 func (c *Client) PRReady(ctx context.Context, n int) error {
 	path := fmt.Sprintf("repos/%s/pulls/%d", c.cfg.Repo, n)
