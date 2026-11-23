@@ -14,6 +14,15 @@ vcs comment add <n> (--body <text> | --body-file <path>)
 
 One line: `comment posted`.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs comment add 14 --body "Fixed in the pull request."
+comment posted
+```
+
 ## Flags
 
 | Flag | Meaning |

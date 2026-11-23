@@ -14,6 +14,15 @@ vcs time list [<n>] [--mine]
 
 One row for each entry: id, user, seconds, created, issue number.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs time list 14
+8	maria	5400	2026-11-20T10:00:00Z	14
+```
+
 ## Flags
 
 | Flag | Meaning |

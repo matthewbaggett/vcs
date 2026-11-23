@@ -14,6 +14,15 @@ vcs git [-C <dir>] branch create|switch|rename|delete|list <args>...
 
 The whole output of the git command.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs git branch create fix/retry origin/main
+Switched to a new branch 'fix/retry'
+```
+
 ## Exit codes
 
 - 0 done

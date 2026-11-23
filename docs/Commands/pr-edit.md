@@ -14,6 +14,15 @@ vcs pr edit <n> [--title <text>] [--body <text> | --body-file <path>]
 
 One line: `edited` and the number.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs pr edit 13 --title "Add the retry loop"
+edited 13
+```
+
 ## Flags
 
 | Flag | Meaning |

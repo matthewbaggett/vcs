@@ -14,6 +14,15 @@ vcs session logout
 
 `ok`.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs session logout
+ok
+```
+
 ## Exit codes
 
 - 0 deleted, or there was none

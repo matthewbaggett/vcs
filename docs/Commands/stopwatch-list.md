@@ -14,6 +14,15 @@ vcs stopwatch list [--check]
 
 One row for each stopwatch: repository, issue, seconds, created.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs stopwatch list
+acme/app	14	1260	2026-11-23T09:12:00Z
+```
+
 ## Flags
 
 | Flag | Meaning |

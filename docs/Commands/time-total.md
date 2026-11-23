@@ -14,6 +14,15 @@ vcs time total [<n>] [--mine]
 
 One row: seconds, then the total as 1h25m0s.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs time total 14
+5400	1h30m0s
+```
+
 ## Flags
 
 | Flag | Meaning |

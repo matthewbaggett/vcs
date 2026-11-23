@@ -14,6 +14,15 @@ vcs board add <board-id> <n>...
 
 One line: `ok`.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs board add 5 16 17
+ok
+```
+
 ## Exit codes
 
 - 0 added

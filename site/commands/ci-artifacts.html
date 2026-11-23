@@ -18,6 +18,12 @@
 </code></pre>
 <h2 id="output">Output</h2>
 <p>One row for each artifact, tab-separated: artifact-id, name, uncompressed size in bytes, note. The note is <code>expired</code> for an artifact that the server removed. An empty list isn't an error.</p>
+<h2 id="example">Example</h2>
+<p>The output below is an example with made-up data, not a real run.</p>
+<pre><code class="language-text">$ vcs ci artifacts 331
+77	coverage	20480	
+78	binaries	5242880	expired
+</code></pre>
 <h2 id="exit-codes">Exit codes</h2>
 <ul>
 <li>0 printed the rows</li>

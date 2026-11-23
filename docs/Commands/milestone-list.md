@@ -14,6 +14,16 @@ vcs milestone list [--state open|closed|all]
 
 One row for each milestone, tab-separated: id, title, state, open issues, closed issues, due date. The due date looks like 2026-12-01, or the field is empty.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs milestone list --state open
+3	v1.2	open	4	11	2026-12-01
+4	v1.3	open	9	0	
+```
+
 ## Flags
 
 | Flag | Meaning |

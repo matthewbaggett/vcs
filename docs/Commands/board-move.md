@@ -14,6 +14,15 @@ vcs board move <board-id> <column> <n>...
 
 One line: `ok`.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs board move 5 Doing 16
+ok
+```
+
 ## Exit codes
 
 - 0 moved

@@ -18,6 +18,13 @@
 </code></pre>
 <h2 id="output">Output</h2>
 <p>One row for each job, tab-separated: job-id, name, status, attempt, note. The note is <code>no-log</code> on a wrapper job. When the run made artifacts, one row follows for each artifact: <code>artifact</code>, artifact-id, name, uncompressed size in bytes, note. The note is <code>expired</code> for an artifact that the server removed. The server ties an artifact to the run, not to a job, so these rows come after all the job rows.</p>
+<h2 id="example">Example</h2>
+<p>The output below is an example with made-up data, not a real run.</p>
+<pre><code class="language-text">$ vcs ci jobs 331
+902	gate	failure	1	
+903	publish	skipped	1	no-log
+artifact	77	coverage	20480	
+</code></pre>
 <h2 id="exit-codes">Exit codes</h2>
 <ul>
 <li>0 printed the rows</li>

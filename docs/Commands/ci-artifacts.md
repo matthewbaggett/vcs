@@ -14,6 +14,16 @@ vcs ci artifacts <run-id|run-address>
 
 One row for each artifact, tab-separated: artifact-id, name, uncompressed size in bytes, note. The note is `expired` for an artifact that the server removed. An empty list isn't an error.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs ci artifacts 331
+77	coverage	20480	
+78	binaries	5242880	expired
+```
+
 ## Exit codes
 
 - 0 printed the rows

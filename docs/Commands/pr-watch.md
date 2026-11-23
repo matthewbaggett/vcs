@@ -14,6 +14,16 @@ vcs pr watch <n> [--interval <seconds>] [--timeout <seconds>]
 
 One row each time the state changes, in the format of vcs pr status.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs pr watch 12 --interval 30
+open	true	true	0	pending	29a8b0f4c2d1	https://forge.example/acme/app/pulls/12
+open	false	true	0	success	29a8b0f4c2d1	https://forge.example/acme/app/pulls/12
+```
+
 ## Flags
 
 | Flag | Meaning |

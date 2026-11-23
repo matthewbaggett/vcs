@@ -14,6 +14,15 @@ vcs ci failed <pr-number|sha>
 
 One row for each red job, tab-separated: run-id, job-id, job-name, first error. The first error is the text of the first `::error::` line. The column is blank when the log has none, and `(log unreadable)` when the read failed. A wrapper job has no log and a blank column.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs ci failed 12
+331	902	gate	go vet found a problem in pkg/cli/cli.go
+```
+
 ## Exit codes
 
 - 0 printed the rows (a commit with no red job prints nothing)

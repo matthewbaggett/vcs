@@ -14,6 +14,15 @@ vcs label rename <id> <name>
 
 One row: `renamed`, the id, and the new name.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs label rename 2 documentation
+renamed	2	documentation
+```
+
 ## Exit codes
 
 - 0 renamed

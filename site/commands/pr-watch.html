@@ -18,6 +18,12 @@
 </code></pre>
 <h2 id="output">Output</h2>
 <p>One row each time the state changes, in the format of vcs pr status.</p>
+<h2 id="example">Example</h2>
+<p>The output below is an example with made-up data, not a real run.</p>
+<pre><code class="language-text">$ vcs pr watch 12 --interval 30
+open	true	true	0	pending	29a8b0f4c2d1	https://forge.example/acme/app/pulls/12
+open	false	true	0	success	29a8b0f4c2d1	https://forge.example/acme/app/pulls/12
+</code></pre>
 <h2 id="flags">Flags</h2>
 <table>
 <thead>

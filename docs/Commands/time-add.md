@@ -14,6 +14,15 @@ vcs time add <n> <duration>
 
 One row: `ok`, the new total in seconds, and the new total as 1h25m0s. If vcs can't read the total, one line `ok`.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs time add 14 1h30m
+ok	5400	1h30m0s
+```
+
 ## Exit codes
 
 - 0 logged

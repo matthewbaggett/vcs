@@ -14,6 +14,16 @@ vcs board view <board-id>
 
 One row for each card: column id, column title, item id, number, title. A column with no cards gives no row.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs board view 5
+11	To do	201	16	Add the board
+12	Doing	202	14	Fix the retry
+```
+
 ## Exit codes
 
 - 0 shown

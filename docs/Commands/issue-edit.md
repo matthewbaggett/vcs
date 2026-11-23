@@ -14,6 +14,15 @@ vcs issue edit <n> [--title <text>] [--body <text> | --body-file <path>] [--stat
 
 One line: `edited` and the number.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs issue edit 14 --state closed --add-label done
+edited 14
+```
+
 ## Flags
 
 | Flag | Meaning |

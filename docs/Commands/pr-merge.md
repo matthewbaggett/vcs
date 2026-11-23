@@ -14,6 +14,15 @@ vcs pr merge <n> [--method merge|rebase|rebase-merge|squash] [--delete-branch]
 
 One line: `merged` and the number.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs pr merge 13 --method squash
+merged 13
+```
+
 ## Flags
 
 | Flag | Meaning |

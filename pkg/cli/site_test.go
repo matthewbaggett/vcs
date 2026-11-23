@@ -52,6 +52,30 @@ func TestSiteHasPageForEachVerb(t *testing.T) {
 	}
 }
 
+// Each verb page shows an example, and each example belongs to a verb.
+func TestEachVerbHasExample(t *testing.T) {
+	files, err := BuildSite(filepath.Join("..", "..", "docs", "Site"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := map[string]bool{}
+	for _, v := range Tree {
+		keys[v.Key()] = true
+		if strings.TrimSpace(Examples[v.Key()]) == "" {
+			t.Errorf("verb %q has no example", v.Key())
+		}
+		p := "commands/" + strings.ReplaceAll(v.Key(), " ", "-") + ".html"
+		if !strings.Contains(string(files[p]), `>Example</h2>`) {
+			t.Errorf("%s shows no example", p)
+		}
+	}
+	for k := range Examples {
+		if !keys[k] {
+			t.Errorf("example %q has no verb", k)
+		}
+	}
+}
+
 func TestSiteGenUsage(t *testing.T) {
 	if code, _, _ := run(t, fake{}, nil, true, "site", "gen", "only-one"); code != ExitUsage {
 		t.Errorf("exit %d, want 64", code)

@@ -14,6 +14,17 @@ vcs git [-C <dir>] push [<git push arguments>...]
 
 The whole output of git push, after one line for each check.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs git push
+vcs: check not-default-branch: ok
+To forge.example:acme/app.git
+ * [new branch]      fix/retry -> fix/retry
+```
+
 ## Exit codes
 
 - 0 pushed

@@ -14,6 +14,16 @@ vcs attach <n> <file>... [--comment] [--title <text>]
 
 One row for each file: name, download address. With --comment, a last line `comment posted`.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs attach 14 trace.png --comment
+trace.png	https://forge.example/attachments/6f1c2a
+comment posted
+```
+
 ## Flags
 
 | Flag | Meaning |

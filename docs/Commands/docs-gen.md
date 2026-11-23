@@ -14,6 +14,16 @@ vcs docs gen <dir>
 
 One line for each page written.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs docs gen docs/Commands
+pr-status.md
+pr-create.md
+```
+
 ## Exit codes
 
 - 0 wrote the pages

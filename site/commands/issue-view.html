@@ -18,6 +18,16 @@
 </code></pre>
 <h2 id="output">Output</h2>
 <p>A first row, tab-separated: number, title, state, labels, milestone. Then a blank line and the body. Then each comment: a blank line, a row of <code>comment</code>, the writer, and the date, and the text.</p>
+<h2 id="example">Example</h2>
+<p>The output below is an example with made-up data, not a real run.</p>
+<pre><code class="language-text">$ vcs issue view 14
+14	Fix the retry	open	bug	v1.2
+
+The client gives up after one failed call.
+
+comment	maria	2026-11-20
+I can reproduce this.
+</code></pre>
 <h2 id="exit-codes">Exit codes</h2>
 <ul>
 <li>0 printed the issue</li>

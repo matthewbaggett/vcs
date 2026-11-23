@@ -14,6 +14,15 @@ vcs pr status <n>
 
 One row, tab-separated: state, draft, mergeable, conflicted files, ci, head sha, url.
 
+## Example
+
+The output below is an example with made-up data, not a real run.
+
+```text
+$ vcs pr status 12
+open	false	true	0	success	5888000a1bc3	https://forge.example/acme/app/pulls/12
+```
+
 ## Exit codes
 
 - 0 printed the row
