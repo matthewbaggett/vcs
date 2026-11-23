@@ -123,10 +123,10 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "add-label": true, "rm-label": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "add-label": true, "rm-label": true, "method": true}
 
 // boolean flags take no value.
-var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true}
+var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true}
 
 func parse(args []string) (opts, error) {
 	o := opts{flags: map[string]string{}}
@@ -252,6 +252,16 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 			return usage(env, v)
 		}
 	case "issue view":
+		if len(o.pos) != 1 || !isNum(o.pos[0]) {
+			return usage(env, v)
+		}
+		n, _ = strconv.Atoi(o.pos[0])
+	case "pr merge":
+		switch o.flags["method"] {
+		case "", "merge", "rebase", "rebase-merge", "squash":
+		default:
+			return usage(env, v)
+		}
 		if len(o.pos) != 1 || !isNum(o.pos[0]) {
 			return usage(env, v)
 		}
@@ -723,6 +733,16 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		}
 	case "ci failed":
 		return ciFailed(ctx, c, env, o.pos[0])
+	case "pr merge":
+		m, ok := c.(forge.PRMerger)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no pr merge yet")
+			return ExitUnavailable
+		}
+		if err := m.PRMerge(ctx, n, forge.PRMerge{Method: o.flags["method"], DeleteBranch: o.flags["delete-branch"] != ""}); err != nil {
+			return fail(env, err)
+		}
+		row(env, "merged", strconv.Itoa(n))
 	case "pr edit":
 		ed, ok := c.(forge.PREditor)
 		if !ok {

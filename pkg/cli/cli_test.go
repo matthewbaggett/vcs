@@ -86,15 +86,9 @@ func (f fake) PREdit(_ context.Context, n int, in forge.PREdit) error {
 	}
 	return f.err
 }
-func (f fake) IssueEdit(_ context.Context, n int, in forge.IssueEdit) error {
+func (f fake) PRMerge(_ context.Context, n int, in forge.PRMerge) error {
 	if f.comment != nil {
-		p := func(s *string) string {
-			if s == nil {
-				return "-"
-			}
-			return *s
-		}
-		*f.comment = fmt.Sprintf("issue %d|%s|%s|%s|%s|%v|%v", n, p(in.Title), p(in.Body), p(in.State), p(in.Milestone), in.AddLabels, in.RmLabels)
+		*f.comment = fmt.Sprintf("merge %d|%s|%v", n, in.Method, in.DeleteBranch)
 	}
 	return f.err
 }
@@ -600,30 +594,22 @@ func TestPREdit(t *testing.T) {
 	}
 }
 
-func TestIssueEditVerb(t *testing.T) {
+func TestPRMergeVerb(t *testing.T) {
 	var got string
 	c := fake{comment: &got}
-	code, out, _ := run(t, c, nil, false, "issue", "edit", "8", "--title", "New title", "--state", "closed", "--milestone", "none", "--add-label", "a, b", "--rm-label", "c")
-	if code != ExitOK || out != "edited\t8\n" || got != "issue 8|New title|-|closed|none|[a b]|[c]" {
-		t.Fatalf("all flags: %d %q %q", code, out, got)
+	if code, out, _ := run(t, c, nil, false, "pr", "merge", "12"); code != ExitOK || out != "merged\t12\n" || got != "merge 12||false" {
+		t.Errorf("default: %d %q %q", code, out, got)
 	}
-	if code, _, _ := run(t, c, nil, false, "issue", "edit", "8", "--body", "New body."); code != ExitOK || got != "issue 8|-|New body.|-|-|[]|[]" {
-		t.Errorf("body: %d %q", code, got)
+	if code, out, _ := run(t, c, nil, false, "pr", "merge", "12", "--method", "squash", "--delete-branch"); code != ExitOK || out != "merged\t12\n" || got != "merge 12|squash|true" {
+		t.Errorf("squash: %d %q %q", code, out, got)
 	}
-	got = ""
-	if code, out, errb := run(t, c, nil, false, "issue", "edit", "8", "--body", "🤖 Generated with Claude"); code != ExitLint || out != "" || got != "" || !strings.Contains(errb, "guard:") {
-		t.Errorf("credit: %d %q %q %q", code, out, got, errb)
-	}
-	for _, a := range [][]string{
-		{"issue", "edit"},
-		{"issue", "edit", "x", "--title", "T"},
-		{"issue", "edit", "8"},
-		{"issue", "edit", "8", "--state", "weird"},
-		{"issue", "edit", "8", "--body", "a", "--body-file", "-"},
-	} {
+	for _, a := range [][]string{{"pr", "merge"}, {"pr", "merge", "x"}, {"pr", "merge", "12", "--method", "weird"}} {
 		if code, _, _ := run(t, c, nil, false, a...); code != ExitUsage {
 			t.Errorf("%v: %d", a, code)
 		}
+	}
+	if code, _, errb := run(t, fake{err: errors.New("boom")}, nil, false, "pr", "merge", "12"); code != ExitFail || !strings.Contains(errb, "boom") {
+		t.Errorf("failure: %d %q", code, errb)
 	}
 }
 
@@ -647,6 +633,46 @@ func TestBoardVerbs(t *testing.T) {
 		t.Errorf("no session: %d", code)
 	}
 	for _, a := range [][]string{{"board", "view"}, {"board", "view", "x"}, {"board", "add", "1"}, {"board", "move", "1", "Doing"}, {"board", "list", "--state", "weird"}} {
+		if code, _, _ := run(t, c, nil, false, a...); code != ExitUsage {
+			t.Errorf("%v: %d", a, code)
+		}
+	}
+}
+
+func (f fake) IssueEdit(_ context.Context, n int, in forge.IssueEdit) error {
+	if f.comment != nil {
+		p := func(s *string) string {
+			if s == nil {
+				return "-"
+			}
+			return *s
+		}
+		*f.comment = fmt.Sprintf("issue %d|%s|%s|%s|%s|%v|%v", n, p(in.Title), p(in.Body), p(in.State), p(in.Milestone), in.AddLabels, in.RmLabels)
+	}
+	return f.err
+}
+
+func TestIssueEditVerb(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	code, out, _ := run(t, c, nil, false, "issue", "edit", "8", "--title", "New title", "--state", "closed", "--milestone", "none", "--add-label", "a, b", "--rm-label", "c")
+	if code != ExitOK || out != "edited\t8\n" || got != "issue 8|New title|-|closed|none|[a b]|[c]" {
+		t.Fatalf("all flags: %d %q %q", code, out, got)
+	}
+	if code, _, _ := run(t, c, nil, false, "issue", "edit", "8", "--body", "New body."); code != ExitOK || got != "issue 8|-|New body.|-|-|[]|[]" {
+		t.Errorf("body: %d %q", code, got)
+	}
+	got = ""
+	if code, out, errb := run(t, c, nil, false, "issue", "edit", "8", "--body", "🤖 Generated with Claude"); code != ExitLint || out != "" || got != "" || !strings.Contains(errb, "guard:") {
+		t.Errorf("credit: %d %q %q %q", code, out, got, errb)
+	}
+	for _, a := range [][]string{
+		{"issue", "edit"},
+		{"issue", "edit", "x", "--title", "T"},
+		{"issue", "edit", "8"},
+		{"issue", "edit", "8", "--state", "weird"},
+		{"issue", "edit", "8", "--body", "a", "--body-file", "-"},
+	} {
 		if code, _, _ := run(t, c, nil, false, a...); code != ExitUsage {
 			t.Errorf("%v: %d", a, code)
 		}
