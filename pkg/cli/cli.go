@@ -278,6 +278,18 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		if code := timeCheck(env, v, o); code >= 0 {
 			return code
 		}
+	case "label list":
+		if len(o.pos) != 0 {
+			return usage(env, v)
+		}
+	case "label create":
+		if code := labelCreateCheck(env, v, o); code >= 0 {
+			return code
+		}
+	case "label rename":
+		if len(o.pos) != 2 || !isNum(o.pos[0]) || !oneLine(o.pos[1]) {
+			return usage(env, v)
+		}
 	case "board list":
 		if len(o.pos) != 0 || (o.flags["state"] != "" && o.flags["state"] != "open" && o.flags["state"] != "closed") {
 			return usage(env, v)
@@ -865,6 +877,33 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			if o.flags["check"] == "true" && len(ws) > 0 {
 				return ExitFound
 			}
+		}
+	case "label list", "label create", "label rename":
+		lm, ok := c.(forge.LabelManager)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no label support yet")
+			return ExitUnavailable
+		}
+		switch v.Name {
+		case "list":
+			ls, err := lm.LabelList(ctx)
+			if err != nil {
+				return fail(env, err)
+			}
+			for _, l := range ls {
+				row(env, strconv.FormatInt(l.ID, 10), l.Name, l.Color, l.Description)
+			}
+		case "create":
+			if err := lm.LabelCreate(ctx, o.pos[0], o.pos[1], o.flags["desc"]); err != nil {
+				return fail(env, err)
+			}
+			row(env, "created", o.pos[0])
+		case "rename":
+			id, _ := strconv.ParseInt(o.pos[0], 10, 64)
+			if err := lm.LabelRename(ctx, id, o.pos[1]); err != nil {
+				return fail(env, err)
+			}
+			row(env, "renamed", o.pos[0], o.pos[1])
 		}
 	case "board list":
 		bs, err := c.BoardList(ctx, o.flags["state"] == "closed")

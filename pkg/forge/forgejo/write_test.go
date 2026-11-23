@@ -210,6 +210,36 @@ func TestPREditKeepsDraft(t *testing.T) {
 	}
 }
 
+func TestLabels(t *testing.T) {
+	var sent []string
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		sent = append(sent, r.Method+" "+r.URL.Path+" "+string(b))
+		if r.Method == http.MethodGet {
+			w.Write([]byte(`[{"id":4,"name":"bug","color":"d73a4a","description":"Broken"}]`))
+			return
+		}
+		w.Write([]byte(`{}`))
+	})
+	ctx := context.Background()
+	ls, err := c.LabelList(ctx)
+	if err != nil || len(ls) != 1 || ls[0].ID != 4 || ls[0].Color != "d73a4a" {
+		t.Fatalf("list: %v %v", ls, err)
+	}
+	if err := c.LabelCreate(ctx, "wip", "aabbcc", "Work"); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.LabelRename(ctx, 4, "defect"); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(sent[1], `"color":"#aabbcc"`) || !strings.HasPrefix(sent[1], "POST ") {
+		t.Errorf("create sent %q", sent[1])
+	}
+	if !strings.HasPrefix(sent[2], "PATCH ") || !strings.HasSuffix(sent[2], "/labels/4 {\"name\":\"defect\"}") {
+		t.Errorf("rename sent %q", sent[2])
+	}
+}
+
 func TestPRMerge(t *testing.T) {
 	var posted map[string]any
 	merged := false
