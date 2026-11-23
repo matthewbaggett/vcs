@@ -23,12 +23,13 @@ jobs:
         run: |
           git config --global url."https://oauth2:${{ github.token }}@git.grey.ooo/".insteadOf "ssh://git@git.grey.ooo:222/"
           git submodule update --init --recursive
+      # A check with nothing to run passes. The Go steps skip until the project has a module.
       - name: Format
         run: test -z "$(gofmt -l .)"
       - name: Vet
-        run: go vet ./...
+        run: test ! -f go.mod || go vet ./...
       - name: Test
-        run: go test ./...
+        run: test ! -f go.mod || go test ./...
       - name: Lint prose
         run: .claude/agent-standards/bin/lint-prose-quality.php --base origin/main
       - name: Wiring
