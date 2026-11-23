@@ -1,8 +1,8 @@
-# vcs ci rerun
+# The `vcs ci rerun` command
 
 Restart a CI run. The Forgejo API has no rerun route, so this uses the web route with a session.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -23,7 +23,7 @@ One row: `rerun` and the run-id.
 ## Exit codes
 
 - 0 restarted
-- 1 the call failed, the run is not found, or --failed found no failed job
+- 1 the call failed, the run isn't found, or --failed found no failed job
 - 64 usage error
 - 69 no usable driver
 - 77 no web session, or the server no longer accepts it
