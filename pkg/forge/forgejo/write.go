@@ -168,3 +168,138 @@ func (c *Client) Comment(ctx context.Context, n int, body string) error {
 	_, err = c.send(req, path)
 	return err
 }
+
+// CreatePR opens a pull request. A draft carries the WIP: prefix, which Forgejo reads as a draft.
+func (c *Client) CreatePR(ctx context.Context, in forge.NewPR) (int, string, error) {
+	title := in.Title
+	if in.Draft && !strings.HasPrefix(strings.ToUpper(title), "WIP:") {
+		title = "WIP: " + title
+	}
+	payload, _ := json.Marshal(map[string]string{"title": title, "body": in.Body, "head": in.Head, "base": in.Base})
+	path := fmt.Sprintf("repos/%s/pulls", c.cfg.Repo)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+"/api/v1/"+path, bytes.NewReader(payload))
+	if err != nil {
+		return 0, "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	c.authorize(req)
+	body, err := c.send(req, path)
+	if err != nil {
+		return 0, "", err
+	}
+	var out struct {
+		Number int    `json:"number"`
+		URL    string `json:"html_url"`
+	}
+	if json.Unmarshal(body, &out) != nil || out.Number == 0 {
+		return 0, "", fmt.Errorf("the server gave no pull request number")
+	}
+	return out.Number, out.URL, nil
+}
+
+// CreateIssue opens an issue.
+func (c *Client) CreateIssue(ctx context.Context, title, body string) (int, string, error) {
+	payload, _ := json.Marshal(map[string]string{"title": title, "body": body})
+	path := fmt.Sprintf("repos/%s/issues", c.cfg.Repo)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+"/api/v1/"+path, bytes.NewReader(payload))
+	if err != nil {
+		return 0, "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	c.authorize(req)
+	resp, err := c.send(req, path)
+	if err != nil {
+		return 0, "", err
+	}
+	var out struct {
+		Number int    `json:"number"`
+		URL    string `json:"html_url"`
+	}
+	if json.Unmarshal(resp, &out) != nil || out.Number == 0 {
+		return 0, "", fmt.Errorf("the server gave no issue number")
+	}
+	return out.Number, out.URL, nil
+}
+
+// PREdit changes the title or the body of a pull request. A draft keeps its WIP: prefix,
+// because Forgejo reads the prefix as the draft state.
+func (c *Client) PREdit(ctx context.Context, n int, in forge.PREdit) error {
+	path := fmt.Sprintf("repos/%s/pulls/%d", c.cfg.Repo, n)
+	payload := map[string]string{}
+	if in.Body != nil {
+		payload["body"] = *in.Body
+	}
+	if in.Title != nil {
+		title := strings.TrimSpace(*in.Title)
+		get, err := http.NewRequestWithContext(ctx, http.MethodGet, c.cfg.BaseURL+"/api/v1/"+path, nil)
+		if err != nil {
+			return err
+		}
+		c.authorize(get)
+		resp, err := c.send(get, path)
+		if err != nil {
+			return err
+		}
+		var pr struct {
+			Title string `json:"title"`
+		}
+		if err := json.Unmarshal(resp, &pr); err != nil {
+			return err
+		}
+		if up := strings.ToUpper(strings.TrimSpace(pr.Title)); strings.HasPrefix(up, "WIP:") && !strings.HasPrefix(strings.ToUpper(title), "WIP:") {
+			title = "WIP: " + title
+		}
+		payload["title"] = title
+	}
+	if len(payload) == 0 {
+		return nil
+	}
+	raw, _ := json.Marshal(payload)
+	patch, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.cfg.BaseURL+"/api/v1/"+path, bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	patch.Header.Set("Content-Type", "application/json")
+	c.authorize(patch)
+	_, err = c.send(patch, path)
+	return err
+}
+
+// PRReady removes the WIP: prefix from the title, which takes the pull request out of draft.
+func (c *Client) PRReady(ctx context.Context, n int) error {
+	path := fmt.Sprintf("repos/%s/pulls/%d", c.cfg.Repo, n)
+	get, err := http.NewRequestWithContext(ctx, http.MethodGet, c.cfg.BaseURL+"/api/v1/"+path, nil)
+	if err != nil {
+		return err
+	}
+	c.authorize(get)
+	resp, err := c.send(get, path)
+	if err != nil {
+		return err
+	}
+	var pr struct {
+		Title string `json:"title"`
+	}
+	if err := json.Unmarshal(resp, &pr); err != nil {
+		return err
+	}
+	title := strings.TrimSpace(pr.Title)
+	up := strings.ToUpper(title)
+	switch {
+	case strings.HasPrefix(up, "WIP:"):
+		title = strings.TrimSpace(title[4:])
+	case strings.HasPrefix(up, "[WIP]"):
+		title = strings.TrimSpace(title[5:])
+	default:
+		return nil // already ready
+	}
+	payload, _ := json.Marshal(map[string]string{"title": title})
+	patch, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.cfg.BaseURL+"/api/v1/"+path, bytes.NewReader(payload))
+	if err != nil {
+		return err
+	}
+	patch.Header.Set("Content-Type", "application/json")
+	c.authorize(patch)
+	_, err = c.send(patch, path)
+	return err
+}

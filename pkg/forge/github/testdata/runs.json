@@ -1,0 +1,4 @@
+{"total_count":3,"workflow_runs":[
+ {"id":103,"run_number":30,"status":"completed","conclusion":"failure","head_branch":"fix","head_sha":"aaaa1111","display_title":"Fix it","html_url":"https://github.com/o/r/actions/runs/103","event":"pull_request","pull_requests":[{"number":12}]},
+ {"id":102,"run_number":29,"status":"completed","conclusion":"success","head_branch":"main","head_sha":"bbbb2222","display_title":"Merge","html_url":"https://github.com/o/r/actions/runs/102","event":"push","pull_requests":[]},
+ {"id":104,"run_number":31,"status":"in_progress","conclusion":null,"head_branch":"main","head_sha":"cccc3333","display_title":"Later","html_url":"https://github.com/o/r/actions/runs/104","event":"push","pull_requests":[]}]}

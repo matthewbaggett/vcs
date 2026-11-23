@@ -1,6 +1,12 @@
 package forge
 
-import "testing"
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
 
 func TestParseRemote(t *testing.T) {
 	good := map[string][2]string{
@@ -30,5 +36,40 @@ func TestParseNetrc(t *testing.T) {
 	}
 	if l, p := parseNetrc(data, "none.example"); l != "" || p != "" {
 		t.Errorf("got %q %q", l, p)
+	}
+}
+
+func TestDetect(t *testing.T) {
+	for name, tc := range map[string]struct {
+		routes map[string]string
+		want   Kind
+	}{
+		"forgejo":    {map[string]string{"/api/v1/version": `{"version":"11.0.0+gitea-1.22.0 (forgejo)"}`}, KindForgejo},
+		"forgejo v2": {map[string]string{"/api/v1/version": `{"version":"9.0.0-forgejo"}`}, KindForgejo},
+		"gitea":      {map[string]string{"/api/v1/version": `{"version":"1.22.0"}`}, KindGitea},
+		"enterprise": {map[string]string{"/api/v3/meta": `{"verifiable_password_authentication":true}`}, KindGitHubEnterprise},
+	} {
+		srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if body, ok := tc.routes[r.URL.Path]; ok {
+				w.Write([]byte(body))
+				return
+			}
+			http.NotFound(w, r)
+		}))
+		host := strings.TrimPrefix(srv.URL, "https://")
+		got, err := Detect(context.Background(), srv.Client(), host)
+		srv.Close()
+		if err != nil || got != tc.want {
+			t.Errorf("%s: got %q err=%v", name, got, err)
+		}
+	}
+	if k, err := Detect(context.Background(), nil, "github.com"); err != nil || k != KindGitHub {
+		t.Errorf("github.com: %q %v", k, err)
+	}
+	srv := httptest.NewTLSServer(http.NotFoundHandler())
+	defer srv.Close()
+	host := strings.TrimPrefix(srv.URL, "https://")
+	if _, err := Detect(context.Background(), srv.Client(), host); err == nil || !strings.Contains(err.Error(), "/api/v1/version") || !strings.Contains(err.Error(), "/api/v3/meta") {
+		t.Errorf("none: %v", err)
 	}
 }
