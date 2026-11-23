@@ -30,6 +30,8 @@ jobs:
         run: test ! -f go.mod || go vet ./...
       - name: Test
         run: test ! -f go.mod || go test ./...
+      - name: Coverage floor
+        run: test ! -f go.mod || { .claude/check-coverage.test.sh && .claude/check-coverage.sh; }
       - name: Lint prose
         run: .claude/agent-standards/bin/lint-prose-quality.php --base origin/main
       - name: Wiring
