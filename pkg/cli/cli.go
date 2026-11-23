@@ -145,7 +145,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true, "pushed": true}
@@ -1217,7 +1217,7 @@ func isNum(s string) bool {
 // listFilter builds the filter of a list verb from its flags. --label takes names separated
 // by commas, and an item must carry every one.
 func listFilter(o opts, limit int) forge.ListFilter {
-	f := forge.ListFilter{State: o.flags["state"], Milestone: o.flags["milestone"], Limit: limit}
+	f := forge.ListFilter{State: o.flags["state"], Milestone: o.flags["milestone"], Query: o.flags["query"], Limit: limit}
 	for _, l := range strings.Split(o.flags["label"], ",") {
 		if l = strings.TrimSpace(l); l != "" {
 			f.Labels = append(f.Labels, l)

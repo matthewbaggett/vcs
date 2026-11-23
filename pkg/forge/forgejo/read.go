@@ -73,6 +73,9 @@ func (c *Client) listItems(ctx context.Context, route string, q url.Values, f fo
 	}
 	q.Set("state", state)
 	q.Set("limit", "50")
+	if f.Query != "" {
+		q.Set("q", f.Query)
+	}
 	var out []itemJSON
 	for page := 1; page <= 100; page++ {
 		q.Set("page", fmt.Sprint(page))

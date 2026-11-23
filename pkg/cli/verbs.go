@@ -221,13 +221,14 @@ var Tree = []Verb{
 	},
 	{
 		Noun: "issue", Name: "list",
-		Usage:   "vcs issue list [--state open|closed|all] [--label <name,name>] [--milestone <title>] [--limit <n>]",
+		Usage:   "vcs issue list [--state open|closed|all] [--label <name,name>] [--milestone <title>] [--query <text>] [--limit <n>]",
 		Summary: "List issues, newest first. The list holds no pull request.",
 		Output:  "One row for each issue, tab-separated: number, title, state, labels, milestone. Labels are comma-separated.",
 		Flags: []Flag{
 			{"--state", "Keep open, closed, or all issues. The default is open."},
 			{"--label", "Keep the issues that carry every label. Separate names with commas."},
 			{"--milestone", "Keep the issues of one milestone."},
+			{"--query", "Keep the issues whose title or body matches the text. The server filters."},
 			{"--limit", "Keep the newest <n> rows after the filter. The default keeps all."},
 		},
 		Exits: []string{"0 printed the rows (an empty list isn't an error)", "1 the call failed", "64 usage error", "69 no usable driver, or the driver has no issue list"},

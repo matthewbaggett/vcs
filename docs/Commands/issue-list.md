@@ -7,7 +7,7 @@ The command tree generates this page. Don't edit it by hand.
 ## Usage
 
 ```text
-vcs issue list [--state open|closed|all] [--label <name,name>] [--milestone <title>] [--limit <n>]
+vcs issue list [--state open|closed|all] [--label <name,name>] [--milestone <title>] [--query <text>] [--limit <n>]
 ```
 
 ## Output
@@ -31,6 +31,7 @@ $ vcs issue list --state open --limit 2
 | `--state` | Keep open, closed, or all issues. The default is open. |
 | `--label` | Keep the issues that carry every label. Separate names with commas. |
 | `--milestone` | Keep the issues of one milestone. |
+| `--query` | Keep the issues whose title or body matches the text. The server filters. |
 | `--limit` | Keep the newest <n> rows after the filter. The default keeps all. |
 
 ## Exit codes

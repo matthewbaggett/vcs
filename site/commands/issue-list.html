@@ -14,7 +14,7 @@
 <p>List issues, newest first. The list holds no pull request.</p>
 <p>The command tree generates this page. Don't edit it by hand.</p>
 <h2 id="usage">Usage</h2>
-<pre><code class="language-text">vcs issue list [--state open|closed|all] [--label &lt;name,name&gt;] [--milestone &lt;title&gt;] [--limit &lt;n&gt;]
+<pre><code class="language-text">vcs issue list [--state open|closed|all] [--label &lt;name,name&gt;] [--milestone &lt;title&gt;] [--query &lt;text&gt;] [--limit &lt;n&gt;]
 </code></pre>
 <h2 id="output">Output</h2>
 <p>One row for each issue, tab-separated: number, title, state, labels, milestone. Labels are comma-separated.</p>
@@ -44,6 +44,10 @@
 <tr>
 <td><code>--milestone</code></td>
 <td>Keep the issues of one milestone.</td>
+</tr>
+<tr>
+<td><code>--query</code></td>
+<td>Keep the issues whose title or body matches the text. The server filters.</td>
 </tr>
 <tr>
 <td><code>--limit</code></td>
