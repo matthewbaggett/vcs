@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"git.grey.ooo/packages/vcs/pkg/forge"
+	"git.grey.ooo/packages/vcs/pkg/lint"
 )
 
 type fake struct {
@@ -160,6 +161,9 @@ func TestCILogStripsColourAndTails(t *testing.T) {
 func TestEveryVerbHasEveryHint(t *testing.T) {
 	for _, v := range Tree {
 		need := []string{OutOK, OutFail, OutUsage, OutUnavailable}
+		if v.Sends {
+			need = append(need, OutLint)
+		}
 		if v.Session {
 			need = append(need, OutNoSession)
 		}
@@ -274,5 +278,34 @@ func TestSessionVerbs(t *testing.T) {
 	}
 	if code, _ := do("", nil, "session", "login", "--user", "me"); code != ExitUsage {
 		t.Errorf("login with no password: %d", code)
+	}
+}
+
+type stubChecker struct{ fs []lint.Finding }
+
+func (stubChecker) Name() string                           { return "stub" }
+func (s stubChecker) Check(string) ([]lint.Finding, error) { return s.fs, nil }
+
+// A lint finding stops the send: exit 65, no upload, no comment.
+func TestAttachLintStopsSend(t *testing.T) {
+	var body string
+	file := filepath.Join(t.TempDir(), "a.png")
+	os.WriteFile(file, []byte("x"), 0o600)
+	c := fake{assets: []forge.Asset{{Name: "a.png", URL: "u"}}, comment: &body}
+	var out, errb bytes.Buffer
+	env := Env{
+		Stdout: &out, Stderr: &errb,
+		Getenv:    func(string) string { return "" },
+		RemoteURL: func() (string, error) { return "https://git.example/o/r.git", nil },
+		NewClient: func(string, string) (forge.Client, error) { return c, nil },
+		Checkers:  []lint.Checker{stubChecker{fs: []lint.Finding{{Checker: "stub", Line: 1, Column: 1, Rule: "r", Message: "bad word"}}}},
+	}
+	code := Run(context.Background(), []string{"attach", "5", file, "--comment", "--title", "Proof"}, env)
+	if code != ExitLint || out.String() != "" || body != "" || !strings.Contains(errb.String(), "bad word") {
+		t.Fatalf("code=%d out=%q body=%q err=%q", code, out.String(), body, errb.String())
+	}
+	// Without --comment, no text goes out and no lint runs.
+	if code := Run(context.Background(), []string{"attach", "5", file}, env); code != ExitOK {
+		t.Errorf("no comment: %d", code)
 	}
 }
