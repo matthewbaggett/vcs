@@ -178,6 +178,37 @@ func TestCreateIssueAndReady(t *testing.T) {
 	}
 }
 
+func TestPREditKeepsDraft(t *testing.T) {
+	var patched map[string]string
+	title := "WIP: Old"
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		switch r.Method {
+		case http.MethodGet:
+			w.Write([]byte(`{"title":"` + title + `"}`))
+		case http.MethodPatch:
+			patched = nil
+			json.Unmarshal(b, &patched)
+			w.Write([]byte(`{}`))
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+	})
+	ctx := context.Background()
+	nt, nb := "New", "New body"
+	if err := c.PREdit(ctx, 3, forge.PREdit{Title: &nt}); err != nil || patched["title"] != "WIP: New" || len(patched) != 1 {
+		t.Fatalf("draft title: err=%v patched=%v", err, patched)
+	}
+	title = "Old"
+	if err := c.PREdit(ctx, 3, forge.PREdit{Title: &nt, Body: &nb}); err != nil || patched["title"] != "New" || patched["body"] != "New body" {
+		t.Fatalf("ready title and body: err=%v patched=%v", err, patched)
+	}
+	patched = map[string]string{"x": "y"}
+	if err := c.PREdit(ctx, 3, forge.PREdit{}); err != nil || patched["x"] != "y" {
+		t.Fatalf("empty edit sent a call: err=%v patched=%v", err, patched)
+	}
+}
+
 const boardPage = `<div class="project-column" data-id="5">
 <span class="project-column-title-label">Doing</span>
 <div class="issue-card tw-x" data-issue="90">

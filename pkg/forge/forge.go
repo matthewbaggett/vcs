@@ -104,6 +104,18 @@ type NewPR struct {
 	Draft bool
 }
 
+// PREdit is the input of PREditor.PREdit. A nil field stays as it is.
+type PREdit struct {
+	Title *string
+	Body  *string
+}
+
+// PREditor is the optional interface of a driver that can change the title or the body of
+// a pull request. The command asserts it, so a driver without it needs no stub.
+type PREditor interface {
+	PREdit(ctx context.Context, n int, in PREdit) error
+}
+
 // Asset is one uploaded file.
 type Asset struct {
 	Name string
