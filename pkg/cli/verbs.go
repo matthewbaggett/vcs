@@ -648,13 +648,13 @@ var Tree = []Verb{
 	{
 		Noun: "git", Name: "branch",
 		Usage:   "vcs git branch create|switch|rename|delete|list <args>...",
-		Summary: "Make, switch, rename, delete, or list branches. create checks the name with the type/short-description rule, and starts from origin/main unless you name a start point. delete refuses the default branch and the current one.",
+		Summary: "Make, switch, rename, delete, or list branches. create checks the name with the type/short-description rule, and starts from origin/main unless you name a start point. rename --remote also renames the branch on the server, when the driver can. An open pull request keeps its number. delete refuses the default branch and the current one.",
 		Output:  "The whole output of the git command.",
-		Exits:   []string{"0 done", "1 a check or git failed", "64 usage error", "69 this build can't run git"},
+		Exits:   []string{"0 done", "1 a check or git failed", "64 usage error", "69 this build can't run git, or the driver has no branch rename"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "read the check or the git error that vcs printed",
-			OutUsage:       "use create <name> [<start>], switch <name>, rename [<old>] <new>, delete <name> [--remote] [--force], or list",
+			OutUsage:       "use create <name> [<start>], switch <name>, rename [<old>] <new> [--remote], delete <name> [--remote] [--force], or list",
 			OutUnavailable: "stop and ask the user. This build can't run git",
 		},
 	},

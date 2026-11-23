@@ -3,11 +3,13 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"git.grey.ooo/packages/vcs/pkg/forge"
 	"git.grey.ooo/packages/vcs/pkg/guard"
 )
 
@@ -351,7 +353,7 @@ func (g gitRunner) branch(v Verb, args []string) int {
 		}
 		return g.run("branch", "-vv")
 	case "rename":
-		if remote || force || len(names) < 1 || len(names) > 2 || strings.HasPrefix(names[len(names)-1], "-") {
+		if force || len(names) < 1 || len(names) > 2 || strings.HasPrefix(names[len(names)-1], "-") {
 			return usage(g.env, v)
 		}
 		next := names[len(names)-1]
@@ -365,6 +367,9 @@ func (g gitRunner) branch(v Verb, args []string) int {
 		}
 		if old == "main" || old == "master" || old == "" {
 			return g.refuse(ExitFail, "never rename the default branch, or a detached head")
+		}
+		if remote {
+			return g.renameRemote(old, next)
 		}
 		return g.run("branch", "-m", old, next)
 	case "delete":
@@ -388,4 +393,55 @@ func (g gitRunner) branch(v Verb, args []string) int {
 		return ExitOK
 	}
 	return usage(g.env, v)
+}
+
+// renameRemote renames a branch on the server, then locally. The server call moves the head of
+// each open pull request, so the pull request keeps its number. A branch that origin doesn't hold
+// gets no server call: the new name is pushed instead. The driver check runs before any change.
+func (g gitRunner) renameRemote(old, next string) int {
+	if _, held := g.query("ls-remote", "--exit-code", "--heads", "origin", old); held != 0 {
+		if c := g.run("branch", "-m", old, next); c != ExitOK {
+			return c
+		}
+		return g.run("push", "-u", "origin", next)
+	}
+	if g.env.RemoteURL == nil || g.env.NewClient == nil {
+		fmt.Fprintln(g.env.Stderr, "vcs: this build can't reach a forge")
+		return ExitUnavailable
+	}
+	url, err := g.env.RemoteURL()
+	if err != nil {
+		fmt.Fprintf(g.env.Stderr, "vcs: no home remote. %v\n", err)
+		return ExitFail
+	}
+	host, repo, err := forge.ParseRemote(url)
+	if err != nil {
+		fmt.Fprintf(g.env.Stderr, "vcs: %v\n", err)
+		return ExitFail
+	}
+	c, err := g.env.NewClient(host, repo)
+	if err != nil {
+		fmt.Fprintf(g.env.Stderr, "vcs: %s: %v\n", host, err)
+		if errors.Is(err, forge.ErrUnsupported) {
+			return ExitUnavailable
+		}
+		return ExitFail
+	}
+	r, ok := c.(forge.BranchRenamer)
+	if !ok {
+		fmt.Fprintf(g.env.Stderr, "vcs: the driver for %s can't rename a branch on the server\n", host)
+		return ExitUnavailable
+	}
+	if err := r.BranchRename(g.ctx, old, next); err != nil {
+		fmt.Fprintf(g.env.Stderr, "vcs: the host refused to rename %s. Nothing changed locally. %v\n", old, err)
+		return ExitFail
+	}
+	if c := g.run("branch", "-m", old, next); c != ExitOK {
+		return c
+	}
+	if c := g.run("fetch", "origin"); c != ExitOK {
+		fmt.Fprintf(g.env.Stderr, "vcs: origin renamed. Run git fetch origin, then git branch --set-upstream-to=origin/%s %s\n", next, next)
+		return ExitOK
+	}
+	return g.run("branch", "--set-upstream-to=origin/"+next, next)
 }

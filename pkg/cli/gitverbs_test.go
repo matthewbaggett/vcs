@@ -3,11 +3,14 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"git.grey.ooo/packages/vcs/pkg/forge"
 )
 
 // gitSim stands in for git. It records each call that changes something, and it answers the
@@ -258,7 +261,7 @@ func TestGitBranch(t *testing.T) {
 	for _, a := range [][]string{
 		{"branch"}, {"branch", "create"}, {"branch", "create", "wip"}, {"branch", "create", "-x"}, {"branch", "create", "fix/a", "--force"},
 		{"branch", "switch"}, {"branch", "switch", "-x"}, {"branch", "list", "x"}, {"branch", "rename"}, {"branch", "rename", "wip"},
-		{"branch", "rename", "--remote", "fix/a"}, {"branch", "delete"}, {"branch", "delete", "main"}, {"branch", "delete", "feature/x"},
+		{"branch", "delete"}, {"branch", "delete", "main"}, {"branch", "delete", "feature/x"},
 		{"branch", "rename", "main", "fix/a"}, {"branch", "weird"},
 	} {
 		s := &gitSim{branch: "feature/x", top: t.TempDir()}
@@ -276,5 +279,64 @@ func TestGitUnknownAndNoExec(t *testing.T) {
 	}
 	if code := Run(context.Background(), []string{"git", "bogus"}, env); code != ExitUsage {
 		t.Errorf("unknown: %d", code)
+	}
+}
+
+// renamer is a fake driver that renames a branch.
+type renamer struct {
+	fake
+	got []string
+	err error
+}
+
+func (r *renamer) BranchRename(_ context.Context, old, name string) error {
+	r.got = append(r.got, old, name)
+	return r.err
+}
+
+func gitRunForge(t *testing.T, s *gitSim, c forge.Client, args ...string) (int, string) {
+	t.Helper()
+	var out, errb bytes.Buffer
+	env := Env{
+		Stdout: &out, Stderr: &errb, Getenv: func(string) string { return "" }, Exec: s.exec,
+		RemoteURL: func() (string, error) { return "https://git.example/o/r.git", nil },
+		NewClient: func(string, string) (forge.Client, error) { return c, nil },
+	}
+	code := Run(context.Background(), append([]string{"git"}, args...), env)
+	return code, errb.String()
+}
+
+func TestGitBranchRenameRemote(t *testing.T) {
+	// On origin: the server call, then the local rename, a fetch, and the upstream.
+	s := &gitSim{branch: "feature/old", top: t.TempDir(), held: true}
+	r := &renamer{}
+	if code, e := gitRunForge(t, s, r, "branch", "rename", "--remote", "fix/new"); code != ExitOK ||
+		strings.Join(r.got, " ") != "feature/old fix/new" ||
+		strings.Join(s.calls, "|") != "git branch -m feature/old fix/new|git fetch origin|git branch --set-upstream-to=origin/fix/new fix/new" {
+		t.Errorf("held: %d %v %v %q", code, r.got, s.calls, e)
+	}
+	// The host refuses: nothing changes locally.
+	s = &gitSim{branch: "feature/old", top: t.TempDir(), held: true}
+	r = &renamer{err: errors.New("no")}
+	if code, _ := gitRunForge(t, s, r, "branch", "rename", "--remote", "fix/new"); code != ExitFail || len(s.calls) != 0 {
+		t.Errorf("refused: %d %v", code, s.calls)
+	}
+	// A driver without the call exits 69 and changes nothing.
+	s = &gitSim{branch: "feature/old", top: t.TempDir(), held: true}
+	if code, _ := gitRunForge(t, s, fake{}, "branch", "rename", "--remote", "fix/new"); code != ExitUnavailable || len(s.calls) != 0 {
+		t.Errorf("no driver call: %d %v", code, s.calls)
+	}
+	// A bad new name is refused before any call.
+	s = &gitSim{branch: "feature/old", top: t.TempDir(), held: true}
+	r = &renamer{}
+	if code, _ := gitRunForge(t, s, r, "branch", "rename", "--remote", "wip"); code != ExitFail || len(r.got) != 0 {
+		t.Errorf("bad name: %d %v", code, r.got)
+	}
+	// Not on origin: rename locally, push the new name, no server call.
+	s = &gitSim{branch: "feature/old", top: t.TempDir()}
+	r = &renamer{}
+	if code, _ := gitRunForge(t, s, r, "branch", "rename", "--remote", "fix/new"); code != ExitOK || len(r.got) != 0 ||
+		strings.Join(s.calls, "|") != "git branch -m feature/old fix/new|git push -u origin fix/new" {
+		t.Errorf("not held: %d %v", code, s.calls)
 	}
 }
