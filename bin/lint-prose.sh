@@ -1,0 +1,1 @@
+../.claude/agent-standards/tools/vale/lint-prose.sh

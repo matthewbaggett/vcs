@@ -1,0 +1,36 @@
+# The quality gate of CLAUDE.md, run on each pull request and each push to main.
+name: Quality gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  gate:
+    name: Run the quality gate
+    runs-on: ubuntu-latest
+    container: ghcr.io/matthewbaggett/act-runner:php8.5-tools
+    env:
+      ALEX_ROOT: /opt/alex
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # The submodule URL is ssh. The runner has no key, so read it over https with the job token.
+      - name: Fetch the submodule
+        run: |
+          git config --global url."https://oauth2:${{ github.token }}@git.grey.ooo/".insteadOf "ssh://git@git.grey.ooo:222/"
+          git submodule update --init --recursive
+      # A check with nothing to run passes. The Go steps skip until the project has a module.
+      - name: Format
+        run: test -z "$(gofmt -l .)"
+      - name: Vet
+        run: test ! -f go.mod || go vet ./...
+      - name: Test
+        run: test ! -f go.mod || go test ./...
+      - name: Lint prose
+        run: .claude/agent-standards/bin/lint-prose-quality.php --base origin/main
+      - name: Wiring
+        run: .claude/check-wiring.sh --ci
