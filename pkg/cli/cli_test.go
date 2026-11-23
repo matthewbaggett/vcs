@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -23,6 +24,8 @@ type fake struct {
 	pr      forge.PRStatus
 	runs    []forge.Run
 	jobs    []forge.Job
+	arts    []forge.Artifact
+	artData string
 	log     string
 	err     error
 }
@@ -31,7 +34,12 @@ func (f fake) PRStatus(context.Context, int) (forge.PRStatus, error) { return f.
 func (f fake) CIRuns(context.Context, forge.RunFilter) ([]forge.Run, error) {
 	return f.runs, f.err
 }
-func (f fake) CIJobs(context.Context, int64) ([]forge.Job, error) { return f.jobs, f.err }
+func (f fake) CIJobs(context.Context, int64) ([]forge.Job, error)           { return f.jobs, f.err }
+func (f fake) CIArtifacts(context.Context, int64) ([]forge.Artifact, error) { return f.arts, f.err }
+func (f fake) CIArtifactGet(_ context.Context, _ forge.Artifact, w io.Writer) (int64, error) {
+	n, err := io.WriteString(w, f.artData)
+	return int64(n), err
+}
 func (f fake) CIRerun(_ context.Context, id int64, failed bool) error {
 	if f.rerun != nil {
 		*f.rerun = append(*f.rerun, fmt.Sprintf("%d/%v", id, failed))
@@ -327,6 +335,115 @@ func TestSessionVerbs(t *testing.T) {
 	}
 	if code, _ := do("", nil, "session", "login", "--user", "me"); code != ExitUsage {
 		t.Errorf("login with no password: %d", code)
+	}
+}
+
+func artFake() fake {
+	return fake{
+		runs:    []forge.Run{{ID: 9, Index: 4, URL: "https://git.example/o/r/actions/runs/4"}},
+		jobs:    []forge.Job{{ID: 7, Name: "w", Status: "success", Attempt: 1}},
+		arts:    []forge.Artifact{{ID: 31, Name: "coverage", Size: 2048}, {ID: 30, Name: "old", Size: 9, Expired: true}},
+		artData: "ZIP",
+	}
+}
+
+func TestCIArtifactsRows(t *testing.T) {
+	code, out, _ := run(t, artFake(), nil, true, "ci", "artifacts", "9")
+	if code != 0 || out != "31\tcoverage\t2048\t\n30\told\t9\texpired\n" {
+		t.Errorf("artifacts: %d %q", code, out)
+	}
+	if code, out, _ := run(t, fake{}, nil, true, "ci", "artifacts", "9"); code != 0 || out != "" {
+		t.Errorf("empty: %d %q", code, out)
+	}
+	if code, _, _ := run(t, fake{err: forge.ErrUnsupported}, nil, true, "ci", "artifacts", "9"); code != ExitUnavailable {
+		t.Errorf("unsupported: %d", code)
+	}
+}
+
+func TestCIJobsShowsArtifactRows(t *testing.T) {
+	code, out, _ := run(t, artFake(), nil, true, "ci", "jobs", "9")
+	want := "7\tw\tsuccess\t1\t\nartifact\t31\tcoverage\t2048\t\nartifact\t30\told\t9\texpired\n"
+	if code != 0 || out != want {
+		t.Errorf("jobs: %d %q", code, out)
+	}
+	// A host with no artifact route still lists the jobs.
+	c := artFake()
+	c.arts = nil
+	if code, out, _ := run(t, c, nil, true, "ci", "jobs", "9"); code != 0 || out != "7\tw\tsuccess\t1\t\n" {
+		t.Errorf("no artifacts: %d %q", code, out)
+	}
+}
+
+func TestCIArtifactGet(t *testing.T) {
+	dir := t.TempDir()
+	cwd, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(cwd)
+
+	code, out, _ := run(t, artFake(), nil, true, "ci", "artifact", "get", "9", "coverage")
+	if code != 0 || out != "coverage.zip\t3\n" {
+		t.Fatalf("get: %d %q", code, out)
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, "coverage.zip")); string(b) != "ZIP" {
+		t.Errorf("file = %q", b)
+	}
+	// The default file is not replaced.
+	if code, _, _ := run(t, artFake(), nil, true, "ci", "artifact", "get", "9", "coverage"); code != ExitFail {
+		t.Errorf("replace: %d", code)
+	}
+	// -o names the file, and it may replace one.
+	target := filepath.Join(dir, "x.bin")
+	if code, out, _ := run(t, artFake(), nil, true, "ci", "artifact", "get", "9", "coverage", "-o", target); code != 0 || out != target+"\t3\n" {
+		t.Errorf("-o: %d %q", code, out)
+	}
+	// Only the asked files exist.
+	ents, _ := os.ReadDir(dir)
+	if len(ents) != 2 {
+		t.Errorf("files = %v", ents)
+	}
+}
+
+func TestCIArtifactGetAll(t *testing.T) {
+	dir := t.TempDir()
+	code, out, _ := run(t, artFake(), nil, true, "ci", "artifact", "get", "9", "--all", "-o", dir)
+	want := filepath.Join(dir, "coverage.zip") + "\t3\n"
+	if code != 0 || out != want {
+		t.Fatalf("all: %d %q", code, out)
+	}
+	ents, _ := os.ReadDir(dir)
+	if len(ents) != 1 { // the expired one is skipped
+		t.Errorf("files = %v", ents)
+	}
+}
+
+func TestCIArtifactGetFailures(t *testing.T) {
+	dir := t.TempDir()
+	cwd, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(cwd)
+	for name, args := range map[string][]string{
+		"no such name": {"ci", "artifact", "get", "9", "nope"},
+		"expired":      {"ci", "artifact", "get", "9", "old"},
+	} {
+		code, _, errs := run(t, artFake(), nil, true, args...)
+		if code != ExitFail || errs == "" {
+			t.Errorf("%s: %d %q", name, code, errs)
+		}
+	}
+	if ents, _ := os.ReadDir(dir); len(ents) != 0 {
+		t.Errorf("a failed download wrote %v", ents)
+	}
+	for _, args := range [][]string{
+		{"ci", "artifact"}, {"ci", "artifact", "get"}, {"ci", "artifact", "get", "9"},
+		{"ci", "artifact", "get", "9", "a", "--all"}, {"ci", "artifact", "get", "9", "../x"},
+		{"ci", "artifact", "get", "9", "--all", "-o", "/no/such/dir"}, {"ci", "artifacts"},
+	} {
+		if code, _, _ := run(t, artFake(), nil, true, args...); code != ExitUsage {
+			t.Errorf("%v exit %d, want 64", args, code)
+		}
+	}
+	if code, _, _ := run(t, fake{}, nil, true, "--host", "github.com", "ci", "artifacts", "9"); code != ExitUnavailable {
+		t.Errorf("github: %d", code)
 	}
 }
 
