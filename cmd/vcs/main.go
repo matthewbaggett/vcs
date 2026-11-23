@@ -13,6 +13,7 @@ import (
 	"git.grey.ooo/packages/vcs/pkg/cli"
 	"git.grey.ooo/packages/vcs/pkg/forge"
 	"git.grey.ooo/packages/vcs/pkg/forge/forgejo"
+	"git.grey.ooo/packages/vcs/pkg/forge/github"
 	"git.grey.ooo/packages/vcs/pkg/lint"
 	"git.grey.ooo/packages/vcs/pkg/session"
 	"github.com/vale-cli/vale/v3/pkg/vale"
@@ -48,7 +49,7 @@ func main() {
 		},
 		NewClient: func(host, repo string) (forge.Client, error) {
 			if host == "github.com" {
-				return nil, forge.ErrUnsupported
+				return github.New(github.Config{Repo: repo, Token: github.TokenFromEnv(os.Getenv)}), nil
 			}
 			cfg := forgejo.Config{BaseURL: "https://" + host, Repo: repo, Token: os.Getenv("VCS_TOKEN")}
 			if cfg.Token == "" {
