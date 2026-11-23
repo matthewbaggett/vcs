@@ -1,0 +1,4 @@
+{"artifacts":[
+ {"id":31,"name":"coverage","size_in_bytes":2048,"expired":false,"run_id":7,"archive_download_url":"https://git.example/api/v1/repos/o/r/actions/artifacts/31/zip"},
+ {"id":30,"name":"old-report","size_in_bytes":99,"expired":true,"run_id":7}
+],"total_count":2}
