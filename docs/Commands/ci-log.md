@@ -1,8 +1,8 @@
-# vcs ci log
+# The `vcs ci log` command
 
 Print the log of one CI job, as the runner wrote it.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -23,7 +23,7 @@ The plain log text. The command strips terminal colour codes and nothing else.
 ## Exit codes
 
 - 0 printed the log
-- 1 the call failed, the job is not found, or the job has no log
+- 1 the call failed, the job isn't found, or the job has no log
 - 64 usage error
 - 69 no usable driver
 

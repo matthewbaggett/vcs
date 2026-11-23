@@ -43,7 +43,7 @@ var Tree = []Verb{
 		Usage:   "vcs pr status <n>",
 		Summary: "Print the state of one pull request on one line.",
 		Output:  "One row, tab-separated: state, draft, mergeable, conflicted files, ci, head sha, url.",
-		Exits:   []string{"0 printed the row", "1 the call failed or the pull request is not found", "64 usage error", "69 no usable driver"},
+		Exits:   []string{"0 printed the row", "1 the call failed or the pull request isn't found", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "if ci is failure, run vcs ci runs --sha <head sha> --limit 3, then vcs ci jobs <run-id>",
 			OutFail:        "check the number with vcs pr list, then run the command again",
@@ -59,10 +59,10 @@ var Tree = []Verb{
 		Flags: []Flag{
 			{"--branch", "Keep the runs of one branch, or of one pull request as `#<n>`."},
 			{"--sha", "Keep the runs of one commit. A full 40-character sha also filters on the server."},
-			{"--status", "Keep one status, such as failure or success."},
+			{"--status", "Keep one status: failure or success."},
 			{"--limit", "Keep the newest <n> rows. The default is 20. 0 reads every run, up to 1000."},
 		},
-		Exits: []string{"0 printed the rows (an empty list is not an error)", "1 the call failed", "64 usage error", "69 no usable driver"},
+		Exits: []string{"0 printed the rows (an empty list isn't an error)", "1 the call failed", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "take a run-id from the first column and run vcs ci jobs <run-id>",
 			OutFail:        "run the command again. If it fails twice, stop and report the error",
@@ -75,7 +75,7 @@ var Tree = []Verb{
 		Usage:   "vcs ci jobs <run-id|run-address>",
 		Summary: "List the jobs of one CI run.",
 		Output:  "One row for each job, tab-separated: job-id, name, status, attempt, note. The note is `no-log` on a wrapper job.",
-		Exits:   []string{"0 printed the rows", "1 the call failed or the run is not found", "64 usage error", "69 no usable driver"},
+		Exits:   []string{"0 printed the rows", "1 the call failed or the run isn't found", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "for a failed job, run vcs ci log <job-id> --tail 80",
 			OutFail:        "get the run-id again with vcs ci runs",
@@ -89,7 +89,7 @@ var Tree = []Verb{
 		Summary: "Print the log of one CI job, as the runner wrote it.",
 		Output:  "The plain log text. The command strips terminal colour codes and nothing else.",
 		Flags:   []Flag{{"--tail", "Keep the last <n> lines."}},
-		Exits:   []string{"0 printed the log", "1 the call failed, the job is not found, or the job has no log", "64 usage error", "69 no usable driver"},
+		Exits:   []string{"0 printed the log", "1 the call failed, the job isn't found, or the job has no log", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "find the first error line, fix the cause, push, then run vcs pr status <n>",
 			OutFail:        "a wrapper job has no log. Read the log of the called job, which has a similar name",
