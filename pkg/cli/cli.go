@@ -123,7 +123,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "desc": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true}
@@ -258,6 +258,18 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		n, _ = strconv.Atoi(o.pos[0])
 	case "ci failed":
 		if len(o.pos) != 1 || !regexp.MustCompile(`^([0-9]{1,6}|[0-9A-Fa-f]{7,40})$`).MatchString(o.pos[0]) {
+			return usage(env, v)
+		}
+	case "label list":
+		if len(o.pos) != 0 {
+			return usage(env, v)
+		}
+	case "label create":
+		if code := labelCreateCheck(env, v, o); code >= 0 {
+			return code
+		}
+	case "label rename":
+		if len(o.pos) != 2 || !isNum(o.pos[0]) || !oneLine(o.pos[1]) {
 			return usage(env, v)
 		}
 	case "board list":
@@ -712,6 +724,33 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			return fail(env, err)
 		}
 		row(env, "edited", strconv.Itoa(n))
+	case "label list", "label create", "label rename":
+		lm, ok := c.(forge.LabelManager)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no label support yet")
+			return ExitUnavailable
+		}
+		switch v.Name {
+		case "list":
+			ls, err := lm.LabelList(ctx)
+			if err != nil {
+				return fail(env, err)
+			}
+			for _, l := range ls {
+				row(env, strconv.FormatInt(l.ID, 10), l.Name, l.Color, l.Description)
+			}
+		case "create":
+			if err := lm.LabelCreate(ctx, o.pos[0], o.pos[1], o.flags["desc"]); err != nil {
+				return fail(env, err)
+			}
+			row(env, "created", o.pos[0])
+		case "rename":
+			id, _ := strconv.ParseInt(o.pos[0], 10, 64)
+			if err := lm.LabelRename(ctx, id, o.pos[1]); err != nil {
+				return fail(env, err)
+			}
+			row(env, "renamed", o.pos[0], o.pos[1])
+		}
 	case "board list":
 		bs, err := c.BoardList(ctx, o.flags["state"] == "closed")
 		if err != nil {

@@ -588,6 +588,55 @@ func TestPREdit(t *testing.T) {
 	}
 }
 
+func (f fake) LabelList(context.Context) ([]forge.Label, error) {
+	return []forge.Label{{ID: 4, Name: "bug", Color: "d73a4a", Description: "Broken"}}, f.err
+}
+func (f fake) LabelCreate(_ context.Context, name, color, desc string) error {
+	if f.comment != nil {
+		*f.comment = "create " + name + " " + color + " " + desc
+	}
+	return f.err
+}
+func (f fake) LabelRename(_ context.Context, id int64, name string) error {
+	if f.comment != nil {
+		*f.comment = fmt.Sprintf("rename %d %s", id, name)
+	}
+	return f.err
+}
+
+func TestLabelVerbs(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	if code, out, _ := run(t, c, nil, false, "label", "list"); code != ExitOK || out != "4\tbug\td73a4a\tBroken\n" {
+		t.Errorf("list: %d %q", code, out)
+	}
+	if code, out, _ := run(t, c, nil, false, "label", "create", "wip", "#aabbcc", "--desc", "Work in progress."); code != ExitOK || out != "created\twip\n" || got != "create wip #aabbcc Work in progress." {
+		t.Errorf("create: %d %q %q", code, out, got)
+	}
+	if code, out, _ := run(t, c, nil, false, "label", "rename", "4", "defect"); code != ExitOK || out != "renamed\t4\tdefect\n" || got != "rename 4 defect" {
+		t.Errorf("rename: %d %q %q", code, out, got)
+	}
+	got = ""
+	if code, _, errb := run(t, c, nil, false, "label", "create", "wip", "aabbcc", "--desc", "🤖 Generated with Claude"); code != ExitLint || got != "" || !strings.Contains(errb, "guard:") {
+		t.Errorf("credit: %d %q %q", code, got, errb)
+	}
+	for _, a := range [][]string{
+		{"label", "list", "x"},
+		{"label", "create", "wip"},
+		{"label", "create", "wip", "red"},
+		{"label", "create", "wip", "aabbcc", "--desc", "a\nb"},
+		{"label", "rename", "x", "n"},
+		{"label", "rename", "4"},
+	} {
+		if code, _, _ := run(t, c, nil, false, a...); code != ExitUsage {
+			t.Errorf("%v: %d", a, code)
+		}
+	}
+	if code, _, _ := run(t, fake{err: forge.ErrNotFound}, nil, false, "label", "list"); code != ExitFail {
+		t.Errorf("fail: %d", code)
+	}
+}
+
 func TestBoardVerbs(t *testing.T) {
 	var got string
 	c := fake{comment: &got}
