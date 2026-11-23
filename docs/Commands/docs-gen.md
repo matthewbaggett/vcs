@@ -1,8 +1,8 @@
-# vcs docs gen
+# The `vcs docs gen` command
 
 Write one Markdown page for each verb of the command tree.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
