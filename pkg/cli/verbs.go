@@ -146,7 +146,7 @@ var Tree = []Verb{
 			{"--body", "The comment text."},
 			{"--body-file", "A file that holds the comment text. Use - for standard input."},
 		},
-		Exits: []string{"0 posted", "1 the call failed", "64 usage error, or both or neither of the body flags", "65 the text fails the prose lint, and nothing is sent", "69 no usable driver"},
+		Exits: []string{"0 posted", "1 the call failed", "64 usage error, or both or neither of the body flags", "65 the text fails the prose lint, and the command sends nothing", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "check the token and the number, then run the command again",
