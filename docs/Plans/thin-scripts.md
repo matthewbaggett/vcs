@@ -1,7 +1,7 @@
-# Plan: thin scripts
+# Thin scripts plan
 
 Build order step 6 of [the plan](vcs-go-cli.md). Issue 8. Each `vcs-*.sh` script becomes one
-call to the `vcs` binary. A script goes away when its test passes against the binary.
+call to the `vcs` binary. A script goes away when the same test passes on the binary.
 
 ## Where the scripts live
 
@@ -16,7 +16,7 @@ request. It reaches every project that imports that repository.
 - A script keeps its old name and its old output until a consumer stops calling it.
 - A script test stays until the binary has a Go test for the same case. Then the test goes with
   the script.
-- Never switch a script before its verb has a live proof against a real Forgejo server.
+- Never switch a script before its verb has a live proof on a real Forgejo server.
 
 ## Map
 
@@ -44,8 +44,8 @@ request. It reaches every project that imports that repository.
 
 ## Order of work
 
-1. Switch the scripts marked "Ready to switch". One agent-standards pull request. Run each
-   script test against the binary first.
+1. Switch the scripts marked Ready to switch. One agent-standards pull request. Run each
+   script test on the binary first.
 2. Add the verbs for the read gaps: `pr list`, `issue list`, `issue view`, `ci failed`.
 3. Add the write gaps: `pr edit`, `pr merge`, `issue edit`, `label`, `milestone`, `time`.
 4. Add the git verbs, with the guard checks the hook runs today.
