@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The vcs pr list command | vcs</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="../index.html">vcs</a><a class="jump" href="#pages">Pages</a></header>
+<div class="layout">
+<main>
+<h1 id="the-vcs-pr-list-command">The <code>vcs pr list</code> command</h1>
+<p>List pull requests, newest first.</p>
+<p>The command tree generates this page. Don't edit it by hand.</p>
+<h2 id="usage">Usage</h2>
+<pre><code class="language-text">vcs pr list [--state open|closed|all] [--label &lt;name,name&gt;] [--milestone &lt;title&gt;] [--ci] [--limit &lt;n&gt;]
+</code></pre>
+<h2 id="output">Output</h2>
+<p>One row for each pull request, tab-separated: number, title, head branch, base branch, mergeable, ci, labels, milestone. The ci column is empty unless you pass --ci. Labels are comma-separated.</p>
+<h2 id="flags">Flags</h2>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--state</code></td>
+<td>Keep open, closed, or all pull requests. The default is open.</td>
+</tr>
+<tr>
+<td><code>--label</code></td>
+<td>Keep the pull requests that carry every label. Separate names with commas.</td>
+</tr>
+<tr>
+<td><code>--milestone</code></td>
+<td>Keep the pull requests of one milestone.</td>
+</tr>
+<tr>
+<td><code>--ci</code></td>
+<td>Fill the ci column. It costs one more request for each pull request.</td>
+</tr>
+<tr>
+<td><code>--limit</code></td>
+<td>Keep the newest <n> rows after the filter. The default keeps all.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="exit-codes">Exit codes</h2>
+<ul>
+<li>0 printed the rows (an empty list isn't an error)</li>
+<li>1 the call failed</li>
+<li>64 usage error</li>
+<li>69 no usable driver, or the driver has no pr list</li>
+</ul>
+<h2 id="agent-hints">Agent hints</h2>
+<p>A person never sees these. An agent sees one as a <code>vcs: next:</code> line on stderr.</p>
+<table>
+<thead>
+<tr>
+<th>Outcome</th>
+<th>Hint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fail</td>
+<td>run the command again. If it fails twice, stop and report the error</td>
+</tr>
+<tr>
+<td>ok</td>
+<td>take a number from the first column and run vcs pr status <n></td>
+</tr>
+<tr>
+<td>unavailable</td>
+<td>stop and ask the user. This host has no pr list yet</td>
+</tr>
+<tr>
+<td>usage</td>
+<td>see vcs pr list for the flags</td>
+</tr>
+</tbody>
+</table>
+
+</main>
+<nav class="side" id="pages" aria-label="Pages">
+<h2>Guide</h2>
+<ul>
+<li><a href="../index.html">Overview</a></li>
+<li><a href="../install.html">Install</a></li>
+<li><a href="../quickstart.html">Quickstart</a></li>
+<li><a href="../concepts.html">Concepts</a></li>
+</ul>
+<h2>Reference</h2>
+<ul>
+<li><a href="../configuration.html">Configuration</a></li>
+<li><a href="../artifacts.html">Artifacts</a></li>
+<li><a href="../thin-scripts.html">Thin scripts</a></li>
+<li><a href="../release-pipeline.html">Release pipeline</a></li>
+<li><a href="../contributing.html">Contributing</a></li>
+<li><a href="../commands.html">Commands</a></li>
+<li><a href="../exit-codes.html">Exit codes and agent hints</a></li>
+</ul>
+<h2>vcs attach</h2>
+<ul>
+<li><a href="../commands/attach.html">attach</a></li>
+</ul>
+<h2>vcs board</h2>
+<ul>
+<li><a href="../commands/board-add.html">board add</a></li>
+<li><a href="../commands/board-list.html">board list</a></li>
+<li><a href="../commands/board-move.html">board move</a></li>
+<li><a href="../commands/board-view.html">board view</a></li>
+</ul>
+<h2>vcs ci</h2>
+<ul>
+<li><a href="../commands/ci-artifact-get.html">ci artifact get</a></li>
+<li><a href="../commands/ci-artifacts.html">ci artifacts</a></li>
+<li><a href="../commands/ci-failed.html">ci failed</a></li>
+<li><a href="../commands/ci-jobs.html">ci jobs</a></li>
+<li><a href="../commands/ci-log.html">ci log</a></li>
+<li><a href="../commands/ci-rerun.html">ci rerun</a></li>
+<li><a href="../commands/ci-runs.html">ci runs</a></li>
+</ul>
+<h2>vcs comment</h2>
+<ul>
+<li><a href="../commands/comment-add.html">comment add</a></li>
+</ul>
+<h2>vcs docs</h2>
+<ul>
+<li><a href="../commands/docs-gen.html">docs gen</a></li>
+</ul>
+<h2>vcs git</h2>
+<ul>
+<li><a href="../commands/git-branch.html">git branch</a></li>
+<li><a href="../commands/git-commit.html">git commit</a></li>
+<li><a href="../commands/git-merge.html">git merge</a></li>
+<li><a href="../commands/git-push.html">git push</a></li>
+<li><a href="../commands/git-rebase.html">git rebase</a></li>
+</ul>
+<h2>vcs issue</h2>
+<ul>
+<li><a href="../commands/issue-create.html">issue create</a></li>
+<li><a href="../commands/issue-edit.html">issue edit</a></li>
+<li><a href="../commands/issue-list.html">issue list</a></li>
+<li><a href="../commands/issue-view.html">issue view</a></li>
+</ul>
+<h2>vcs label</h2>
+<ul>
+<li><a href="../commands/label-create.html">label create</a></li>
+<li><a href="../commands/label-list.html">label list</a></li>
+<li><a href="../commands/label-rename.html">label rename</a></li>
+</ul>
+<h2>vcs milestone</h2>
+<ul>
+<li><a href="../commands/milestone-create.html">milestone create</a></li>
+<li><a href="../commands/milestone-list.html">milestone list</a></li>
+<li><a href="../commands/milestone-view.html">milestone view</a></li>
+</ul>
+<h2>vcs pr</h2>
+<ul>
+<li><a href="../commands/pr-create.html">pr create</a></li>
+<li><a href="../commands/pr-edit.html">pr edit</a></li>
+<li><a href="../commands/pr-heal.html">pr heal</a></li>
+<li><a href="../commands/pr-list.html" aria-current="page">pr list</a></li>
+<li><a href="../commands/pr-merge.html">pr merge</a></li>
+<li><a href="../commands/pr-ready.html">pr ready</a></li>
+<li><a href="../commands/pr-status.html">pr status</a></li>
+<li><a href="../commands/pr-tick.html">pr tick</a></li>
+<li><a href="../commands/pr-watch.html">pr watch</a></li>
+</ul>
+<h2>vcs session</h2>
+<ul>
+<li><a href="../commands/session-import.html">session import</a></li>
+<li><a href="../commands/session-login.html">session login</a></li>
+<li><a href="../commands/session-logout.html">session logout</a></li>
+<li><a href="../commands/session-status.html">session status</a></li>
+</ul>
+<h2>vcs site</h2>
+<ul>
+<li><a href="../commands/site-gen.html">site gen</a></li>
+</ul>
+<h2>vcs stopwatch</h2>
+<ul>
+<li><a href="../commands/stopwatch-list.html">stopwatch list</a></li>
+</ul>
+<h2>vcs time</h2>
+<ul>
+<li><a href="../commands/time-add.html">time add</a></li>
+<li><a href="../commands/time-list.html">time list</a></li>
+<li><a href="../commands/time-total.html">time total</a></li>
+</ul>
+</nav>
+</div>
+</body>
+</html>

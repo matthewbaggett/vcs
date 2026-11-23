@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release pipeline | vcs</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html">vcs</a><a class="jump" href="#pages">Pages</a></header>
+<div class="layout">
+<main>
+<h1 id="release-pipeline">Release pipeline</h1>
+<p>The workflow <code>.forgejo/workflows/build.yml</code> builds the binaries and publishes them.</p>
+<h2 id="triggers">Triggers</h2>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A push to <code>main</code></td>
+<td>A pre-release named <code>dev-&lt;short sha&gt;</code></td>
+</tr>
+<tr>
+<td>A push of a tag <code>v*</code></td>
+<td>A release with the tag name</td>
+</tr>
+</tbody>
+</table>
+<p>A tag also makes a GitHub release, when the repository holds the secret <code>GH_RELEASE_TOKEN</code>.</p>
+<h2 id="what-it-builds">What it builds</h2>
+<p>Six binaries: Linux, macOS, and Windows, each on x86-64 and Arm. It also writes
+<code>vcs_&lt;version&gt;_checksums.txt</code> with the sha256 sum of each file.</p>
+<p>The build runs with <code>CGO_ENABLED=0</code>, <code>-trimpath</code>, and <code>-ldflags &quot;-s -w -X main.version=&lt;version&gt;&quot;</code>.
+Each job runs in <code>ghcr.io/matthewbaggett/act-runner:php8.5-tools</code>.</p>
+<h2 id="quality-gate">Quality gate</h2>
+<p>The workflow <code>.forgejo/workflows/gate.yml</code> runs the gate on each pull request and each push to
+<code>main</code>. The gate runs the format check, vet, the tests, the coverage floor of 75%, the prose lint,
+and the wiring check.</p>
+<h2 id="cut-a-release">Cut a release</h2>
+<p>The owner pushes a tag such as <code>v0.3.0</code>. The pipeline does the rest.</p>
+
+</main>
+<nav class="side" id="pages" aria-label="Pages">
+<h2>Guide</h2>
+<ul>
+<li><a href="index.html">Overview</a></li>
+<li><a href="install.html">Install</a></li>
+<li><a href="quickstart.html">Quickstart</a></li>
+<li><a href="concepts.html">Concepts</a></li>
+</ul>
+<h2>Reference</h2>
+<ul>
+<li><a href="configuration.html">Configuration</a></li>
+<li><a href="artifacts.html">Artifacts</a></li>
+<li><a href="thin-scripts.html">Thin scripts</a></li>
+<li><a href="release-pipeline.html" aria-current="page">Release pipeline</a></li>
+<li><a href="contributing.html">Contributing</a></li>
+<li><a href="commands.html">Commands</a></li>
+<li><a href="exit-codes.html">Exit codes and agent hints</a></li>
+</ul>
+<h2>vcs attach</h2>
+<ul>
+<li><a href="commands/attach.html">attach</a></li>
+</ul>
+<h2>vcs board</h2>
+<ul>
+<li><a href="commands/board-add.html">board add</a></li>
+<li><a href="commands/board-list.html">board list</a></li>
+<li><a href="commands/board-move.html">board move</a></li>
+<li><a href="commands/board-view.html">board view</a></li>
+</ul>
+<h2>vcs ci</h2>
+<ul>
+<li><a href="commands/ci-artifact-get.html">ci artifact get</a></li>
+<li><a href="commands/ci-artifacts.html">ci artifacts</a></li>
+<li><a href="commands/ci-failed.html">ci failed</a></li>
+<li><a href="commands/ci-jobs.html">ci jobs</a></li>
+<li><a href="commands/ci-log.html">ci log</a></li>
+<li><a href="commands/ci-rerun.html">ci rerun</a></li>
+<li><a href="commands/ci-runs.html">ci runs</a></li>
+</ul>
+<h2>vcs comment</h2>
+<ul>
+<li><a href="commands/comment-add.html">comment add</a></li>
+</ul>
+<h2>vcs docs</h2>
+<ul>
+<li><a href="commands/docs-gen.html">docs gen</a></li>
+</ul>
+<h2>vcs git</h2>
+<ul>
+<li><a href="commands/git-branch.html">git branch</a></li>
+<li><a href="commands/git-commit.html">git commit</a></li>
+<li><a href="commands/git-merge.html">git merge</a></li>
+<li><a href="commands/git-push.html">git push</a></li>
+<li><a href="commands/git-rebase.html">git rebase</a></li>
+</ul>
+<h2>vcs issue</h2>
+<ul>
+<li><a href="commands/issue-create.html">issue create</a></li>
+<li><a href="commands/issue-edit.html">issue edit</a></li>
+<li><a href="commands/issue-list.html">issue list</a></li>
+<li><a href="commands/issue-view.html">issue view</a></li>
+</ul>
+<h2>vcs label</h2>
+<ul>
+<li><a href="commands/label-create.html">label create</a></li>
+<li><a href="commands/label-list.html">label list</a></li>
+<li><a href="commands/label-rename.html">label rename</a></li>
+</ul>
+<h2>vcs milestone</h2>
+<ul>
+<li><a href="commands/milestone-create.html">milestone create</a></li>
+<li><a href="commands/milestone-list.html">milestone list</a></li>
+<li><a href="commands/milestone-view.html">milestone view</a></li>
+</ul>
+<h2>vcs pr</h2>
+<ul>
+<li><a href="commands/pr-create.html">pr create</a></li>
+<li><a href="commands/pr-edit.html">pr edit</a></li>
+<li><a href="commands/pr-heal.html">pr heal</a></li>
+<li><a href="commands/pr-list.html">pr list</a></li>
+<li><a href="commands/pr-merge.html">pr merge</a></li>
+<li><a href="commands/pr-ready.html">pr ready</a></li>
+<li><a href="commands/pr-status.html">pr status</a></li>
+<li><a href="commands/pr-tick.html">pr tick</a></li>
+<li><a href="commands/pr-watch.html">pr watch</a></li>
+</ul>
+<h2>vcs session</h2>
+<ul>
+<li><a href="commands/session-import.html">session import</a></li>
+<li><a href="commands/session-login.html">session login</a></li>
+<li><a href="commands/session-logout.html">session logout</a></li>
+<li><a href="commands/session-status.html">session status</a></li>
+</ul>
+<h2>vcs site</h2>
+<ul>
+<li><a href="commands/site-gen.html">site gen</a></li>
+</ul>
+<h2>vcs stopwatch</h2>
+<ul>
+<li><a href="commands/stopwatch-list.html">stopwatch list</a></li>
+</ul>
+<h2>vcs time</h2>
+<ul>
+<li><a href="commands/time-add.html">time add</a></li>
+<li><a href="commands/time-list.html">time list</a></li>
+<li><a href="commands/time-total.html">time total</a></li>
+</ul>
+</nav>
+</div>
+</body>
+</html>

@@ -5,6 +5,7 @@ go 1.27.3
 require (
 	git.grey.ooo/grey.ooo/lexi v0.2.1-0.20261123133525-a51b8100664f
 	github.com/vale-cli/vale/v3 v3.0.0
+	github.com/yuin/goldmark v1.8.6
 )
 
 require (
@@ -37,7 +38,6 @@ require (
 	github.com/tomwright/dasel/v2 v2.8.1 // indirect
 	github.com/tomwright/dasel/v3 v3.11.2 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	github.com/yuin/goldmark v1.8.6 // indirect
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
