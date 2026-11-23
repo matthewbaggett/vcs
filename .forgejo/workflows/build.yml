@@ -1,0 +1,100 @@
+# Build the vcs binaries. A push to main makes a dev build. A tag v* makes a release.
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+env:
+  CGO_ENABLED: "0"
+
+jobs:
+  build:
+    name: Build the binaries
+    runs-on: ubuntu-latest
+    container: ghcr.io/matthewbaggett/act-runner:php8.5-tools
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      built: ${{ steps.go.outputs.built }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Name the version
+        id: ver
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=dev-$(git rev-parse --short=8 HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+      # The project has no go.mod yet. Until it has one, the build has nothing to do.
+      - name: Build the six binaries
+        id: go
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          if [ ! -f go.mod ]; then
+            echo "No go.mod. Nothing to build."
+            echo "built=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mkdir -p dist
+          for os in linux darwin windows; do
+            for arch in amd64 arm64; do
+              ext=""
+              if [ "$os" = "windows" ]; then ext=".exe"; fi
+              GOOS=$os GOARCH=$arch go build -trimpath \
+                -ldflags "-s -w -X main.version=${VERSION}" \
+                -o "dist/vcs_${VERSION}_${os}_${arch}${ext}" ./cmd/vcs
+            done
+          done
+          (cd dist && sha256sum vcs_* > "vcs_${VERSION}_checksums.txt")
+          echo "built=true" >> "$GITHUB_OUTPUT"
+      # Forgejo supports upload-artifact v3 only.
+      - name: Upload the artifacts
+        if: steps.go.outputs.built == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: vcs-${{ steps.ver.outputs.version }}
+          path: dist/*
+
+  publish:
+    name: Publish the release
+    needs: build
+    if: needs.build.outputs.built == 'true'
+    runs-on: ubuntu-latest
+    container: ghcr.io/matthewbaggett/act-runner:php8.5-tools
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+      API: ${{ github.server_url }}/api/v1/repos/${{ github.repository }}
+      TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+    steps:
+      - name: Download the artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: vcs-${{ needs.build.outputs.version }}
+          path: dist
+      # A dev build is a pre-release on a new tag named dev-<short sha>.
+      # A v* tag already exists, so its release reuses the tag.
+      - name: Create the release
+        id: rel
+        run: |
+          prerelease=false
+          if [ "${GITHUB_REF_TYPE}" != "tag" ]; then prerelease=true; fi
+          jq -n --arg tag "$VERSION" --arg sha "$GITHUB_SHA" --argjson pre "$prerelease" \
+            '{tag_name: $tag, target_commitish: $sha, name: $tag, prerelease: $pre,
+              body: ("Build of commit " + $sha)}' > release.json
+          curl -fsS -X POST "$API/releases" \
+            -H "Authorization: token $TOKEN" -H "Content-Type: application/json" \
+            -d @release.json -o out.json
+          echo "id=$(jq -r .id out.json)" >> "$GITHUB_OUTPUT"
+      - name: Attach the files
+        run: |
+          for f in dist/*; do
+            curl -fsS -X POST "$API/releases/${{ steps.rel.outputs.id }}/assets?name=$(basename "$f")" \
+              -H "Authorization: token $TOKEN" -F "attachment=@$f" -o /dev/null
+          done
