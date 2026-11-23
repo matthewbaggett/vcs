@@ -123,7 +123,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "add-label": true, "rm-label": true, "method": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true}
@@ -318,6 +318,34 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		}
 		if o.flags["body"] != "" {
 			if code := lintText(env, o.flags["body"]); code != ExitOK {
+				return code
+			}
+		}
+	case "issue edit":
+		if len(o.pos) != 1 || !isNum(o.pos[0]) || issueEditEmpty(o) || (o.flags["body"] != "" && o.flags["body-file"] != "") {
+			return usage(env, v)
+		}
+		if s := o.flags["state"]; s != "" && s != "open" && s != "closed" {
+			return usage(env, v)
+		}
+		n, _ = strconv.Atoi(o.pos[0])
+		if f := o.flags["body-file"]; f != "" {
+			raw, err := readText(env, f)
+			if err != nil {
+				fmt.Fprintf(env.Stderr, "vcs: cannot read a body from %s\n", f)
+				return ExitUsage
+			}
+			o.flags["body"] = raw
+		}
+		if r := guard.Credit(o.flags["title"] + "\n" + o.flags["body"]); len(r) > 0 {
+			fmt.Fprintf(env.Stderr, "vcs: guard: %s\n", r[0])
+			return ExitLint
+		}
+		for _, text := range []string{o.flags["title"], o.flags["body"]} {
+			if text == "" {
+				continue
+			}
+			if code := lintText(env, text); code != ExitOK {
 				return code
 			}
 		}
@@ -729,6 +757,16 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			in.Body = &b
 		}
 		if err := ed.PREdit(ctx, n, in); err != nil {
+			return fail(env, err)
+		}
+		row(env, "edited", strconv.Itoa(n))
+	case "issue edit":
+		ed, ok := c.(forge.IssueEditor)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no issue edit yet")
+			return ExitUnavailable
+		}
+		if err := ed.IssueEdit(ctx, n, issueEditInput(o)); err != nil {
 			return fail(env, err)
 		}
 		row(env, "edited", strconv.Itoa(n))

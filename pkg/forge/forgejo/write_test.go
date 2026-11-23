@@ -310,3 +310,61 @@ func TestBoard(t *testing.T) {
 		t.Errorf("no session: %v", err)
 	}
 }
+
+func TestIssueEdit(t *testing.T) {
+	var calls []string
+	var patched map[string]any
+	var added map[string]any
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		calls = append(calls, r.Method+" "+r.URL.Path)
+		switch {
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/milestones"):
+			w.Write([]byte(`[{"id":4,"title":"v1"}]`))
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/labels"):
+			w.Write([]byte(`[{"id":10,"name":"bug"},{"id":11,"name":"wip"}]`))
+		case r.Method == http.MethodPatch:
+			patched = nil
+			json.Unmarshal(b, &patched)
+			w.Write([]byte(`{}`))
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/issues/8/labels"):
+			added = nil
+			json.Unmarshal(b, &added)
+			w.Write([]byte(`[]`))
+		case r.Method == http.MethodDelete && strings.HasSuffix(r.URL.Path, "/issues/8/labels/11"):
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+	})
+	ctx := context.Background()
+	title, state, ms := "T", "closed", "v1"
+	in := forge.IssueEdit{Title: &title, State: &state, Milestone: &ms, AddLabels: []string{"bug"}, RmLabels: []string{"wip"}}
+	if err := c.IssueEdit(ctx, 8, in); err != nil {
+		t.Fatal(err)
+	}
+	if patched["title"] != "T" || patched["state"] != "closed" || patched["milestone"] != float64(4) {
+		t.Errorf("patched=%v", patched)
+	}
+	if ids, _ := added["labels"].([]any); len(ids) != 1 || ids[0] != float64(10) {
+		t.Errorf("added=%v", added)
+	}
+	none := "none"
+	if err := c.IssueEdit(ctx, 8, forge.IssueEdit{Milestone: &none}); err != nil || patched["milestone"] != float64(0) {
+		t.Errorf("clear: err=%v patched=%v", err, patched)
+	}
+	// An unknown label stops the call before any write.
+	calls = nil
+	if err := c.IssueEdit(ctx, 8, forge.IssueEdit{Title: &title, AddLabels: []string{"nope"}}); !errors.Is(err, forge.ErrNotFound) {
+		t.Errorf("unknown label: %v", err)
+	}
+	for _, call := range calls {
+		if !strings.HasPrefix(call, "GET ") {
+			t.Errorf("a write ran before the label check: %s", call)
+		}
+	}
+	bad := "ghost"
+	if err := c.IssueEdit(ctx, 8, forge.IssueEdit{Milestone: &bad}); !errors.Is(err, forge.ErrNotFound) {
+		t.Errorf("unknown milestone: %v", err)
+	}
+}
