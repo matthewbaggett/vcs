@@ -10,8 +10,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"git.grey.ooo/packages/vcs/pkg/forge"
+	"git.grey.ooo/packages/vcs/pkg/lint"
 	"git.grey.ooo/packages/vcs/pkg/session"
 )
 
@@ -31,6 +33,10 @@ type Env struct {
 	// NewClient builds a driver for a host and a repo. It returns forge.ErrUnsupported
 	// when the host has no driver.
 	NewClient func(host, repo string) (forge.Client, error)
+	// Sleep waits between two polls. A nil value waits in real time.
+	Sleep func(ctx context.Context, d time.Duration)
+	// Checkers lint each text that a write verb sends. A finding stops the send.
+	Checkers []lint.Checker
 }
 
 // IsAgent tells whether an agent called vcs.
@@ -99,6 +105,8 @@ func hint(v Verb, code int, o opts, env Env) {
 		out = OutFail
 	case ExitUsage:
 		out = OutUsage
+	case ExitLint:
+		out = OutLint
 	case ExitUnavailable:
 		out = OutUnavailable
 	case ExitNoSession:
@@ -110,7 +118,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "interval": true, "timeout": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true}
@@ -184,13 +192,21 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 	var limit, tail int
 	var good bool
 	switch v.Key() {
-	case "pr status":
+	case "pr status", "pr watch":
 		if len(o.pos) != 1 {
 			return usage(env, v)
 		}
 		var err error
 		if n, err = strconv.Atoi(o.pos[0]); err != nil || n < 1 {
 			return usage(env, v)
+		}
+		if v.Name == "watch" {
+			if i, ok := intFlag(o, "interval", 30); !ok || i < 1 {
+				return usage(env, v)
+			}
+			if t, ok := intFlag(o, "timeout", 3600); !ok || t < 1 {
+				return usage(env, v)
+			}
 		}
 	case "ci runs":
 		if len(o.pos) != 0 {
@@ -302,6 +318,27 @@ func resolveRun(ctx context.Context, c forge.Client, runIndex int64) (int64, err
 	return 0, fmt.Errorf("run number %d is not in the newest 250 runs", runIndex)
 }
 
+// lintText runs the checkers on a text that a verb is about to send. A finding gives exit 65,
+// and so does a checker that cannot run, because a text that no checker saw must not go out.
+func lintText(env Env, text string) int {
+	if len(env.Checkers) == 0 {
+		return ExitOK
+	}
+	fs, err := lint.Run(text, env.Checkers...)
+	for _, f := range fs {
+		fmt.Fprintf(env.Stderr, "vcs: lint: %s\n", f)
+	}
+	if err != nil {
+		fmt.Fprintf(env.Stderr, "vcs: lint: %v\n", err)
+		return ExitLint
+	}
+	if len(fs) > 0 {
+		fmt.Fprintf(env.Stderr, "vcs: lint: %d finding(s). Nothing was sent\n", len(fs))
+		return ExitLint
+	}
+	return ExitOK
+}
+
 func fail(env Env, err error) int {
 	fmt.Fprintf(env.Stderr, "vcs: %v\n", err)
 	if errors.Is(err, forge.ErrNoSession) {
@@ -327,6 +364,8 @@ func row(env Env, cols ...string) {
 
 func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit, tail int, runIndex int64) int {
 	switch v.Key() {
+	case "pr watch":
+		return watch(ctx, c, env, n, o)
 	case "pr status":
 		s, err := c.PRStatus(ctx, n)
 		if err != nil {
@@ -368,6 +407,17 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		}
 		fmt.Fprintf(env.Stdout, "rerun\t%d\n", id)
 	case "attach":
+		var text string
+		if o.flags["comment"] == "true" {
+			title := o.flags["title"]
+			if title == "" {
+				title = "Screenshots"
+			}
+			text = title
+			if code := lintText(env, text); code != ExitOK {
+				return code
+			}
+		}
 		assets, err := c.Attach(ctx, n, o.pos[1:])
 		for _, a := range assets {
 			row(env, a.Name, a.URL)
@@ -376,12 +426,8 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			return fail(env, err)
 		}
 		if o.flags["comment"] == "true" {
-			title := o.flags["title"]
-			if title == "" {
-				title = "Screenshots"
-			}
 			var b strings.Builder
-			b.WriteString(title + "\n")
+			b.WriteString(text + "\n")
 			for _, a := range assets {
 				fmt.Fprintf(&b, "\n![%s](%s)", a.Name, a.URL)
 			}
