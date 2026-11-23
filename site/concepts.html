@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concepts | vcs</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html">vcs</a><a class="jump" href="#pages">Pages</a></header>
+<div class="layout">
+<main>
+<h1 id="concepts">Concepts</h1>
+<h2 id="drivers">Drivers</h2>
+<p>A driver talks to one kind of forge. <code>vcs</code> has two drivers.</p>
+<table>
+<thead>
+<tr>
+<th>Driver</th>
+<th>Forges</th>
+<th>Token variable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forgejo</td>
+<td>Forgejo and Gitea</td>
+<td><code>VCS_TOKEN</code></td>
+</tr>
+<tr>
+<td>GitHub</td>
+<td>github.com</td>
+<td><code>GITHUB_TOKEN</code>, then <code>GH_TOKEN</code></td>
+</tr>
+</tbody>
+</table>
+<p>Forgejo and Gitea share one driver, because their web interfaces match. GitHub Enterprise has no
+driver yet.</p>
+<h2 id="forge-detection">Forge detection</h2>
+<p><code>vcs</code> asks the host once what forge it runs. It saves the answer in the config directory, in a file
+named <code>forge-&lt;host&gt;</code>. Later runs read the file and make no extra call.</p>
+<h2 id="optional-calls">Optional calls</h2>
+<p>A driver holds a core set of calls. Some calls are optional: edit a pull request, merge, edit an
+issue, manage labels, manage milestones, track time, and rename a branch. A driver that lacks one
+makes the verb exit 69. The hint then tells the agent to stop and ask.</p>
+<h2 id="agents-and-people">Agents and people</h2>
+<p><code>vcs</code> treats a caller as an agent when you pass <code>--agent</code>, when you export <code>VCS_CALLER=agent</code>, or when it sees
+<code>CLAUDECODE=1</code> or <code>CLAUDE_CODE_ENTRYPOINT</code>. An agent gets one line on stderr after each run:</p>
+<pre><code class="language-text">vcs: next: &lt;hint&gt;
+</code></pre>
+<p>A person at a terminal never sees that line. Use <code>--human</code> to force it off.</p>
+<h2 id="text-checks">Text checks</h2>
+<p>Each verb that sends text runs the prose lint first. A failed lint exits 65 and sends nothing. The
+verb also refuses text that holds an AI credit line.</p>
+<h2 id="sessions">Sessions</h2>
+<p>Some actions have no token API, such as the project board. A web session covers them. Run
+<code>vcs session login</code>, or <code>vcs session import</code>. A verb that needs a session and finds none exits 77.</p>
+<h2 id="output">Output</h2>
+<p>Each verb prints plain text that a script can read. The page of each verb names its output. See
+<a href="commands.html">Commands</a>.</p>
+
+</main>
+<nav class="side" id="pages" aria-label="Pages">
+<h2>Guide</h2>
+<ul>
+<li><a href="index.html">Overview</a></li>
+<li><a href="install.html">Install</a></li>
+<li><a href="quickstart.html">Quickstart</a></li>
+<li><a href="concepts.html" aria-current="page">Concepts</a></li>
+</ul>
+<h2>Reference</h2>
+<ul>
+<li><a href="configuration.html">Configuration</a></li>
+<li><a href="artifacts.html">Artifacts</a></li>
+<li><a href="thin-scripts.html">Thin scripts</a></li>
+<li><a href="release-pipeline.html">Release pipeline</a></li>
+<li><a href="contributing.html">Contributing</a></li>
+<li><a href="commands.html">Commands</a></li>
+<li><a href="exit-codes.html">Exit codes and agent hints</a></li>
+</ul>
+<h2>vcs attach</h2>
+<ul>
+<li><a href="commands/attach.html">attach</a></li>
+</ul>
+<h2>vcs board</h2>
+<ul>
+<li><a href="commands/board-add.html">board add</a></li>
+<li><a href="commands/board-list.html">board list</a></li>
+<li><a href="commands/board-move.html">board move</a></li>
+<li><a href="commands/board-view.html">board view</a></li>
+</ul>
+<h2>vcs ci</h2>
+<ul>
+<li><a href="commands/ci-artifact-get.html">ci artifact get</a></li>
+<li><a href="commands/ci-artifacts.html">ci artifacts</a></li>
+<li><a href="commands/ci-failed.html">ci failed</a></li>
+<li><a href="commands/ci-jobs.html">ci jobs</a></li>
+<li><a href="commands/ci-log.html">ci log</a></li>
+<li><a href="commands/ci-rerun.html">ci rerun</a></li>
+<li><a href="commands/ci-runs.html">ci runs</a></li>
+</ul>
+<h2>vcs comment</h2>
+<ul>
+<li><a href="commands/comment-add.html">comment add</a></li>
+</ul>
+<h2>vcs docs</h2>
+<ul>
+<li><a href="commands/docs-gen.html">docs gen</a></li>
+</ul>
+<h2>vcs git</h2>
+<ul>
+<li><a href="commands/git-branch.html">git branch</a></li>
+<li><a href="commands/git-commit.html">git commit</a></li>
+<li><a href="commands/git-merge.html">git merge</a></li>
+<li><a href="commands/git-push.html">git push</a></li>
+<li><a href="commands/git-rebase.html">git rebase</a></li>
+</ul>
+<h2>vcs issue</h2>
+<ul>
+<li><a href="commands/issue-create.html">issue create</a></li>
+<li><a href="commands/issue-edit.html">issue edit</a></li>
+<li><a href="commands/issue-list.html">issue list</a></li>
+<li><a href="commands/issue-view.html">issue view</a></li>
+</ul>
+<h2>vcs label</h2>
+<ul>
+<li><a href="commands/label-create.html">label create</a></li>
+<li><a href="commands/label-list.html">label list</a></li>
+<li><a href="commands/label-rename.html">label rename</a></li>
+</ul>
+<h2>vcs milestone</h2>
+<ul>
+<li><a href="commands/milestone-create.html">milestone create</a></li>
+<li><a href="commands/milestone-list.html">milestone list</a></li>
+<li><a href="commands/milestone-view.html">milestone view</a></li>
+</ul>
+<h2>vcs pr</h2>
+<ul>
+<li><a href="commands/pr-create.html">pr create</a></li>
+<li><a href="commands/pr-edit.html">pr edit</a></li>
+<li><a href="commands/pr-heal.html">pr heal</a></li>
+<li><a href="commands/pr-list.html">pr list</a></li>
+<li><a href="commands/pr-merge.html">pr merge</a></li>
+<li><a href="commands/pr-ready.html">pr ready</a></li>
+<li><a href="commands/pr-status.html">pr status</a></li>
+<li><a href="commands/pr-tick.html">pr tick</a></li>
+<li><a href="commands/pr-watch.html">pr watch</a></li>
+</ul>
+<h2>vcs session</h2>
+<ul>
+<li><a href="commands/session-import.html">session import</a></li>
+<li><a href="commands/session-login.html">session login</a></li>
+<li><a href="commands/session-logout.html">session logout</a></li>
+<li><a href="commands/session-status.html">session status</a></li>
+</ul>
+<h2>vcs site</h2>
+<ul>
+<li><a href="commands/site-gen.html">site gen</a></li>
+</ul>
+<h2>vcs stopwatch</h2>
+<ul>
+<li><a href="commands/stopwatch-list.html">stopwatch list</a></li>
+</ul>
+<h2>vcs time</h2>
+<ul>
+<li><a href="commands/time-add.html">time add</a></li>
+<li><a href="commands/time-list.html">time list</a></li>
+<li><a href="commands/time-total.html">time total</a></li>
+</ul>
+</nav>
+</div>
+</body>
+</html>

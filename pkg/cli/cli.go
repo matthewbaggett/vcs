@@ -212,6 +212,21 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		return ExitOK
 	}
 
+	if v.Noun == "site" {
+		if len(o.pos) != 2 {
+			return usage(env, v)
+		}
+		names, err := WriteSite(o.pos[0], o.pos[1])
+		if err != nil {
+			fmt.Fprintf(env.Stderr, "vcs: %v\n", err)
+			return ExitFail
+		}
+		for _, n := range names {
+			fmt.Fprintln(env.Stdout, n)
+		}
+		return ExitOK
+	}
+
 	if v.Noun == "session" {
 		return sessionVerb(ctx, v, o, env)
 	}

@@ -1,0 +1,46 @@
+# Publish the documentation site to GitHub Pages on each push to main of the mirror.
+# The Forgejo push mirror carries this file to GitHub. Forgejo CI never pushes to GitHub.
+# The owner must set Settings > Pages > Source to "GitHub Actions" once.
+name: Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build the site
+        run: go run ./cmd/vcs site gen docs/Site site-out
+      - name: Stop on drift
+        run: diff -r site site-out
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site-out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,29 @@
+# Build the documentation site and keep it as an artifact. This workflow never publishes.
+name: Site
+
+on:
+  pull_request:
+    paths:
+      - "docs/Site/**"
+      - "site/**"
+      - "pkg/site/**"
+      - "pkg/cli/**"
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build the site
+    runs-on: ubuntu-latest
+    container: ghcr.io/matthewbaggett/act-runner:php8.5-tools
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the site
+        run: go run ./cmd/vcs site gen docs/Site site-out
+      - name: Check that site/ matches
+        run: diff -r site site-out
+      - uses: actions/upload-artifact@v3
+        with:
+          name: site
+          path: site-out

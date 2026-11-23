@@ -744,6 +744,19 @@ var Tree = []Verb{
 			OutUnavailable: "",
 		},
 	},
+	{
+		Noun: "site", Name: "gen",
+		Usage:   "vcs site gen <source> <dir>",
+		Summary: "Build the documentation site. It reads the hand pages of <source> and the command tree, and writes plain HTML to <dir>.",
+		Output:  "One line for each file written.",
+		Exits:   []string{"0 built the site", "1 a read or a write failed", "64 usage error"},
+		Hints: map[string]string{
+			OutOK:          "commit the changed files of the site with the code change",
+			OutFail:        "check that the source has guide and reference folders, and that the directory is writable",
+			OutUsage:       "give a source and a directory, such as docs/Site site",
+			OutUnavailable: "",
+		},
+	},
 }
 
 // Key names a verb: "ci runs", or "attach" for a noun with no verb.
