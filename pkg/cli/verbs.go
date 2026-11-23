@@ -78,7 +78,7 @@ var Tree = []Verb{
 		Noun: "ci", Name: "jobs",
 		Usage:   "vcs ci jobs <run-id|run-address>",
 		Summary: "List the jobs of one CI run.",
-		Output:  "One row for each job, tab-separated: job-id, name, status, attempt, note. The note is `no-log` on a wrapper job. When the run made artifacts, one row follows for each artifact: `artifact`, artifact-id, name, size in bytes, note. The note is `expired` for an artifact that the server removed. The server ties an artifact to the run, not to a job, so these rows come after all the job rows.",
+		Output:  "One row for each job, tab-separated: job-id, name, status, attempt, note. The note is `no-log` on a wrapper job. When the run made artifacts, one row follows for each artifact: `artifact`, artifact-id, name, uncompressed size in bytes, note. The note is `expired` for an artifact that the server removed. The server ties an artifact to the run, not to a job, so these rows come after all the job rows.",
 		Exits:   []string{"0 printed the rows", "1 the call failed or the run is not found", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "for a failed job, run vcs ci log <job-id> --tail 80. For an artifact row, run vcs ci artifact get <run-id> <name>",
@@ -91,7 +91,7 @@ var Tree = []Verb{
 		Noun: "ci", Name: "artifacts",
 		Usage:   "vcs ci artifacts <run-id|run-address>",
 		Summary: "List the artifacts of one CI run.",
-		Output:  "One row for each artifact, tab-separated: artifact-id, name, size in bytes, note. The note is `expired` for an artifact that the server removed. An empty list is not an error.",
+		Output:  "One row for each artifact, tab-separated: artifact-id, name, uncompressed size in bytes, note. The note is `expired` for an artifact that the server removed. An empty list is not an error.",
 		Exits:   []string{"0 printed the rows", "1 the call failed or the run is not found", "64 usage error", "69 no usable driver, or the host has no artifact route"},
 		Hints: map[string]string{
 			OutOK:          "run vcs ci artifact get <run-id> <name> to download one",
@@ -104,7 +104,7 @@ var Tree = []Verb{
 		Noun: "ci", Name: "artifact get",
 		Usage:   "vcs ci artifact get <run-id|run-address> <name> [-o <path>]\n       vcs ci artifact get <run-id|run-address> --all [-o <dir>]",
 		Summary: "Download one artifact of a CI run, or every artifact with --all. The server sends each artifact as a zip archive, and the command writes it as it is. It does not unpack it.",
-		Output:  "One row for each file written, tab-separated: path, size in bytes.",
+		Output:  "One row for each file written, tab-separated: path, uncompressed size in bytes.",
 		Flags: []Flag{
 			{"--all", "Download every artifact that has not expired. Give no name."},
 			{"-o", "The file to write. The default is `<name>.zip` in the current directory, and the command refuses to replace a file that exists. With --all, the path is an existing directory that takes each `<name>.zip`."},

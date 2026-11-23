@@ -13,7 +13,7 @@ vcs ci artifact get <run-id|run-address> <name> [-o <path>]
 
 ## Output
 
-One row for each file written, tab-separated: path, size in bytes.
+One row for each file written, tab-separated: path, uncompressed size in bytes.
 
 ## Flags
 
