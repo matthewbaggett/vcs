@@ -118,7 +118,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "interval": true, "timeout": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "interval": true, "timeout": true, "body": true, "body-file": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true}
@@ -207,6 +207,30 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 			if t, ok := intFlag(o, "timeout", 3600); !ok || t < 1 {
 				return usage(env, v)
 			}
+		}
+	case "comment add":
+		if len(o.pos) != 1 || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
+			return usage(env, v)
+		}
+		var err error
+		if n, err = strconv.Atoi(o.pos[0]); err != nil || n < 1 {
+			return usage(env, v)
+		}
+		if f := o.flags["body-file"]; f != "" {
+			var raw []byte
+			if f == "-" {
+				raw, err = io.ReadAll(env.Stdin)
+			} else {
+				raw, err = os.ReadFile(f)
+			}
+			if err != nil || strings.TrimSpace(string(raw)) == "" {
+				fmt.Fprintf(env.Stderr, "vcs: cannot read a comment text from %s\n", f)
+				return ExitUsage
+			}
+			o.flags["body"] = string(raw)
+		}
+		if code := lintText(env, o.flags["body"]); code != ExitOK {
+			return code
 		}
 	case "ci runs":
 		if len(o.pos) != 0 {
@@ -436,6 +460,11 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			}
 			fmt.Fprintln(env.Stdout, "comment posted")
 		}
+	case "comment add":
+		if err := c.Comment(ctx, n, o.flags["body"]); err != nil {
+			return fail(env, err)
+		}
+		fmt.Fprintln(env.Stdout, "comment posted")
 	case "ci log":
 		text, err := c.CILog(ctx, int64(n))
 		if errors.Is(err, forge.ErrNoLog) {

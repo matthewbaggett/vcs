@@ -309,3 +309,40 @@ func TestAttachLintStopsSend(t *testing.T) {
 		t.Errorf("no comment: %d", code)
 	}
 }
+
+func TestCommentAdd(t *testing.T) {
+	var body string
+	c := fake{comment: &body}
+	run := func(chk []lint.Checker, args ...string) (int, string, string) {
+		var out, errb bytes.Buffer
+		env := Env{
+			Stdout: &out, Stderr: &errb,
+			Stdin:     strings.NewReader("from stdin"),
+			Getenv:    func(string) string { return "" },
+			RemoteURL: func() (string, error) { return "https://git.example/o/r.git", nil },
+			NewClient: func(string, string) (forge.Client, error) { return c, nil },
+			Checkers:  chk,
+		}
+		return Run(context.Background(), args, env), out.String(), errb.String()
+	}
+	if code, out, _ := run(nil, "comment", "add", "5", "--body", "Plain text."); code != ExitOK || out != "comment posted\n" || body != "Plain text." {
+		t.Fatalf("body: code=%d out=%q body=%q", code, out, body)
+	}
+	if code, _, _ := run(nil, "comment", "add", "5", "--body-file", "-"); code != ExitOK || body != "from stdin" {
+		t.Fatalf("stdin: code=%d body=%q", code, body)
+	}
+	body = ""
+	bad := []lint.Checker{stubChecker{fs: []lint.Finding{{Checker: "stub", Line: 1, Column: 1, Rule: "r", Message: "bad word"}}}}
+	if code, out, errb := run(bad, "comment", "add", "5", "--body", "x"); code != ExitLint || out != "" || body != "" || !strings.Contains(errb, "bad word") {
+		t.Fatalf("lint: code=%d out=%q body=%q err=%q", code, out, body, errb)
+	}
+	for _, a := range [][]string{
+		{"comment", "add", "5"},
+		{"comment", "add", "5", "--body", "a", "--body-file", "-"},
+		{"comment", "add", "x", "--body", "a"},
+	} {
+		if code, _, _ := run(nil, a...); code != ExitUsage {
+			t.Errorf("%v: code=%d", a, code)
+		}
+	}
+}
