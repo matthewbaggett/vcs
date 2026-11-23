@@ -64,7 +64,7 @@ var Tree = []Verb{
 			{"--interval", "Seconds between two polls. The default is 30."},
 			{"--timeout", "Seconds to wait before the command gives up. The default is 3600."},
 		},
-		Exits: []string{"0 the pull request is merged, or its checks are green and its merge state is clean", "1 a check failed, the pull request has a conflict or is closed, the call failed, or the wait timed out", "64 usage error", "69 no usable driver"},
+		Exits: []string{"0 the pull request merged, or its checks are green and its merge state is clean", "1 a check failed, the pull request has a conflict or closed, the call failed, or the wait timed out", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "the pull request is good. Hand it off, or mark it ready with vcs pr ready <n>",
 			OutFail:        "read the last row. If ci is failure, run vcs ci runs --sha <head sha> --limit 3 and vcs ci log. If conflicted files show, merge main in. Then run vcs pr watch <n> again",
