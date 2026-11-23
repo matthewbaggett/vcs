@@ -305,3 +305,28 @@ func asErr(err error, target **forge.Error) bool {
 	}
 	return ok
 }
+
+type commitJSON struct {
+	Commit struct {
+		Committer struct {
+			Date string `json:"date"`
+		} `json:"committer"`
+	} `json:"commit"`
+}
+
+// CommitTime reads the commit time of one commit, in UTC.
+func (c *Client) CommitTime(ctx context.Context, sha string) (string, error) {
+	body, err := c.get(ctx, fmt.Sprintf("repos/%s/git/commits/%s", c.cfg.Repo, sha))
+	if err != nil {
+		return "", err
+	}
+	var cj commitJSON
+	if err := json.Unmarshal(body, &cj); err != nil {
+		return "", fmt.Errorf("the server did not return commit %s", sha)
+	}
+	t, err := time.Parse(time.RFC3339, cj.Commit.Committer.Date)
+	if err != nil {
+		return "", fmt.Errorf("the server gave no commit time for %s", sha)
+	}
+	return t.UTC().Format("2006-01-02T15:04:05Z"), nil
+}

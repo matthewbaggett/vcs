@@ -148,7 +148,7 @@ func hint(v Verb, code int, o opts, env Env) {
 var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true}
 
 // boolean flags take no value.
-var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true}
+var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true, "pushed": true}
 
 func parse(args []string) (opts, error) {
 	o := opts{flags: map[string]string{}}
@@ -648,8 +648,21 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		if err != nil {
 			return fail(env, err)
 		}
-		row(env, s.State, strconv.FormatBool(s.Draft), strconv.FormatBool(s.Mergeable),
-			strings.Join(s.ConflictedFiles, ","), s.CI, s.HeadSHA, s.URL)
+		cols := []string{s.State, strconv.FormatBool(s.Draft), strconv.FormatBool(s.Mergeable),
+			strings.Join(s.ConflictedFiles, ","), s.CI, s.HeadSHA, s.URL}
+		if o.flags["pushed"] == "true" {
+			ct, ok := c.(forge.CommitTimer)
+			if !ok {
+				fmt.Fprintln(env.Stderr, "vcs: this driver cannot read the commit time")
+				return ExitUnavailable
+			}
+			when, err := ct.CommitTime(ctx, s.HeadSHA)
+			if err != nil {
+				return fail(env, err)
+			}
+			cols = append(cols, when)
+		}
+		row(env, cols...)
 	case "ci runs":
 		runs, err := c.CIRuns(ctx, forge.RunFilter{Branch: o.flags["branch"], SHA: o.flags["sha"], Status: o.flags["status"], Limit: limit})
 		if err != nil {

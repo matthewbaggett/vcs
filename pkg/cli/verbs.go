@@ -49,9 +49,10 @@ type Flag struct {
 var Tree = []Verb{
 	{
 		Noun: "pr", Name: "status",
-		Usage:   "vcs pr status <n>",
+		Usage:   "vcs pr status <n> [--pushed]",
 		Summary: "Print the state of one pull request on one line.",
-		Output:  "One row, tab-separated: state, draft, mergeable, conflicted files, ci, head sha, url.",
+		Output:  "One row, tab-separated: state, draft, mergeable, conflicted files, ci, head sha, url. With --pushed, an eighth column holds the commit time of the head commit, as Zulu time.",
+		Flags:   []Flag{{"--pushed", "Add the commit time of the head commit as the last column. It costs one more request."}},
 		Exits:   []string{"0 printed the row", "1 the call failed or the pull request isn't found", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "if ci is failure, run vcs ci runs --sha <head sha> --limit 3, then vcs ci jobs <run-id>",

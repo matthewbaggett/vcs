@@ -7,12 +7,12 @@ The command tree generates this page. Don't edit it by hand.
 ## Usage
 
 ```text
-vcs pr status <n>
+vcs pr status <n> [--pushed]
 ```
 
 ## Output
 
-One row, tab-separated: state, draft, mergeable, conflicted files, ci, head sha, url.
+One row, tab-separated: state, draft, mergeable, conflicted files, ci, head sha, url. With --pushed, an eighth column holds the commit time of the head commit, as Zulu time.
 
 ## Example
 
@@ -22,6 +22,12 @@ The output below is an example with made-up data, not a real run.
 $ vcs pr status 12
 open	false	true	0	success	5888000a1bc3	https://forge.example/acme/app/pulls/12
 ```
+
+## Flags
+
+| Flag | Meaning |
+|---|---|
+| `--pushed` | Add the commit time of the head commit as the last column. It costs one more request. |
 
 ## Exit codes
 

@@ -31,6 +31,9 @@ type fake struct {
 }
 
 func (f fake) PRStatus(context.Context, int) (forge.PRStatus, error) { return f.pr, f.err }
+func (f fake) CommitTime(context.Context, string) (string, error) {
+	return "2026-10-17T10:00:00Z", f.err
+}
 func (f fake) CIRuns(context.Context, forge.RunFilter) ([]forge.Run, error) {
 	return f.runs, f.err
 }
@@ -134,6 +137,14 @@ func TestPRStatusRow(t *testing.T) {
 	c := fake{pr: forge.PRStatus{State: "open", Draft: true, CI: "failure", HeadSHA: "abc", URL: "u", ConflictedFiles: []string{"a", "b"}}}
 	code, out, errs := run(t, c, nil, true, "pr", "status", "12")
 	if code != 0 || out != "open\ttrue\tfalse\ta,b\tfailure\tabc\tu\n" || errs != "" {
+		t.Fatalf("code=%d out=%q err=%q", code, out, errs)
+	}
+}
+
+func TestPRStatusPushed(t *testing.T) {
+	c := fake{pr: forge.PRStatus{State: "open", CI: "success", HeadSHA: "abc", URL: "u"}}
+	code, out, errs := run(t, c, nil, true, "pr", "status", "12", "--pushed")
+	if code != 0 || out != "open\tfalse\tfalse\t\tsuccess\tabc\tu\t2026-10-17T10:00:00Z\n" || errs != "" {
 		t.Fatalf("code=%d out=%q err=%q", code, out, errs)
 	}
 }
