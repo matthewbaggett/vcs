@@ -24,5 +24,5 @@ on every forge.
 
 ## Where the code lives
 
-Forgejo at `git.grey.ooo/packages/vcs` is the canonical repository. GitHub at `matthewbaggett/vcs`
-is a read-only mirror.
+The code is public at `github.com/matthewbaggett/vcs`. That repository is a read-only mirror of the
+canonical one.

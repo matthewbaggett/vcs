@@ -2,7 +2,7 @@
 
 ## Where
 
-Open issues and pull requests on `git.grey.ooo/packages/vcs`. Never push to the GitHub mirror.
+Open issues and pull requests on the canonical repository. Never push to the GitHub mirror.
 
 ## Branches
 

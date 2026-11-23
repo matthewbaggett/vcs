@@ -17,8 +17,7 @@ The checksum file is `vcs_<version>_checksums.txt`. It lists the sha256 sum of e
 
 ## Steps
 
-1. Open the releases page of `git.grey.ooo/packages/vcs`, or the mirror at
-   `github.com/matthewbaggett/vcs`.
+1. Open the releases page of `github.com/matthewbaggett/vcs`.
 2. Download the binary for your system and the checksum file.
 3. Check the sum. On Linux, run `sha256sum --check --ignore-missing vcs_<version>_checksums.txt`.
    On macOS, run `shasum -a 256 -c` on the same file.

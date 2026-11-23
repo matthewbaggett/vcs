@@ -52,6 +52,19 @@ func TestSiteHasPageForEachVerb(t *testing.T) {
 	}
 }
 
+// The site never names the Forgejo host.
+func TestSiteNamesNoForgejoHost(t *testing.T) {
+	files, err := BuildSite(filepath.Join("..", "..", "docs", "Site"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for n, b := range files {
+		if strings.Contains(string(b), "git.grey.ooo") {
+			t.Errorf("%s names the Forgejo host", n)
+		}
+	}
+}
+
 func TestSiteGenUsage(t *testing.T) {
 	if code, _, _ := run(t, fake{}, nil, true, "site", "gen", "only-one"); code != ExitUsage {
 		t.Errorf("exit %d, want 64", code)
