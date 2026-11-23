@@ -1,8 +1,8 @@
-# vcs board view
+# The `vcs board view` command
 
 Show the cards of one board.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -17,7 +17,7 @@ One row for each card: column id, column title, item id, number, title. A column
 ## Exit codes
 
 - 0 shown
-- 1 the call failed or the board is not found
+- 1 the call failed or the board isn't found
 - 64 usage error
 - 69 no usable driver
 

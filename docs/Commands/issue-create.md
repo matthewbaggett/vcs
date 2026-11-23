@@ -1,8 +1,8 @@
-# vcs issue create
+# The `vcs issue create` command
 
-Open an issue. The AI credit line is refused, and the prose lint runs on the title and body.
+Open an issue. The command refuses the AI credit line, and the prose lint runs on the title and body.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -26,7 +26,7 @@ One row: the number and the web address.
 - 0 opened
 - 1 the call failed
 - 64 usage error
-- 65 a guard rule or the prose lint refuses the text, and nothing is sent
+- 65 a guard rule or the prose lint refuses the text, and the command sends nothing
 - 69 no usable driver
 
 ## Agent hints

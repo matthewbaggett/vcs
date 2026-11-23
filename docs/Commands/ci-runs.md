@@ -1,8 +1,8 @@
-# vcs ci runs
+# The `vcs ci runs` command
 
 List CI runs, newest first.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -20,12 +20,12 @@ One row for each run, tab-separated: run-id, index, status, branch, head sha, ti
 |---|---|
 | `--branch` | Keep the runs of one branch, or of one pull request as `#<n>`. |
 | `--sha` | Keep the runs of one commit. A full 40-character sha also filters on the server. |
-| `--status` | Keep one status, such as failure or success. |
+| `--status` | Keep one status: failure or success. |
 | `--limit` | Keep the newest <n> rows. The default is 20. 0 reads every run, up to 1000. |
 
 ## Exit codes
 
-- 0 printed the rows (an empty list is not an error)
+- 0 printed the rows (an empty list isn't an error)
 - 1 the call failed
 - 64 usage error
 - 69 no usable driver

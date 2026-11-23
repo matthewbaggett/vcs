@@ -1,8 +1,8 @@
-# vcs board list
+# The `vcs board list` command
 
 List the project boards of the repository.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
