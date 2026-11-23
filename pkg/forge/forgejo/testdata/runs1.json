@@ -1,0 +1,4 @@
+{"workflow_runs":[
+ {"id":103,"index_in_repo":30,"status":"failure","prettyref":"#12","commit_sha":"aaaa1111","title":"Fix it","html_url":"https://git.example/o/r/actions/runs/30"},
+ {"id":102,"index_in_repo":29,"status":"success","prettyref":"main","commit_sha":"bbbb2222","title":"Merge","html_url":"https://git.example/o/r/actions/runs/29"},
+ {"id":101,"index_in_repo":28,"status":"success","prettyref":"main","commit_sha":"cccc3333","title":"Earlier\tthing","html_url":"https://git.example/o/r/actions/runs/28"}]}
