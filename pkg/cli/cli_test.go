@@ -47,6 +47,12 @@ func (f fake) Comment(_ context.Context, _ int, body string) error {
 	}
 	return f.err
 }
+func (f fake) CreatePR(_ context.Context, in forge.NewPR) (int, string, error) {
+	if f.comment != nil {
+		*f.comment = in.Head + "<-" + in.Base + "|" + in.Title + "|" + in.Body
+	}
+	return 7, "https://git.example/o/r/pulls/7", f.err
+}
 func (f fake) CILog(context.Context, int64) (string, error) { return f.log, f.err }
 
 func run(t *testing.T, c forge.Client, env map[string]string, tty bool, args ...string) (int, string, string) {
@@ -344,5 +350,30 @@ func TestCommentAdd(t *testing.T) {
 		if code, _, _ := run(nil, a...); code != ExitUsage {
 			t.Errorf("%v: code=%d", a, code)
 		}
+	}
+}
+
+func TestPRCreate(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	args := func(more ...string) []string {
+		return append([]string{"pr", "create", "Add a thing"}, more...)
+	}
+	code, out, _ := run(t, c, nil, false, args("--head", "feature/a-thing", "--body", "Body.", "--draft")...)
+	if code != ExitOK || out != "7\thttps://git.example/o/r/pulls/7\n" || got != "feature/a-thing<-main|Add a thing|Body." {
+		t.Fatalf("code=%d out=%q got=%q", code, out, got)
+	}
+	got = ""
+	for name, a := range map[string][]string{
+		"main branch": args("--head", "main", "--body", "x"),
+		"bad name":    args("--head", "My_Branch", "--body", "x"),
+		"credit line": args("--head", "fix/a", "--body", "Co-Authored-By: Claude <noreply@anthropic.com>"),
+	} {
+		if code, out, errb := run(t, c, nil, false, a...); code != ExitLint || out != "" || got != "" || !strings.Contains(errb, "guard:") {
+			t.Errorf("%s: code=%d out=%q got=%q err=%q", name, code, out, got, errb)
+		}
+	}
+	if code, _, _ := run(t, c, nil, false, args("--body", "x")...); code != ExitUsage {
+		t.Errorf("no head: %d", code)
 	}
 }

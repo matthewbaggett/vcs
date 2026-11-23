@@ -2,6 +2,7 @@ package forgejo
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -127,5 +128,25 @@ func TestAttachAndComment(t *testing.T) {
 	}
 	if _, err := c.Attach(context.Background(), 7, []string{"/no/such/file"}); err == nil {
 		t.Error("missing file should fail")
+	}
+}
+
+func TestCreatePR(t *testing.T) {
+	var got map[string]string
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || !strings.HasSuffix(r.URL.Path, "/pulls") {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		b, _ := io.ReadAll(r.Body)
+		json.Unmarshal(b, &got)
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte(`{"number":9,"html_url":"https://git.example/o/r/pulls/9"}`))
+	})
+	n, addr, err := c.CreatePR(context.Background(), forge.NewPR{Title: "Add it", Body: "b", Head: "feature/x", Base: "main", Draft: true})
+	if err != nil || n != 9 || addr != "https://git.example/o/r/pulls/9" {
+		t.Fatalf("n=%d addr=%q err=%v", n, addr, err)
+	}
+	if got["title"] != "WIP: Add it" || got["head"] != "feature/x" || got["base"] != "main" {
+		t.Errorf("payload %v", got)
 	}
 }

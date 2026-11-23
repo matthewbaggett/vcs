@@ -62,6 +62,17 @@ type Client interface {
 	Attach(ctx context.Context, n int, files []string) ([]Asset, error)
 	// Comment posts one comment on an issue or a pull request.
 	Comment(ctx context.Context, n int, body string) error
+	// CreatePR opens a pull request and returns its number and web address.
+	CreatePR(ctx context.Context, in NewPR) (int, string, error)
+}
+
+// NewPR is the input of CreatePR.
+type NewPR struct {
+	Title string
+	Body  string
+	Head  string
+	Base  string
+	Draft bool
 }
 
 // Asset is one uploaded file.

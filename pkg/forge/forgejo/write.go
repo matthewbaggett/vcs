@@ -168,3 +168,31 @@ func (c *Client) Comment(ctx context.Context, n int, body string) error {
 	_, err = c.send(req, path)
 	return err
 }
+
+// CreatePR opens a pull request. A draft carries the WIP: prefix, which Forgejo reads as a draft.
+func (c *Client) CreatePR(ctx context.Context, in forge.NewPR) (int, string, error) {
+	title := in.Title
+	if in.Draft && !strings.HasPrefix(strings.ToUpper(title), "WIP:") {
+		title = "WIP: " + title
+	}
+	payload, _ := json.Marshal(map[string]string{"title": title, "body": in.Body, "head": in.Head, "base": in.Base})
+	path := fmt.Sprintf("repos/%s/pulls", c.cfg.Repo)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+"/api/v1/"+path, bytes.NewReader(payload))
+	if err != nil {
+		return 0, "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	c.authorize(req)
+	body, err := c.send(req, path)
+	if err != nil {
+		return 0, "", err
+	}
+	var out struct {
+		Number int    `json:"number"`
+		URL    string `json:"html_url"`
+	}
+	if json.Unmarshal(body, &out) != nil || out.Number == 0 {
+		return 0, "", fmt.Errorf("the server gave no pull request number")
+	}
+	return out.Number, out.URL, nil
+}

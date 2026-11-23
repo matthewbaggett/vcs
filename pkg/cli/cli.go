@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"git.grey.ooo/packages/vcs/pkg/forge"
+	"git.grey.ooo/packages/vcs/pkg/guard"
 	"git.grey.ooo/packages/vcs/pkg/lint"
 	"git.grey.ooo/packages/vcs/pkg/session"
 )
@@ -118,10 +119,10 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "interval": true, "timeout": true, "body": true, "body-file": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true}
 
 // boolean flags take no value.
-var boolean = map[string]bool{"failed": true, "comment": true}
+var boolean = map[string]bool{"failed": true, "comment": true, "draft": true}
 
 func parse(args []string) (opts, error) {
 	o := opts{flags: map[string]string{}}
@@ -207,6 +208,36 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 			if t, ok := intFlag(o, "timeout", 3600); !ok || t < 1 {
 				return usage(env, v)
 			}
+		}
+	case "pr create":
+		if len(o.pos) != 1 || o.flags["head"] == "" || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
+			return usage(env, v)
+		}
+		if f := o.flags["body-file"]; f != "" {
+			raw, err := readText(env, f)
+			if err != nil {
+				fmt.Fprintf(env.Stderr, "vcs: cannot read a body from %s\n", f)
+				return ExitUsage
+			}
+			o.flags["body"] = raw
+		}
+		if o.flags["base"] == "" {
+			o.flags["base"] = "main"
+		}
+		var refuse []string
+		refuse = append(refuse, guard.Branch(o.flags["head"])...)
+		refuse = append(refuse, guard.Credit(o.pos[0]+"\n"+o.flags["body"])...)
+		if len(refuse) > 0 {
+			for _, r := range refuse {
+				fmt.Fprintf(env.Stderr, "vcs: guard: %s\n", r)
+			}
+			return ExitLint
+		}
+		if code := lintText(env, o.pos[0]); code != ExitOK {
+			return code
+		}
+		if code := lintText(env, o.flags["body"]); code != ExitOK {
+			return code
 		}
 	case "comment add":
 		if len(o.pos) != 1 || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
@@ -460,6 +491,12 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			}
 			fmt.Fprintln(env.Stdout, "comment posted")
 		}
+	case "pr create":
+		num, addr, err := c.CreatePR(ctx, forge.NewPR{Title: o.pos[0], Body: o.flags["body"], Head: o.flags["head"], Base: o.flags["base"], Draft: o.flags["draft"] == "true"})
+		if err != nil {
+			return fail(env, err)
+		}
+		row(env, strconv.Itoa(num), addr)
 	case "comment add":
 		if err := c.Comment(ctx, n, o.flags["body"]); err != nil {
 			return fail(env, err)
@@ -563,4 +600,19 @@ func sessionVerb(ctx context.Context, v Verb, o opts, env Env) int {
 	}
 	fmt.Fprintln(env.Stdout, "ok")
 	return ExitOK
+}
+
+// readText reads a body from a file, or from standard input for "-". An empty text is an error.
+func readText(env Env, name string) (string, error) {
+	var raw []byte
+	var err error
+	if name == "-" {
+		raw, err = io.ReadAll(env.Stdin)
+	} else {
+		raw, err = os.ReadFile(name)
+	}
+	if err == nil && strings.TrimSpace(string(raw)) == "" {
+		err = errors.New("empty")
+	}
+	return string(raw), err
 }
