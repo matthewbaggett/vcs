@@ -1,8 +1,8 @@
-# vcs comment add
+# The `vcs comment add` command
 
 Post one comment on an issue or a pull request. The prose lint runs first.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -26,7 +26,7 @@ One line: `comment posted`.
 - 0 posted
 - 1 the call failed
 - 64 usage error, or both or neither of the body flags
-- 65 the text fails the prose lint, and nothing is sent
+- 65 the text fails the prose lint, and the command sends nothing
 - 69 no usable driver
 
 ## Agent hints

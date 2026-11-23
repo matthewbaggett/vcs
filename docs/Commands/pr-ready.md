@@ -1,8 +1,8 @@
-# vcs pr ready
+# The `vcs pr ready` command
 
-Take a pull request out of draft. A pull request that is not a draft stays as it is.
+Take a pull request out of draft. A pull request that isn't a draft stays as it is.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -17,7 +17,7 @@ One line: `ready` and the number.
 ## Exit codes
 
 - 0 ready
-- 1 the call failed or the pull request is not found
+- 1 the call failed or the pull request isn't found
 - 64 usage error
 - 69 no usable driver
 
