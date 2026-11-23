@@ -3,14 +3,20 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
+	"git.grey.ooo/grey.ooo/lexi"
 	"git.grey.ooo/packages/vcs/pkg/cli"
 	"git.grey.ooo/packages/vcs/pkg/forge"
 	"git.grey.ooo/packages/vcs/pkg/forge/forgejo"
 	"git.grey.ooo/packages/vcs/pkg/forge/github"
+	"git.grey.ooo/packages/vcs/pkg/lint"
+	"git.grey.ooo/packages/vcs/pkg/session"
+	"github.com/vale-cli/vale/v3/pkg/vale"
 )
 
 func isTTY(f *os.File) bool {
@@ -18,10 +24,23 @@ func isTTY(f *os.File) bool {
 	return err == nil && st.Mode()&os.ModeCharDevice != 0
 }
 
+func configDir() string {
+	if d := os.Getenv("VCS_CONFIG_DIR"); d != "" {
+		return d
+	}
+	home, err := os.UserConfigDir()
+	if err != nil {
+		return ".vcs"
+	}
+	return filepath.Join(home, "vcs")
+}
+
 func main() {
 	env := cli.Env{
 		Stdout:     os.Stdout,
 		Stderr:     os.Stderr,
+		Stdin:      os.Stdin,
+		ConfigDir:  configDir(),
 		Getenv:     os.Getenv,
 		IsTerminal: isTTY(os.Stdin) && isTTY(os.Stdout),
 		RemoteURL: func() (string, error) {
@@ -36,8 +55,32 @@ func main() {
 			if cfg.Token == "" {
 				cfg.Login, cfg.Password = forge.NetrcLogin(host)
 			}
+			// A missing session is not an error here. A verb that needs one says so.
+			cfg.Cookie, _ = session.Load(configDir(), host)
 			return forgejo.New(cfg), nil
 		},
+	}
+	// lexi reads the .alexrc of the working directory, as alex does.
+	wd, _ := os.Getwd()
+	opts, err := lexi.LoadOptions(wd)
+	if err == nil {
+		var x *lint.Lexi
+		if x, err = lint.NewLexi(opts); err == nil {
+			env.Checkers = append(env.Checkers, x)
+		}
+	}
+	// Vale runs only when the working directory holds a .vale.ini.
+	if err == nil {
+		if _, serr := os.Stat(filepath.Join(wd, ".vale.ini")); serr == nil {
+			var v *lint.Vale
+			if v, err = lint.NewVale(vale.Options{ConfigPath: filepath.Join(wd, ".vale.ini")}); err == nil {
+				env.Checkers = append(env.Checkers, v)
+			}
+		}
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "vcs: the prose linter cannot start: %v\n", err)
+		os.Exit(cli.ExitUnavailable)
 	}
 	os.Exit(cli.Run(context.Background(), os.Args[1:], env))
 }

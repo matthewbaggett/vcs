@@ -21,6 +21,7 @@ type Config struct {
 	Token      string // an API token. Empty means use Login and Password
 	Login      string
 	Password   string
+	Cookie     string // the i_like_gitea value of a web session, for the web routes
 	HTTP       *http.Client
 	RetrySleep time.Duration // wait between log tries. Default 2s
 }

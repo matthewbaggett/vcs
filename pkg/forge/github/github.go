@@ -20,10 +20,11 @@ const DefaultBaseURL = "https://api.github.com"
 
 // Config sets up a driver.
 type Config struct {
-	BaseURL string // API root. Default https://api.github.com. GitHub Enterprise uses https://host/api/v3
-	Repo    string // owner/name
-	Token   string // from GITHUB_TOKEN or GH_TOKEN. Empty means no auth, and a low rate limit
-	HTTP    *http.Client
+	BaseURL    string // API root. Default https://api.github.com. GitHub Enterprise uses https://host/api/v3
+	Repo       string // owner/name
+	GraphQLURL string // GraphQL endpoint. The default comes from BaseURL
+	Token      string // from GITHUB_TOKEN or GH_TOKEN. Empty means no auth, and a low rate limit
+	HTTP       *http.Client
 }
 
 // Client is the GitHub driver.
