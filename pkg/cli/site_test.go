@@ -89,6 +89,26 @@ func TestEachVerbHasExample(t *testing.T) {
 	}
 }
 
+// The home page and the install page link the public downloads, with a fallback for no script.
+func TestSiteLinksDownloads(t *testing.T) {
+	files, err := BuildSite(filepath.Join("..", "..", "docs", "Site"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range []string{"index.html", "install.html"} {
+		page := string(files[n])
+		for _, want := range []string{
+			"https://github.com/matthewbaggett/vcs/releases/latest",
+			"https://api.github.com/repos/matthewbaggett/vcs/releases",
+			`id="downloads"`,
+		} {
+			if !strings.Contains(page, want) {
+				t.Errorf("%s lacks %q", n, want)
+			}
+		}
+	}
+}
+
 func TestSiteGenUsage(t *testing.T) {
 	if code, _, _ := run(t, fake{}, nil, true, "site", "gen", "only-one"); code != ExitUsage {
 		t.Errorf("exit %d, want 64", code)
