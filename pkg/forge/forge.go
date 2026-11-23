@@ -55,6 +55,19 @@ type Client interface {
 	CIRuns(ctx context.Context, f RunFilter) ([]Run, error)
 	CIJobs(ctx context.Context, runID int64) ([]Job, error)
 	CILog(ctx context.Context, jobID int64) (string, error)
+	// CIRerun restarts a run. With failedOnly it restarts the failed jobs only.
+	// It needs a web session and returns ErrNoSession without one.
+	CIRerun(ctx context.Context, runID int64, failedOnly bool) error
+	// Attach uploads files to an issue or a pull request.
+	Attach(ctx context.Context, n int, files []string) ([]Asset, error)
+	// Comment posts one comment on an issue or a pull request.
+	Comment(ctx context.Context, n int, body string) error
+}
+
+// Asset is one uploaded file.
+type Asset struct {
+	Name string
+	URL  string
 }
 
 // ErrNotFound means the item does not exist.
@@ -62,6 +75,9 @@ var ErrNotFound = errors.New("not found")
 
 // ErrNoLog means the job has no log file.
 var ErrNoLog = errors.New("job has no log")
+
+// ErrNoSession means the verb needs a web session and there is none.
+var ErrNoSession = errors.New("no web session. Run: vcs session login, or vcs session import")
 
 // ErrUnsupported means the host lacks the verb.
 var ErrUnsupported = errors.New("unsupported on this host")

@@ -13,7 +13,7 @@ func Pages() map[string]string {
 	pages := map[string]string{}
 	for _, v := range Tree {
 		var b strings.Builder
-		fmt.Fprintf(&b, "# The `vcs %s %s` command\n\n", v.Noun, v.Name)
+		fmt.Fprintf(&b, "# The `vcs %s` command\n\n", v.Key())
 		fmt.Fprintf(&b, "%s\n\n", v.Summary)
 		b.WriteString("The command tree generates this page. Don't edit it by hand.\n\n")
 		fmt.Fprintf(&b, "## Usage\n\n```text\n%s\n```\n\n", v.Usage)
@@ -42,7 +42,7 @@ func Pages() map[string]string {
 			}
 			fmt.Fprintf(&b, "| %s | %s |\n", k, h)
 		}
-		pages[v.Noun+"-"+v.Name+".md"] = b.String()
+		pages[strings.ReplaceAll(v.Key(), " ", "-")+".md"] = b.String()
 	}
 	return pages
 }

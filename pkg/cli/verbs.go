@@ -6,6 +6,7 @@ const (
 	ExitFail        = 1
 	ExitUsage       = 64
 	ExitUnavailable = 69
+	ExitNoSession   = 77
 )
 
 // Outcomes that every verb has a hint for.
@@ -14,6 +15,7 @@ const (
 	OutFail        = "fail"
 	OutUsage       = "usage"
 	OutUnavailable = "unavailable"
+	OutNoSession   = "nosession"
 )
 
 // Verb is one command of the command tree. The docs build from this table.
@@ -24,6 +26,8 @@ type Verb struct {
 	Summary string
 	Output  string
 	Flags   []Flag
+	// Session is true when the verb needs a web session.
+	Session bool
 	Exits   []string
 	// Hints holds the agent message of each outcome. A person never sees it.
 	// An empty text means the human message is enough.
@@ -98,6 +102,93 @@ var Tree = []Verb{
 		},
 	},
 	{
+		Noun: "ci", Name: "rerun", Session: true,
+		Usage:   "vcs ci rerun <run-id|run-address> [--failed]",
+		Summary: "Restart a CI run. The Forgejo API has no rerun route, so this uses the web route with a session.",
+		Output:  "One row: `rerun` and the run-id.",
+		Flags:   []Flag{{"--failed", "Restart the failed jobs only."}},
+		Exits:   []string{"0 restarted", "1 the call failed, the run isn't found, or --failed found no failed job", "64 usage error", "69 no usable driver", "77 no web session, or the server no longer accepts it"},
+		Hints: map[string]string{
+			OutOK:          "run vcs pr status <n> in a few minutes, or vcs ci runs --limit 1",
+			OutFail:        "get the run-id again with vcs ci runs",
+			OutUsage:       "give a run-id or the web address of a run",
+			OutUnavailable: "stop and ask the user. This host has no driver yet",
+			OutNoSession:   "stop and ask the user to run vcs session login, or vcs session import. Never ask for the password in chat",
+		},
+	},
+	{
+		Noun: "attach", Name: "",
+		Usage:   "vcs attach <n> <file>... [--comment] [--title <text>]",
+		Summary: "Upload files to an issue or a pull request, and optionally post one comment that shows them.",
+		Output:  "One row for each file: name, download address. With --comment, a last line `comment posted`.",
+		Flags: []Flag{
+			{"--comment", "Post one comment that embeds each file as an image."},
+			{"--title", "The first line of the comment. The default is Screenshots."},
+		},
+		Exits: []string{"0 uploaded", "1 an upload or the comment failed", "64 usage error, or a file isn't a plain file", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "check the token. Run the command again for the files that didn't upload",
+			OutUsage:       "give the number, then one or more plain files",
+			OutUnavailable: "stop and ask the user. This host has no upload route",
+		},
+	},
+	{
+		Noun: "session", Name: "login",
+		Usage:   "VCS_PASSWORD=... vcs session login --user <name>",
+		Summary: "Sign in to the web side of the forge and keep the session. The password comes from VCS_PASSWORD, never from an argument.",
+		Output:  "`ok`.",
+		Flags:   []Flag{{"--user", "The user name. VCS_USER is the fallback."}},
+		Exits:   []string{"0 signed in", "1 the server refused the login, or the account needs a second factor", "64 usage error"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "stop and ask the user. For a second factor the user runs vcs session import",
+			OutUsage:       "stop and ask the user to run this command. Never put a password in a command",
+			OutUnavailable: "",
+		},
+	},
+	{
+		Noun: "session", Name: "import",
+		Usage:   "vcs session import < cookie-value",
+		Summary: "Keep the i_like_gitea cookie of a browser session, read from standard input. Use it for an account with a second factor.",
+		Output:  "`ok`.",
+		Exits:   []string{"0 saved", "1 the server didn't accept the cookie", "64 usage error"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "stop and ask the user for a fresh cookie",
+			OutUsage:       "give the cookie value on standard input",
+			OutUnavailable: "",
+		},
+	},
+	{
+		Noun: "session", Name: "status",
+		Usage:   "vcs session status",
+		Summary: "Tell whether the kept session is still good.",
+		Output:  "`ok`.",
+		Exits:   []string{"0 the session is good", "64 usage error", "77 no session, or the server no longer accepts it"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "",
+			OutUsage:       "run vcs session status with no argument",
+			OutUnavailable: "",
+			OutNoSession:   "stop and ask the user to run vcs session login, or vcs session import",
+		},
+		Session: true,
+	},
+	{
+		Noun: "session", Name: "logout",
+		Usage:   "vcs session logout",
+		Summary: "Delete the kept session of this host.",
+		Output:  "`ok`.",
+		Exits:   []string{"0 deleted, or there was none", "1 the delete failed", "64 usage error"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "check the permissions of the config directory",
+			OutUsage:       "run vcs session logout with no argument",
+			OutUnavailable: "",
+		},
+	},
+	{
 		Noun: "docs", Name: "gen",
 		Usage:   "vcs docs gen <dir>",
 		Summary: "Write one Markdown page for each verb of the command tree.",
@@ -110,6 +201,14 @@ var Tree = []Verb{
 			OutUnavailable: "",
 		},
 	},
+}
+
+// Key names a verb: "ci runs", or "attach" for a noun with no verb.
+func (v Verb) Key() string {
+	if v.Name == "" {
+		return v.Noun
+	}
+	return v.Noun + " " + v.Name
 }
 
 // Find returns the verb of a noun and a name.
