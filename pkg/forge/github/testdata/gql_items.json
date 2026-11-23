@@ -1,0 +1,5 @@
+{"data":{"node":{"items":{"nodes":[
+ {"id":"ITEM_3","content":{"number":3,"title":"Build it"},"fieldValueByName":{"name":"Todo","optionId":"opt_todo"}},
+ {"id":"ITEM_D","content":{},"fieldValueByName":{"name":"Todo","optionId":"opt_todo"}},
+ {"id":"ITEM_4","content":{"number":4,"title":"Plan it"},"fieldValueByName":null}],
+ "pageInfo":{"hasNextPage":false,"endCursor":""}}}}}
