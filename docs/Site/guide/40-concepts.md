@@ -6,7 +6,7 @@ A driver talks to one kind of forge. `vcs` has two drivers.
 
 | Driver | Forges | Token variable |
 |---|---|---|
-| Forgejo | Forgejo and Gitea | `VCS_TOKEN` |
+| Forgejo | Forgejo and Gitea | `VCS_TOKEN`, then the tea login for the host |
 | GitHub | github.com | `GITHUB_TOKEN`, then `GH_TOKEN` |
 
 Forgejo and Gitea share one driver, because their web interfaces match. GitHub Enterprise has no

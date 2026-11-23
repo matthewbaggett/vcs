@@ -99,7 +99,7 @@ func main() {
 			default:
 				return nil, forge.ErrUnsupported
 			}
-			cfg := forgejo.Config{BaseURL: "https://" + host, Repo: repo, Token: os.Getenv("VCS_TOKEN")}
+			cfg := forgejo.Config{BaseURL: "https://" + host, Repo: repo, Token: forge.ForgejoToken(os.Getenv, host)}
 			if cfg.Token == "" {
 				cfg.Login, cfg.Password = forge.NetrcLogin(host)
 			}

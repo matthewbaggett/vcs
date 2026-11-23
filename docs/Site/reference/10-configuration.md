@@ -15,7 +15,8 @@
 
 | Variable | Used for | Default |
 |---|---|---|
-| `VCS_TOKEN` | The token for Forgejo and Gitea | none |
+| `VCS_TOKEN` | The token for Forgejo and Gitea. It wins over the tea login | none |
+| `TEA_CONFIG` | The path of the tea config file. Without `VCS_TOKEN`, `vcs` reads the token of the tea login for the host from it. `vcs` only reads this file, and it never prints the token | `~/.config/tea/config.yml` |
 | `GITHUB_TOKEN` | The token for GitHub. It wins over `GH_TOKEN` | none |
 | `GH_TOKEN` | The token for GitHub, when you give no `GITHUB_TOKEN` | none |
 | `VCS_USER` | The user name for `vcs session login` | none |
