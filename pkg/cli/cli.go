@@ -119,7 +119,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true, "draft": true}
@@ -230,6 +230,27 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		}
 		if code := lintText(env, o.flags["body"]); code != ExitOK {
 			return code
+		}
+	case "board list":
+		if len(o.pos) != 0 || (o.flags["state"] != "" && o.flags["state"] != "open" && o.flags["state"] != "closed") {
+			return usage(env, v)
+		}
+	case "board view":
+		if len(o.pos) != 1 || !isNum(o.pos[0]) {
+			return usage(env, v)
+		}
+	case "board add", "board move":
+		skip := 1
+		if v.Name == "move" {
+			skip = 2
+		}
+		if len(o.pos) < skip+1 || !isNum(o.pos[0]) {
+			return usage(env, v)
+		}
+		for _, a := range o.pos[skip:] {
+			if !isNum(a) {
+				return usage(env, v)
+			}
 		}
 	case "pr create":
 		if len(o.pos) != 1 || o.flags["head"] == "" || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
@@ -524,6 +545,42 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			return fail(env, err)
 		}
 		row(env, "ready", strconv.Itoa(n))
+	case "board list":
+		bs, err := c.BoardList(ctx, o.flags["state"] == "closed")
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, b := range bs {
+			row(env, b.ID, b.Title, b.URL)
+		}
+	case "board view":
+		cs, err := c.BoardView(ctx, o.pos[0])
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, k := range cs {
+			row(env, k.ColumnID, k.Column, k.ItemID, strconv.Itoa(k.Number), k.Title)
+		}
+	case "board add", "board move":
+		skip := 1
+		if v.Name == "move" {
+			skip = 2
+		}
+		var nums []int
+		for _, a := range o.pos[skip:] {
+			x, _ := strconv.Atoi(a)
+			nums = append(nums, x)
+		}
+		var err error
+		if v.Name == "add" {
+			err = c.BoardAdd(ctx, o.pos[0], nums)
+		} else {
+			err = c.BoardMove(ctx, o.pos[0], o.pos[1], nums)
+		}
+		if err != nil {
+			return fail(env, err)
+		}
+		fmt.Fprintln(env.Stdout, "ok")
 	case "pr create":
 		num, addr, err := c.CreatePR(ctx, forge.NewPR{Title: o.pos[0], Body: o.flags["body"], Head: o.flags["head"], Base: o.flags["base"], Draft: o.flags["draft"] == "true"})
 		if err != nil {
@@ -648,4 +705,9 @@ func readText(env Env, name string) (string, error) {
 		err = errors.New("empty")
 	}
 	return string(raw), err
+}
+
+func isNum(s string) bool {
+	n, err := strconv.Atoi(s)
+	return err == nil && n > 0
 }

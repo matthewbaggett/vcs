@@ -65,6 +65,24 @@ func (f fake) PRReady(_ context.Context, n int) error {
 	}
 	return f.err
 }
+func (f fake) BoardList(_ context.Context, closed bool) ([]forge.Board, error) {
+	return []forge.Board{{ID: "1", Title: "Plan", URL: "https://git.example/o/r/projects/1"}}, f.err
+}
+func (f fake) BoardView(context.Context, string) ([]forge.Card, error) {
+	return []forge.Card{{ColumnID: "5", Column: "Doing", ItemID: "90", Number: 3, Title: "A card"}}, f.err
+}
+func (f fake) BoardAdd(_ context.Context, b string, n []int) error {
+	if f.comment != nil {
+		*f.comment = fmt.Sprintf("add %s %v", b, n)
+	}
+	return f.err
+}
+func (f fake) BoardMove(_ context.Context, b, col string, n []int) error {
+	if f.comment != nil {
+		*f.comment = fmt.Sprintf("move %s %s %v", b, col, n)
+	}
+	return f.err
+}
 func (f fake) CILog(context.Context, int64) (string, error) { return f.log, f.err }
 
 func run(t *testing.T, c forge.Client, env map[string]string, tty bool, args ...string) (int, string, string) {
@@ -411,5 +429,31 @@ func TestIssueCreateAndReady(t *testing.T) {
 	}
 	if code, _, _ := run(t, c, nil, false, "pr", "ready"); code != ExitUsage {
 		t.Errorf("ready no n: %d", code)
+	}
+}
+
+func TestBoardVerbs(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	if code, out, _ := run(t, c, nil, false, "board", "list"); code != ExitOK || out != "1\tPlan\thttps://git.example/o/r/projects/1\n" {
+		t.Errorf("list: %d %q", code, out)
+	}
+	if code, out, _ := run(t, c, nil, false, "board", "view", "1"); code != ExitOK || out != "5\tDoing\t90\t3\tA card\n" {
+		t.Errorf("view: %d %q", code, out)
+	}
+	if code, out, _ := run(t, c, nil, false, "board", "add", "1", "3", "4"); code != ExitOK || out != "ok\n" || got != "add 1 [3 4]" {
+		t.Errorf("add: %d %q %q", code, out, got)
+	}
+	if code, out, _ := run(t, c, nil, false, "board", "move", "1", "Doing", "3"); code != ExitOK || out != "ok\n" || got != "move 1 Doing [3]" {
+		t.Errorf("move: %d %q %q", code, out, got)
+	}
+	nos := fake{err: forge.ErrNoSession}
+	if code, _, _ := run(t, nos, nil, false, "board", "move", "1", "Doing", "3"); code != ExitNoSession {
+		t.Errorf("no session: %d", code)
+	}
+	for _, a := range [][]string{{"board", "view"}, {"board", "view", "x"}, {"board", "add", "1"}, {"board", "move", "1", "Doing"}, {"board", "list", "--state", "weird"}} {
+		if code, _, _ := run(t, c, nil, false, a...); code != ExitUsage {
+			t.Errorf("%v: %d", a, code)
+		}
 	}
 }

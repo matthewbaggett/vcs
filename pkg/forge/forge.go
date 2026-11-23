@@ -68,6 +68,31 @@ type Client interface {
 	CreateIssue(ctx context.Context, title, body string) (int, string, error)
 	// PRReady takes a pull request out of draft.
 	PRReady(ctx context.Context, n int) error
+	// BoardList lists the project boards. With closed it lists the closed ones.
+	BoardList(ctx context.Context, closed bool) ([]Board, error)
+	// BoardView lists the cards of one board, column by column.
+	BoardView(ctx context.Context, board string) ([]Card, error)
+	// BoardAdd puts issues or pull requests on a board. It needs a web session on Forgejo.
+	BoardAdd(ctx context.Context, board string, numbers []int) error
+	// BoardMove moves cards to a column, named by id or by title. A card that is not on
+	// the board is added. It needs a web session on Forgejo.
+	BoardMove(ctx context.Context, board, column string, numbers []int) error
+}
+
+// Board is one project board.
+type Board struct {
+	ID    string
+	Title string
+	URL   string
+}
+
+// Card is one card on a board.
+type Card struct {
+	ColumnID string
+	Column   string
+	ItemID   string // the id that the server routes take
+	Number   int
+	Title    string
 }
 
 // NewPR is the input of CreatePR.
