@@ -129,6 +129,18 @@ type PREditor interface {
 	PREdit(ctx context.Context, n int, in PREdit) error
 }
 
+// PRMerge is the input of PRMerger.PRMerge. An empty Method means merge.
+type PRMerge struct {
+	Method       string // merge, rebase, rebase-merge, or squash
+	DeleteBranch bool
+}
+
+// PRMerger is the optional interface of a driver that merges a pull request. The command
+// asserts it, so a driver without it needs no stub.
+type PRMerger interface {
+	PRMerge(ctx context.Context, n int, in PRMerge) error
+}
+
 // PRInfo is one row of a pull request list.
 type PRInfo struct {
 	Number    int

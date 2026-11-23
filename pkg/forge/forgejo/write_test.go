@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -206,6 +207,45 @@ func TestPREditKeepsDraft(t *testing.T) {
 	patched = map[string]string{"x": "y"}
 	if err := c.PREdit(ctx, 3, forge.PREdit{}); err != nil || patched["x"] != "y" {
 		t.Fatalf("empty edit sent a call: err=%v patched=%v", err, patched)
+	}
+}
+
+func TestPRMerge(t *testing.T) {
+	var posted map[string]any
+	merged := false
+	refuse := false
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/pulls/9/merge"):
+			if refuse {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				w.Write([]byte(`{"message":"not mergeable"}`))
+				return
+			}
+			b, _ := io.ReadAll(r.Body)
+			posted = nil
+			json.Unmarshal(b, &posted)
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/pulls/9"):
+			w.Write([]byte(fmt.Sprintf(`{"merged":%v}`, merged)))
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+	})
+	ctx := context.Background()
+	if err := c.PRMerge(ctx, 9, forge.PRMerge{}); err != nil || posted["Do"] != "merge" || len(posted) != 1 {
+		t.Fatalf("default: err=%v posted=%v", err, posted)
+	}
+	if err := c.PRMerge(ctx, 9, forge.PRMerge{Method: "squash", DeleteBranch: true}); err != nil || posted["Do"] != "squash" || posted["delete_branch_after_merge"] != true {
+		t.Fatalf("squash: err=%v posted=%v", err, posted)
+	}
+	refuse = true
+	if err := c.PRMerge(ctx, 9, forge.PRMerge{}); err == nil || strings.Contains(err.Error(), "merged already") {
+		t.Fatalf("refused: err=%v", err)
+	}
+	merged = true
+	if err := c.PRMerge(ctx, 9, forge.PRMerge{}); err == nil || !strings.Contains(err.Error(), "merged already") {
+		t.Fatalf("merged already: err=%v", err)
 	}
 }
 
