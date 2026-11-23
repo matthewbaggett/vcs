@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,11 +16,14 @@ import (
 )
 
 type fake struct {
-	pr   forge.PRStatus
-	runs []forge.Run
-	jobs []forge.Job
-	log  string
-	err  error
+	rerun   *[]string
+	assets  []forge.Asset
+	comment *string
+	pr      forge.PRStatus
+	runs    []forge.Run
+	jobs    []forge.Job
+	log     string
+	err     error
 }
 
 func (f fake) PRStatus(context.Context, int) (forge.PRStatus, error) { return f.pr, f.err }
@@ -25,7 +31,22 @@ func (f fake) CIRuns(context.Context, forge.RunFilter) ([]forge.Run, error) {
 	return f.runs, f.err
 }
 func (f fake) CIJobs(context.Context, int64) ([]forge.Job, error) { return f.jobs, f.err }
-func (f fake) CILog(context.Context, int64) (string, error)       { return f.log, f.err }
+func (f fake) CIRerun(_ context.Context, id int64, failed bool) error {
+	if f.rerun != nil {
+		*f.rerun = append(*f.rerun, fmt.Sprintf("%d/%v", id, failed))
+	}
+	return f.err
+}
+func (f fake) Attach(_ context.Context, _ int, files []string) ([]forge.Asset, error) {
+	return f.assets, f.err
+}
+func (f fake) Comment(_ context.Context, _ int, body string) error {
+	if f.comment != nil {
+		*f.comment = body
+	}
+	return f.err
+}
+func (f fake) CILog(context.Context, int64) (string, error) { return f.log, f.err }
 
 func run(t *testing.T, c forge.Client, env map[string]string, tty bool, args ...string) (int, string, string) {
 	t.Helper()
@@ -83,6 +104,8 @@ func TestUsageErrorsExit64(t *testing.T) {
 		{"ci", "runs", "--limit", "x"}, {"ci", "runs", "--bogus", "1"}, {"ci", "runs", "--sha", "zz"},
 		{"ci", "jobs"}, {"ci", "jobs", "abc"}, {"ci", "log", "0"}, {"ci", "log", "5", "--tail", "-1"},
 		{"docs", "gen"},
+		{"ci", "rerun"}, {"attach"}, {"attach", "5"}, {"attach", "x", "go.mod"}, {"attach", "5", "/no/such/file"},
+		{"session", "status", "extra"}, {"session", "login"},
 	} {
 		if code, _, _ := run(t, fake{}, nil, true, args...); code != ExitUsage {
 			t.Errorf("%v exit %d, want 64", args, code)
@@ -136,7 +159,11 @@ func TestCILogStripsColourAndTails(t *testing.T) {
 // Every verb needs an agent hint for each outcome. An empty text is allowed, a missing key is not.
 func TestEveryVerbHasEveryHint(t *testing.T) {
 	for _, v := range Tree {
-		for _, out := range []string{OutOK, OutFail, OutUsage, OutUnavailable} {
+		need := []string{OutOK, OutFail, OutUsage, OutUnavailable}
+		if v.Session {
+			need = append(need, OutNoSession)
+		}
+		for _, out := range need {
 			if _, ok := v.Hints[out]; !ok {
 				t.Errorf("%s %s has no hint for %q", v.Noun, v.Name, out)
 			}
@@ -161,5 +188,91 @@ func TestCommittedDocsMatchTree(t *testing.T) {
 		if _, ok := Pages()[e.Name()]; !ok && e.Name() != "README.md" {
 			t.Errorf("docs/Commands/%s has no verb", e.Name())
 		}
+	}
+}
+
+func TestRerunVerb(t *testing.T) {
+	var calls []string
+	c := fake{rerun: &calls, runs: []forge.Run{{ID: 9, Index: 4, URL: "https://git.example/o/r/actions/runs/4"}}}
+	if code, out, _ := run(t, c, nil, true, "ci", "rerun", "9", "--failed"); code != 0 || out != "rerun\t9\n" {
+		t.Errorf("rerun: %d %q", code, out)
+	}
+	if code, _, _ := run(t, c, nil, true, "ci", "rerun", "https://git.example/o/r/actions/runs/4"); code != 0 {
+		t.Errorf("rerun by address: %d", code)
+	}
+	if strings.Join(calls, ",") != "9/true,9/false" {
+		t.Errorf("calls = %v", calls)
+	}
+	code, _, errs := run(t, fake{err: forge.ErrNoSession}, map[string]string{"VCS_CALLER": "agent"}, true, "ci", "rerun", "9")
+	if code != ExitNoSession || !strings.Contains(errs, "vcs: next: stop and ask the user to run vcs session login") {
+		t.Errorf("no session: %d %q", code, errs)
+	}
+}
+
+func TestAttachVerb(t *testing.T) {
+	var body string
+	file := filepath.Join(t.TempDir(), "a.png")
+	os.WriteFile(file, []byte("x"), 0o600)
+	c := fake{assets: []forge.Asset{{Name: "a.png", URL: "https://x/a"}}, comment: &body}
+	code, out, _ := run(t, c, nil, true, "attach", "5", file, "--comment", "--title", "Proof")
+	if code != 0 || out != "a.png\thttps://x/a\ncomment posted\n" || body != "Proof\n\n![a.png](https://x/a)" {
+		t.Errorf("attach: %d %q %q", code, out, body)
+	}
+	// A symbolic link is not a plain file.
+	link := filepath.Join(t.TempDir(), "l.png")
+	os.Symlink(file, link)
+	if code, _, _ := run(t, c, nil, true, "attach", "5", link); code != ExitUsage {
+		t.Errorf("symlink: %d", code)
+	}
+}
+
+func TestSessionVerbs(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/user/login":
+			r.ParseForm()
+			http.SetCookie(w, &http.Cookie{Name: "i_like_gitea", Value: "good"})
+			w.Header().Set("Location", "/")
+			w.WriteHeader(http.StatusSeeOther)
+		case "/user/settings":
+			if c, err := r.Cookie("i_like_gitea"); err == nil && c.Value == "good" {
+				return
+			}
+			w.WriteHeader(http.StatusSeeOther)
+		}
+	}))
+	defer srv.Close()
+	dir := t.TempDir()
+	do := func(stdin string, env map[string]string, args ...string) (int, string) {
+		var out, errb bytes.Buffer
+		e := Env{
+			Stdout: &out, Stderr: &errb, Stdin: strings.NewReader(stdin), ConfigDir: dir, IsTerminal: true,
+			Getenv:    func(k string) string { return env[k] },
+			RemoteURL: func() (string, error) { return "https://git.example/o/r.git", nil },
+			BaseURL:   func(string) string { return srv.URL },
+		}
+		return Run(context.Background(), args, e), out.String() + errb.String()
+	}
+	if code, out := do("", nil, "session", "status"); code != ExitNoSession {
+		t.Errorf("status before: %d %q", code, out)
+	}
+	if code, out := do("", map[string]string{"VCS_PASSWORD": "pw"}, "session", "login", "--user", "me"); code != 0 || out != "ok\n" {
+		t.Errorf("login: %d %q", code, out)
+	}
+	if code, _ := do("", nil, "session", "status"); code != 0 {
+		t.Errorf("status after login: %d", code)
+	}
+	do("", nil, "session", "logout")
+	if code, _ := do("", nil, "session", "status"); code != ExitNoSession {
+		t.Errorf("status after logout: %d", code)
+	}
+	if code, _ := do("bad\n", nil, "session", "import"); code != ExitFail {
+		t.Errorf("import bad: %d", code)
+	}
+	if code, _ := do(" good \n", nil, "session", "import"); code != 0 {
+		t.Errorf("import good: %d", code)
+	}
+	if code, _ := do("", nil, "session", "login", "--user", "me"); code != ExitUsage {
+		t.Errorf("login with no password: %d", code)
 	}
 }
