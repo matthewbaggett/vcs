@@ -7,7 +7,7 @@ The command tree generates this page. Don't edit it by hand.
 ## Usage
 
 ```text
-vcs git branch create|switch|rename|delete|list <args>...
+vcs git [-C <dir>] branch create|switch|rename|delete|list <args>...
 ```
 
 ## Output
