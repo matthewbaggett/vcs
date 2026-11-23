@@ -1,8 +1,8 @@
-# vcs ci jobs
+# The `vcs ci jobs` command
 
 List the jobs of one CI run.
 
-This page is generated from the command tree. Do not edit it by hand.
+The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
@@ -17,7 +17,7 @@ One row for each job, tab-separated: job-id, name, status, attempt, note. The no
 ## Exit codes
 
 - 0 printed the rows
-- 1 the call failed or the run is not found
+- 1 the call failed or the run isn't found
 - 64 usage error
 - 69 no usable driver
 
