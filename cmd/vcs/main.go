@@ -14,6 +14,7 @@ import (
 	"git.grey.ooo/packages/vcs/pkg/cli"
 	"git.grey.ooo/packages/vcs/pkg/forge"
 	"git.grey.ooo/packages/vcs/pkg/forge/forgejo"
+	"git.grey.ooo/packages/vcs/pkg/forge/github"
 	"git.grey.ooo/packages/vcs/pkg/lint"
 	"git.grey.ooo/packages/vcs/pkg/session"
 	"github.com/vale-cli/vale/v3/pkg/vale"
@@ -75,8 +76,12 @@ func main() {
 				fmt.Fprintf(os.Stderr, "vcs: %v\n", err)
 				return nil, forge.ErrUnsupported
 			}
-			// Forgejo and Gitea share one driver. The GitHub drivers wait on their own pull requests.
-			if kind != forge.KindForgejo && kind != forge.KindGitea {
+			// Forgejo and Gitea share one driver. GitHub has its own. GitHub Enterprise has none yet.
+			switch kind {
+			case forge.KindGitHub:
+				return github.New(github.Config{Repo: repo, Token: github.TokenFromEnv(os.Getenv)}), nil
+			case forge.KindForgejo, forge.KindGitea:
+			default:
 				return nil, forge.ErrUnsupported
 			}
 			cfg := forgejo.Config{BaseURL: "https://" + host, Repo: repo, Token: os.Getenv("VCS_TOKEN")}
