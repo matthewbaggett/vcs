@@ -123,7 +123,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "add-label": true, "rm-label": true, "method": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true}
@@ -269,6 +269,10 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 	case "ci failed":
 		if len(o.pos) != 1 || !regexp.MustCompile(`^([0-9]{1,6}|[0-9A-Fa-f]{7,40})$`).MatchString(o.pos[0]) {
 			return usage(env, v)
+		}
+	case "milestone list", "milestone view", "milestone create":
+		if code := milestoneCheck(env, v, o); code >= 0 {
+			return code
 		}
 	case "time add", "time list", "time total", "stopwatch list":
 		if code := timeCheck(env, v, o); code >= 0 {
@@ -764,6 +768,38 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			return fail(env, err)
 		}
 		row(env, "edited", strconv.Itoa(n))
+	case "milestone list", "milestone view", "milestone create":
+		mm, ok := c.(forge.MilestoneManager)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no milestone support yet")
+			return ExitUnavailable
+		}
+		switch v.Name {
+		case "list":
+			state := o.flags["state"]
+			if state == "" {
+				state = "open"
+			}
+			ms, err := mm.MilestoneList(ctx, state)
+			if err != nil {
+				return fail(env, err)
+			}
+			for _, m := range ms {
+				row(env, strconv.FormatInt(m.ID, 10), m.Title, m.State, strconv.Itoa(m.Open), strconv.Itoa(m.Closed), m.Due)
+			}
+		case "view":
+			m, err := mm.MilestoneView(ctx, o.pos[0])
+			if err != nil {
+				return fail(env, err)
+			}
+			desc := strings.NewReplacer("\r\n", `\n`, "\n", `\n`, "\r", `\n`).Replace(m.Description)
+			row(env, strconv.FormatInt(m.ID, 10), m.Title, m.State, strconv.Itoa(m.Open), strconv.Itoa(m.Closed), m.Due, desc)
+		case "create":
+			if err := mm.MilestoneCreate(ctx, o.pos[0], o.flags["due"], o.flags["desc"]); err != nil {
+				return fail(env, err)
+			}
+			row(env, "created", o.pos[0])
+		}
 	case "issue edit":
 		ed, ok := c.(forge.IssueEditor)
 		if !ok {
