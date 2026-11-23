@@ -39,6 +39,8 @@ type Env struct {
 	Sleep func(ctx context.Context, d time.Duration)
 	// Checkers lint each text that a write verb sends. A finding stops the send.
 	Checkers []lint.Checker
+	// Exec runs a program with the given streams and returns its exit code. The git verbs use it.
+	Exec func(ctx context.Context, name string, args []string, stdout, stderr io.Writer) int
 }
 
 // IsAgent tells whether an agent called vcs.
@@ -73,6 +75,17 @@ var ansiRe = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
 // Run runs one command line and returns the exit code.
 func Run(ctx context.Context, args []string, env Env) int {
+	if len(args) >= 2 && args[0] == "git" {
+		// The git verbs pass their arguments to git. The flag parser would refuse most of them.
+		verb, ok := Find("git", args[1])
+		if !ok {
+			fmt.Fprintf(env.Stderr, "vcs: no verb %q %q\n", "git", args[1])
+			return ExitUsage
+		}
+		code := gitVerb(ctx, verb, args[2:], env)
+		hint(verb, code, opts{}, env)
+		return code
+	}
 	o, err := parse(args)
 	if err != nil {
 		fmt.Fprintf(env.Stderr, "vcs: %v\n", err)
