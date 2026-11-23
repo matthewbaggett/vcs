@@ -193,7 +193,7 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 	var limit, tail int
 	var good bool
 	switch v.Key() {
-	case "pr status", "pr watch":
+	case "pr status", "pr watch", "pr ready":
 		if len(o.pos) != 1 {
 			return usage(env, v)
 		}
@@ -208,6 +208,28 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 			if t, ok := intFlag(o, "timeout", 3600); !ok || t < 1 {
 				return usage(env, v)
 			}
+		}
+	case "issue create":
+		if len(o.pos) != 1 || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
+			return usage(env, v)
+		}
+		if f := o.flags["body-file"]; f != "" {
+			raw, err := readText(env, f)
+			if err != nil {
+				fmt.Fprintf(env.Stderr, "vcs: cannot read a body from %s\n", f)
+				return ExitUsage
+			}
+			o.flags["body"] = raw
+		}
+		if r := guard.Credit(o.pos[0] + "\n" + o.flags["body"]); len(r) > 0 {
+			fmt.Fprintf(env.Stderr, "vcs: guard: %s\n", r[0])
+			return ExitLint
+		}
+		if code := lintText(env, o.pos[0]); code != ExitOK {
+			return code
+		}
+		if code := lintText(env, o.flags["body"]); code != ExitOK {
+			return code
 		}
 	case "pr create":
 		if len(o.pos) != 1 || o.flags["head"] == "" || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
@@ -491,6 +513,17 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			}
 			fmt.Fprintln(env.Stdout, "comment posted")
 		}
+	case "issue create":
+		num, addr, err := c.CreateIssue(ctx, o.pos[0], o.flags["body"])
+		if err != nil {
+			return fail(env, err)
+		}
+		row(env, strconv.Itoa(num), addr)
+	case "pr ready":
+		if err := c.PRReady(ctx, n); err != nil {
+			return fail(env, err)
+		}
+		row(env, "ready", strconv.Itoa(n))
 	case "pr create":
 		num, addr, err := c.CreatePR(ctx, forge.NewPR{Title: o.pos[0], Body: o.flags["body"], Head: o.flags["head"], Base: o.flags["base"], Draft: o.flags["draft"] == "true"})
 		if err != nil {

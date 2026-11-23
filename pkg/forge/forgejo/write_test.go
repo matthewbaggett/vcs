@@ -150,3 +150,30 @@ func TestCreatePR(t *testing.T) {
 		t.Errorf("payload %v", got)
 	}
 }
+
+func TestCreateIssueAndReady(t *testing.T) {
+	var patched, issue map[string]string
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/issues"):
+			json.Unmarshal(b, &issue)
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"number":4,"html_url":"https://git.example/o/r/issues/4"}`))
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/pulls/3"):
+			w.Write([]byte(`{"title":"WIP: Add it"}`))
+		case r.Method == http.MethodPatch && strings.HasSuffix(r.URL.Path, "/pulls/3"):
+			json.Unmarshal(b, &patched)
+			w.Write([]byte(`{}`))
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+	})
+	n, addr, err := c.CreateIssue(context.Background(), "T", "B")
+	if err != nil || n != 4 || addr == "" || issue["title"] != "T" || issue["body"] != "B" {
+		t.Fatalf("issue: n=%d addr=%q err=%v got=%v", n, addr, err, issue)
+	}
+	if err := c.PRReady(context.Background(), 3); err != nil || patched["title"] != "Add it" {
+		t.Fatalf("ready: err=%v patched=%v", err, patched)
+	}
+}

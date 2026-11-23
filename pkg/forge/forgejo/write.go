@@ -196,3 +196,66 @@ func (c *Client) CreatePR(ctx context.Context, in forge.NewPR) (int, string, err
 	}
 	return out.Number, out.URL, nil
 }
+
+// CreateIssue opens an issue.
+func (c *Client) CreateIssue(ctx context.Context, title, body string) (int, string, error) {
+	payload, _ := json.Marshal(map[string]string{"title": title, "body": body})
+	path := fmt.Sprintf("repos/%s/issues", c.cfg.Repo)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+"/api/v1/"+path, bytes.NewReader(payload))
+	if err != nil {
+		return 0, "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	c.authorize(req)
+	resp, err := c.send(req, path)
+	if err != nil {
+		return 0, "", err
+	}
+	var out struct {
+		Number int    `json:"number"`
+		URL    string `json:"html_url"`
+	}
+	if json.Unmarshal(resp, &out) != nil || out.Number == 0 {
+		return 0, "", fmt.Errorf("the server gave no issue number")
+	}
+	return out.Number, out.URL, nil
+}
+
+// PRReady removes the WIP: prefix from the title, which takes the pull request out of draft.
+func (c *Client) PRReady(ctx context.Context, n int) error {
+	path := fmt.Sprintf("repos/%s/pulls/%d", c.cfg.Repo, n)
+	get, err := http.NewRequestWithContext(ctx, http.MethodGet, c.cfg.BaseURL+"/api/v1/"+path, nil)
+	if err != nil {
+		return err
+	}
+	c.authorize(get)
+	resp, err := c.send(get, path)
+	if err != nil {
+		return err
+	}
+	var pr struct {
+		Title string `json:"title"`
+	}
+	if err := json.Unmarshal(resp, &pr); err != nil {
+		return err
+	}
+	title := strings.TrimSpace(pr.Title)
+	up := strings.ToUpper(title)
+	switch {
+	case strings.HasPrefix(up, "WIP:"):
+		title = strings.TrimSpace(title[4:])
+	case strings.HasPrefix(up, "[WIP]"):
+		title = strings.TrimSpace(title[5:])
+	default:
+		return nil // already ready
+	}
+	payload, _ := json.Marshal(map[string]string{"title": title})
+	patch, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.cfg.BaseURL+"/api/v1/"+path, bytes.NewReader(payload))
+	if err != nil {
+		return err
+	}
+	patch.Header.Set("Content-Type", "application/json")
+	c.authorize(patch)
+	_, err = c.send(patch, path)
+	return err
+}

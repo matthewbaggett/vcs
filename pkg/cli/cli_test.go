@@ -53,6 +53,18 @@ func (f fake) CreatePR(_ context.Context, in forge.NewPR) (int, string, error) {
 	}
 	return 7, "https://git.example/o/r/pulls/7", f.err
 }
+func (f fake) CreateIssue(_ context.Context, title, body string) (int, string, error) {
+	if f.comment != nil {
+		*f.comment = title + "|" + body
+	}
+	return 8, "https://git.example/o/r/issues/8", f.err
+}
+func (f fake) PRReady(_ context.Context, n int) error {
+	if f.comment != nil {
+		*f.comment = fmt.Sprintf("ready %d", n)
+	}
+	return f.err
+}
 func (f fake) CILog(context.Context, int64) (string, error) { return f.log, f.err }
 
 func run(t *testing.T, c forge.Client, env map[string]string, tty bool, args ...string) (int, string, string) {
@@ -375,5 +387,29 @@ func TestPRCreate(t *testing.T) {
 	}
 	if code, _, _ := run(t, c, nil, false, args("--body", "x")...); code != ExitUsage {
 		t.Errorf("no head: %d", code)
+	}
+}
+
+func TestIssueCreateAndReady(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	code, out, _ := run(t, c, nil, false, "issue", "create", "Fix it", "--body", "Body.")
+	if code != ExitOK || out != "8\thttps://git.example/o/r/issues/8\n" || got != "Fix it|Body." {
+		t.Fatalf("create: code=%d out=%q got=%q", code, out, got)
+	}
+	got = ""
+	code, out, errb := run(t, c, nil, false, "issue", "create", "Fix it", "--body", "🤖 Generated with Claude")
+	if code != ExitLint || out != "" || got != "" || !strings.Contains(errb, "guard:") {
+		t.Errorf("credit: code=%d out=%q got=%q err=%q", code, out, got, errb)
+	}
+	if code, _, _ := run(t, c, nil, false, "issue", "create", "Fix it"); code != ExitUsage {
+		t.Errorf("no body: %d", code)
+	}
+	code, out, _ = run(t, c, nil, false, "pr", "ready", "12")
+	if code != ExitOK || out != "ready\t12\n" || got != "ready 12" {
+		t.Errorf("ready: code=%d out=%q got=%q", code, out, got)
+	}
+	if code, _, _ := run(t, c, nil, false, "pr", "ready"); code != ExitUsage {
+		t.Errorf("ready no n: %d", code)
 	}
 }

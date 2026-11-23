@@ -64,6 +64,10 @@ type Client interface {
 	Comment(ctx context.Context, n int, body string) error
 	// CreatePR opens a pull request and returns its number and web address.
 	CreatePR(ctx context.Context, in NewPR) (int, string, error)
+	// CreateIssue opens an issue and returns its number and web address.
+	CreateIssue(ctx context.Context, title, body string) (int, string, error)
+	// PRReady takes a pull request out of draft.
+	PRReady(ctx context.Context, n int) error
 }
 
 // NewPR is the input of CreatePR.
