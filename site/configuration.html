@@ -51,8 +51,13 @@
 <tbody>
 <tr>
 <td><code>VCS_TOKEN</code></td>
-<td>The token for Forgejo and Gitea</td>
+<td>The token for Forgejo and Gitea. It wins over the tea login</td>
 <td>none</td>
+</tr>
+<tr>
+<td><code>TEA_CONFIG</code></td>
+<td>The path of the tea config file. Without <code>VCS_TOKEN</code>, <code>vcs</code> reads the token of the tea login for the host from it. <code>vcs</code> only reads this file, and it never prints the token</td>
+<td><code>~/.config/tea/config.yml</code></td>
 </tr>
 <tr>
 <td><code>GITHUB_TOKEN</code></td>
