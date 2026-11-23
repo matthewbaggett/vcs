@@ -14,15 +14,30 @@
 <p>Print the state of one pull request on one line.</p>
 <p>The command tree generates this page. Don't edit it by hand.</p>
 <h2 id="usage">Usage</h2>
-<pre><code class="language-text">vcs pr status &lt;n&gt;
+<pre><code class="language-text">vcs pr status &lt;n&gt; [--pushed]
 </code></pre>
 <h2 id="output">Output</h2>
-<p>One row, tab-separated: state, draft, mergeable, conflicted files, ci, head sha, url.</p>
+<p>One row, tab-separated: state, draft, mergeable, conflicted files, ci, head sha, url. With --pushed, an eighth column holds the commit time of the head commit, as Zulu time.</p>
 <h2 id="example">Example</h2>
 <p>The output below is an example with made-up data, not a real run.</p>
 <pre><code class="language-text">$ vcs pr status 12
 open	false	true	0	success	5888000a1bc3	https://forge.example/acme/app/pulls/12
 </code></pre>
+<h2 id="flags">Flags</h2>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--pushed</code></td>
+<td>Add the commit time of the head commit as the last column. It costs one more request.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="exit-codes">Exit codes</h2>
 <ul>
 <li>0 printed the row</li>

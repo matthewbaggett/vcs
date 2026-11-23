@@ -19,6 +19,12 @@ type PRStatus struct {
 	URL             string
 }
 
+// CommitTimer is an optional call: the commit time of one commit, in UTC, such as
+// 2026-10-17T10:00:00Z. A driver that has no such call leaves it out.
+type CommitTimer interface {
+	CommitTime(ctx context.Context, sha string) (string, error)
+}
+
 // Run is one CI run.
 type Run struct {
 	ID     int64

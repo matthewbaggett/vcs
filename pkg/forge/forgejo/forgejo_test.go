@@ -171,3 +171,20 @@ func TestBasicAuthFallback(t *testing.T) {
 		t.Fatalf("user=%q pass=%q err=%v", user, pass, err)
 	}
 }
+
+func TestCommitTime(t *testing.T) {
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/repos/o/r/git/commits/abc" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write([]byte(`{"commit":{"committer":{"date":"2026-10-17T12:00:00+02:00"}}}`))
+	})
+	got, err := c.CommitTime(context.Background(), "abc")
+	if err != nil || got != "2026-10-17T10:00:00Z" {
+		t.Fatalf("got %q, %v", got, err)
+	}
+	if _, err := c.CommitTime(context.Background(), "missing"); err == nil {
+		t.Fatal("a missing commit must fail")
+	}
+}
