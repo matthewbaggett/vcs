@@ -136,7 +136,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true}
@@ -269,6 +269,10 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 			return usage(env, v)
 		}
 		n, _ = strconv.Atoi(o.pos[0])
+	case "pr heal":
+		if code := healCheck(env, v, o); code >= 0 {
+			return code
+		}
 	case "pr tick":
 		if len(o.pos) != 0 {
 			return usage(env, v)
@@ -770,6 +774,8 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		}
 	case "ci failed":
 		return ciFailed(ctx, c, env, o.pos[0])
+	case "pr heal":
+		return heal(ctx, c, env, o)
 	case "pr tick":
 		return tick(ctx, c, env, o.flags["dry-run"] == "true")
 	case "pr merge":
