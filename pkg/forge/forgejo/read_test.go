@@ -71,6 +71,21 @@ func TestIssueListReadsEveryPage(t *testing.T) {
 	}
 }
 
+func TestIssueListSendsTheQuery(t *testing.T) {
+	var q string
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		q = r.URL.Query().Get("q")
+		w.Write([]byte(`[{"number":3,"title":"hit","state":"open"}]`))
+	})
+	got, err := c.IssueList(context.Background(), forge.ListFilter{Query: "retry loop"})
+	if err != nil || len(got) != 1 || q != "retry loop" {
+		t.Fatalf("got %v, err %v, q %q", got, err, q)
+	}
+	if _, err := c.IssueList(context.Background(), forge.ListFilter{}); err != nil || q != "" {
+		t.Errorf("an empty query must send no q, got %q", q)
+	}
+}
+
 func TestIssueView(t *testing.T) {
 	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

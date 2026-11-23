@@ -183,7 +183,8 @@ type ListFilter struct {
 	State     string // open, closed, or all
 	Labels    []string
 	Milestone string
-	Limit     int // keep the newest n after the filter. 0 keeps all
+	Query     string // a text search of the title and body. Only issue lists use it
+	Limit     int    // keep the newest n after the filter. 0 keeps all
 }
 
 // Reader is the optional interface of a driver that lists pull requests and issues.
