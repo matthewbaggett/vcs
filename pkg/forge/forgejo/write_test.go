@@ -484,3 +484,18 @@ func TestTimeTracking(t *testing.T) {
 		t.Fatalf("stopwatch: %+v %v", ws, err)
 	}
 }
+
+func TestBranchRename(t *testing.T) {
+	var sent string
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		sent = r.Method + " " + r.URL.EscapedPath() + " " + string(b)
+		w.Write([]byte(`{}`))
+	})
+	if err := c.BranchRename(context.Background(), "feature/old", "feature/new"); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(sent, "PATCH ") || !strings.HasSuffix(sent, "/branches/feature%2Fold {\"name\":\"feature/new\"}") {
+		t.Errorf("sent %q", sent)
+	}
+}

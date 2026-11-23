@@ -68,3 +68,12 @@ func (c *Client) LabelRename(ctx context.Context, id int64, name string) error {
 	_, err := c.sendJSON(ctx, http.MethodPatch, fmt.Sprintf("repos/%s/labels/%d", c.cfg.Repo, id), map[string]string{"name": name})
 	return err
 }
+
+var _ forge.BranchRenamer = (*Client)(nil)
+
+// BranchRename renames a branch on the server. Each slash of the old name is encoded in the path.
+func (c *Client) BranchRename(ctx context.Context, old, name string) error {
+	path := fmt.Sprintf("repos/%s/branches/%s", c.cfg.Repo, strings.ReplaceAll(old, "/", "%2F"))
+	_, err := c.sendJSON(ctx, http.MethodPatch, path, map[string]string{"name": name})
+	return err
+}
