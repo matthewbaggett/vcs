@@ -62,7 +62,7 @@ var Tree = []Verb{
 	{
 		Noun: "pr", Name: "create", Sends: true,
 		Usage:   "vcs pr create <title> --head <branch> [--base <branch>] (--body <text> | --body-file <path>) [--draft]",
-		Summary: "Open a pull request. The branch name and the AI credit line are checked, and the prose lint runs on the title and body.",
+		Summary: "Open a pull request. The command checks the branch name and the AI credit line, and the prose lint runs on the title and body.",
 		Output:  "One row: the number and the web address.",
 		Flags: []Flag{
 			{"--head", "The branch that holds the work. It must match type/short-description."},
@@ -71,10 +71,10 @@ var Tree = []Verb{
 			{"--body-file", "A file that holds the body. Use - for standard input."},
 			{"--draft", "Open the pull request as a draft."},
 		},
-		Exits: []string{"0 opened", "1 the call failed", "64 usage error", "65 a guard rule or the prose lint refuses the text, and nothing is sent", "69 no usable driver"},
+		Exits: []string{"0 opened", "1 the call failed", "64 usage error", "65 a guard rule or the prose lint refuses the text, and the command sends nothing", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "run vcs pr watch <n> until CI ends",
-			OutFail:        "check the token, and that the branch is pushed",
+			OutFail:        "check the token, and that you pushed the branch",
 			OutUsage:       "give a title, --head, and one of --body or --body-file",
 			OutLint:        "fix each finding that vcs printed, then run the command again",
 			OutUnavailable: "stop and ask the user. This host has no driver yet",
