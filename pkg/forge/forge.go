@@ -75,6 +75,58 @@ type Client interface {
 	Attach(ctx context.Context, n int, files []string) ([]Asset, error)
 	// Comment posts one comment on an issue or a pull request.
 	Comment(ctx context.Context, n int, body string) error
+	// CreatePR opens a pull request and returns its number and web address.
+	CreatePR(ctx context.Context, in NewPR) (int, string, error)
+	// CreateIssue opens an issue and returns its number and web address.
+	CreateIssue(ctx context.Context, title, body string) (int, string, error)
+	// PRReady takes a pull request out of draft.
+	PRReady(ctx context.Context, n int) error
+	// BoardList lists the project boards. With closed it lists the closed ones.
+	BoardList(ctx context.Context, closed bool) ([]Board, error)
+	// BoardView lists the cards of one board, column by column.
+	BoardView(ctx context.Context, board string) ([]Card, error)
+	// BoardAdd puts issues or pull requests on a board. It needs a web session on Forgejo.
+	BoardAdd(ctx context.Context, board string, numbers []int) error
+	// BoardMove moves cards to a column, named by id or by title. A card that is not on
+	// the board is added. It needs a web session on Forgejo.
+	BoardMove(ctx context.Context, board, column string, numbers []int) error
+}
+
+// Board is one project board.
+type Board struct {
+	ID    string
+	Title string
+	URL   string
+}
+
+// Card is one card on a board.
+type Card struct {
+	ColumnID string
+	Column   string
+	ItemID   string // the id that the server routes take
+	Number   int
+	Title    string
+}
+
+// NewPR is the input of CreatePR.
+type NewPR struct {
+	Title string
+	Body  string
+	Head  string
+	Base  string
+	Draft bool
+}
+
+// PREdit is the input of PREditor.PREdit. A nil field stays as it is.
+type PREdit struct {
+	Title *string
+	Body  *string
+}
+
+// PREditor is the optional interface of a driver that can change the title or the body of
+// a pull request. The command asserts it, so a driver without it needs no stub.
+type PREditor interface {
+	PREdit(ctx context.Context, n int, in PREdit) error
 }
 
 // Asset is one uploaded file.

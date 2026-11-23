@@ -55,6 +55,55 @@ func (f fake) Comment(_ context.Context, _ int, body string) error {
 	}
 	return f.err
 }
+func (f fake) CreatePR(_ context.Context, in forge.NewPR) (int, string, error) {
+	if f.comment != nil {
+		*f.comment = in.Head + "<-" + in.Base + "|" + in.Title + "|" + in.Body
+	}
+	return 7, "https://git.example/o/r/pulls/7", f.err
+}
+func (f fake) CreateIssue(_ context.Context, title, body string) (int, string, error) {
+	if f.comment != nil {
+		*f.comment = title + "|" + body
+	}
+	return 8, "https://git.example/o/r/issues/8", f.err
+}
+func (f fake) PRReady(_ context.Context, n int) error {
+	if f.comment != nil {
+		*f.comment = fmt.Sprintf("ready %d", n)
+	}
+	return f.err
+}
+func (f fake) PREdit(_ context.Context, n int, in forge.PREdit) error {
+	if f.comment != nil {
+		t, b := "-", "-"
+		if in.Title != nil {
+			t = *in.Title
+		}
+		if in.Body != nil {
+			b = *in.Body
+		}
+		*f.comment = fmt.Sprintf("edit %d|%s|%s", n, t, b)
+	}
+	return f.err
+}
+func (f fake) BoardList(_ context.Context, closed bool) ([]forge.Board, error) {
+	return []forge.Board{{ID: "1", Title: "Plan", URL: "https://git.example/o/r/projects/1"}}, f.err
+}
+func (f fake) BoardView(context.Context, string) ([]forge.Card, error) {
+	return []forge.Card{{ColumnID: "5", Column: "Doing", ItemID: "90", Number: 3, Title: "A card"}}, f.err
+}
+func (f fake) BoardAdd(_ context.Context, b string, n []int) error {
+	if f.comment != nil {
+		*f.comment = fmt.Sprintf("add %s %v", b, n)
+	}
+	return f.err
+}
+func (f fake) BoardMove(_ context.Context, b, col string, n []int) error {
+	if f.comment != nil {
+		*f.comment = fmt.Sprintf("move %s %s %v", b, col, n)
+	}
+	return f.err
+}
 func (f fake) CILog(context.Context, int64) (string, error) { return f.log, f.err }
 
 func run(t *testing.T, c forge.Client, env map[string]string, tty bool, args ...string) (int, string, string) {
@@ -424,5 +473,143 @@ func TestAttachLintStopsSend(t *testing.T) {
 	// Without --comment, no text goes out and no lint runs.
 	if code := Run(context.Background(), []string{"attach", "5", file}, env); code != ExitOK {
 		t.Errorf("no comment: %d", code)
+	}
+}
+
+func TestCommentAdd(t *testing.T) {
+	var body string
+	c := fake{comment: &body}
+	run := func(chk []lint.Checker, args ...string) (int, string, string) {
+		var out, errb bytes.Buffer
+		env := Env{
+			Stdout: &out, Stderr: &errb,
+			Stdin:     strings.NewReader("from stdin"),
+			Getenv:    func(string) string { return "" },
+			RemoteURL: func() (string, error) { return "https://git.example/o/r.git", nil },
+			NewClient: func(string, string) (forge.Client, error) { return c, nil },
+			Checkers:  chk,
+		}
+		return Run(context.Background(), args, env), out.String(), errb.String()
+	}
+	if code, out, _ := run(nil, "comment", "add", "5", "--body", "Plain text."); code != ExitOK || out != "comment posted\n" || body != "Plain text." {
+		t.Fatalf("body: code=%d out=%q body=%q", code, out, body)
+	}
+	if code, _, _ := run(nil, "comment", "add", "5", "--body-file", "-"); code != ExitOK || body != "from stdin" {
+		t.Fatalf("stdin: code=%d body=%q", code, body)
+	}
+	body = ""
+	bad := []lint.Checker{stubChecker{fs: []lint.Finding{{Checker: "stub", Line: 1, Column: 1, Rule: "r", Message: "bad word"}}}}
+	if code, out, errb := run(bad, "comment", "add", "5", "--body", "x"); code != ExitLint || out != "" || body != "" || !strings.Contains(errb, "bad word") {
+		t.Fatalf("lint: code=%d out=%q body=%q err=%q", code, out, body, errb)
+	}
+	for _, a := range [][]string{
+		{"comment", "add", "5"},
+		{"comment", "add", "5", "--body", "a", "--body-file", "-"},
+		{"comment", "add", "x", "--body", "a"},
+	} {
+		if code, _, _ := run(nil, a...); code != ExitUsage {
+			t.Errorf("%v: code=%d", a, code)
+		}
+	}
+}
+
+func TestPRCreate(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	args := func(more ...string) []string {
+		return append([]string{"pr", "create", "Add a thing"}, more...)
+	}
+	code, out, _ := run(t, c, nil, false, args("--head", "feature/a-thing", "--body", "Body.", "--draft")...)
+	if code != ExitOK || out != "7\thttps://git.example/o/r/pulls/7\n" || got != "feature/a-thing<-main|Add a thing|Body." {
+		t.Fatalf("code=%d out=%q got=%q", code, out, got)
+	}
+	got = ""
+	for name, a := range map[string][]string{
+		"main branch": args("--head", "main", "--body", "x"),
+		"bad name":    args("--head", "My_Branch", "--body", "x"),
+		"credit line": args("--head", "fix/a", "--body", "Co-Authored-By: Claude <noreply@anthropic.com>"),
+	} {
+		if code, out, errb := run(t, c, nil, false, a...); code != ExitLint || out != "" || got != "" || !strings.Contains(errb, "guard:") {
+			t.Errorf("%s: code=%d out=%q got=%q err=%q", name, code, out, got, errb)
+		}
+	}
+	if code, _, _ := run(t, c, nil, false, args("--body", "x")...); code != ExitUsage {
+		t.Errorf("no head: %d", code)
+	}
+}
+
+func TestIssueCreateAndReady(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	code, out, _ := run(t, c, nil, false, "issue", "create", "Fix it", "--body", "Body.")
+	if code != ExitOK || out != "8\thttps://git.example/o/r/issues/8\n" || got != "Fix it|Body." {
+		t.Fatalf("create: code=%d out=%q got=%q", code, out, got)
+	}
+	got = ""
+	code, out, errb := run(t, c, nil, false, "issue", "create", "Fix it", "--body", "🤖 Generated with Claude")
+	if code != ExitLint || out != "" || got != "" || !strings.Contains(errb, "guard:") {
+		t.Errorf("credit: code=%d out=%q got=%q err=%q", code, out, got, errb)
+	}
+	if code, _, _ := run(t, c, nil, false, "issue", "create", "Fix it"); code != ExitUsage {
+		t.Errorf("no body: %d", code)
+	}
+	code, out, _ = run(t, c, nil, false, "pr", "ready", "12")
+	if code != ExitOK || out != "ready\t12\n" || got != "ready 12" {
+		t.Errorf("ready: code=%d out=%q got=%q", code, out, got)
+	}
+	if code, _, _ := run(t, c, nil, false, "pr", "ready"); code != ExitUsage {
+		t.Errorf("ready no n: %d", code)
+	}
+}
+
+func TestPREdit(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	code, out, _ := run(t, c, nil, false, "pr", "edit", "12", "--title", "New title")
+	if code != ExitOK || out != "edited\t12\n" || got != "edit 12|New title|-" {
+		t.Fatalf("title: code=%d out=%q got=%q", code, out, got)
+	}
+	code, out, _ = run(t, c, nil, false, "pr", "edit", "12", "--body", "New body.")
+	if code != ExitOK || out != "edited\t12\n" || got != "edit 12|-|New body." {
+		t.Fatalf("body: code=%d out=%q got=%q", code, out, got)
+	}
+	got = ""
+	if code, out, errb := run(t, c, nil, false, "pr", "edit", "12", "--body", "🤖 Generated with Claude"); code != ExitLint || out != "" || got != "" || !strings.Contains(errb, "guard:") {
+		t.Errorf("credit: code=%d out=%q got=%q err=%q", code, out, got, errb)
+	}
+	for _, a := range [][]string{
+		{"pr", "edit", "12"},
+		{"pr", "edit", "x", "--title", "T"},
+		{"pr", "edit", "12", "--body", "a", "--body-file", "-"},
+	} {
+		if code, _, _ := run(t, c, nil, false, a...); code != ExitUsage {
+			t.Errorf("%v: %d", a, code)
+		}
+	}
+}
+
+func TestBoardVerbs(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	if code, out, _ := run(t, c, nil, false, "board", "list"); code != ExitOK || out != "1\tPlan\thttps://git.example/o/r/projects/1\n" {
+		t.Errorf("list: %d %q", code, out)
+	}
+	if code, out, _ := run(t, c, nil, false, "board", "view", "1"); code != ExitOK || out != "5\tDoing\t90\t3\tA card\n" {
+		t.Errorf("view: %d %q", code, out)
+	}
+	if code, out, _ := run(t, c, nil, false, "board", "add", "1", "3", "4"); code != ExitOK || out != "ok\n" || got != "add 1 [3 4]" {
+		t.Errorf("add: %d %q %q", code, out, got)
+	}
+	if code, out, _ := run(t, c, nil, false, "board", "move", "1", "Doing", "3"); code != ExitOK || out != "ok\n" || got != "move 1 Doing [3]" {
+		t.Errorf("move: %d %q %q", code, out, got)
+	}
+	nos := fake{err: forge.ErrNoSession}
+	if code, _, _ := run(t, nos, nil, false, "board", "move", "1", "Doing", "3"); code != ExitNoSession {
+		t.Errorf("no session: %d", code)
+	}
+	for _, a := range [][]string{{"board", "view"}, {"board", "view", "x"}, {"board", "add", "1"}, {"board", "move", "1", "Doing"}, {"board", "list", "--state", "weird"}} {
+		if code, _, _ := run(t, c, nil, false, a...); code != ExitUsage {
+			t.Errorf("%v: %d", a, code)
+		}
 	}
 }
