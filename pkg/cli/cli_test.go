@@ -86,6 +86,12 @@ func (f fake) PREdit(_ context.Context, n int, in forge.PREdit) error {
 	}
 	return f.err
 }
+func (f fake) PRMerge(_ context.Context, n int, in forge.PRMerge) error {
+	if f.comment != nil {
+		*f.comment = fmt.Sprintf("merge %d|%s|%v", n, in.Method, in.DeleteBranch)
+	}
+	return f.err
+}
 func (f fake) BoardList(_ context.Context, closed bool) ([]forge.Board, error) {
 	return []forge.Board{{ID: "1", Title: "Plan", URL: "https://git.example/o/r/projects/1"}}, f.err
 }
@@ -634,6 +640,25 @@ func TestLabelVerbs(t *testing.T) {
 	}
 	if code, _, _ := run(t, fake{err: forge.ErrNotFound}, nil, false, "label", "list"); code != ExitFail {
 		t.Errorf("fail: %d", code)
+	}
+}
+
+func TestPRMergeVerb(t *testing.T) {
+	var got string
+	c := fake{comment: &got}
+	if code, out, _ := run(t, c, nil, false, "pr", "merge", "12"); code != ExitOK || out != "merged\t12\n" || got != "merge 12||false" {
+		t.Errorf("default: %d %q %q", code, out, got)
+	}
+	if code, out, _ := run(t, c, nil, false, "pr", "merge", "12", "--method", "squash", "--delete-branch"); code != ExitOK || out != "merged\t12\n" || got != "merge 12|squash|true" {
+		t.Errorf("squash: %d %q %q", code, out, got)
+	}
+	for _, a := range [][]string{{"pr", "merge"}, {"pr", "merge", "x"}, {"pr", "merge", "12", "--method", "weird"}} {
+		if code, _, _ := run(t, c, nil, false, a...); code != ExitUsage {
+			t.Errorf("%v: %d", a, code)
+		}
+	}
+	if code, _, errb := run(t, fake{err: errors.New("boom")}, nil, false, "pr", "merge", "12"); code != ExitFail || !strings.Contains(errb, "boom") {
+		t.Errorf("failure: %d %q", code, errb)
 	}
 }
 

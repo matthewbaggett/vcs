@@ -131,6 +131,24 @@ var Tree = []Verb{
 		},
 	},
 	{
+		Noun: "pr", Name: "merge", Sends: true,
+		Usage:   "vcs pr merge <n> [--method merge|rebase|rebase-merge|squash] [--delete-branch]",
+		Summary: "Merge a pull request. Run it only when the owner has said to merge that pull request. The command doesn't check the checks, so run vcs pr status first.",
+		Output:  "One line: `merged` and the number.",
+		Flags: []Flag{
+			{"--method", "How to merge. The default is merge."},
+			{"--delete-branch", "Delete the head branch after the merge."},
+		},
+		Exits: []string{"0 merged", "1 the call failed, the server refused the merge, or the pull request already merged", "64 usage error", "69 no usable driver, or the driver has no pr merge"},
+		Hints: map[string]string{
+			OutOK:          "run vcs pr status <n> to confirm the state says merged",
+			OutFail:        "read the message. Check the merge state with vcs pr status <n>",
+			OutUsage:       "give the pull request number. The method is merge, rebase, rebase-merge or squash",
+			OutLint:        "the command sends no text, so this exit doesn't occur. Check the arguments",
+			OutUnavailable: "stop and ask the user. This host has no pr merge yet",
+		},
+	},
+	{
 		Noun: "pr", Name: "watch",
 		Usage:   "vcs pr watch <n> [--interval <seconds>] [--timeout <seconds>]",
 		Summary: "Poll the checks and the merge state of one pull request until both are good.",
