@@ -109,7 +109,7 @@ jobs:
     env:
       VERSION: ${{ needs.build.outputs.version }}
       GH_REPO: matthewbaggett/vcs
-      GH_TOKEN: ${{ secrets.GITHUB_RELEASE_TOKEN }}
+      GH_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
     steps:
       - name: Download the artifacts
         if: env.GH_TOKEN != ''
@@ -120,7 +120,7 @@ jobs:
       - name: Create the release and attach the files
         run: |
           if [ -z "$GH_TOKEN" ]; then
-            echo "::notice::The secret GITHUB_RELEASE_TOKEN is absent. Skipping the GitHub release."
+            echo "::notice::The secret GH_RELEASE_TOKEN is absent. Skipping the GitHub release."
             exit 0
           fi
           jq -n --arg tag "$VERSION" --arg sha "$GITHUB_SHA" \

@@ -86,7 +86,7 @@ flowchart TD
 
 `publish-github` (runs only for a tag `v*`, when `built` is true):
 
-1. Stop with a notice and a pass when `GITHUB_RELEASE_TOKEN` is absent.
+1. Stop with a notice and a pass when `GH_RELEASE_TOKEN` is absent.
 2. Download the artifact.
 3. Create the release through the GitHub API, then attach each file.
 
@@ -105,7 +105,7 @@ File names are `vcs_<version>_<os>_<arch>`, with `.exe` on windows.
 | Secret | Used by | What it lets the job do |
 |---|---|---|
 | `RELEASE_TOKEN` | `publish` | Optional. Overrides the job token when the job token can't write releases |
-| `GITHUB_RELEASE_TOKEN` | `publish-github` | Optional. A GitHub token with release write access to `matthewbaggett/vcs`. The owner adds it. Without it, the job skips |
+| `GH_RELEASE_TOKEN` | `publish-github` | Optional. A GitHub token with release write access to `matthewbaggett/vcs`. The owner adds it. Forgejo refuses a secret name that starts with `GITHUB_`, so the name starts with `GH_`. Without it, the job skips |
 | `github.token` | `publish` | The job token. The default for the release calls |
 
 ### Outputs
@@ -127,7 +127,7 @@ File names are `vcs_<version>_<os>_<arch>`, with `.exe` on windows.
 | Symptom | Cause | Fix |
 |---|---|---|
 | `publish` gets HTTP 401 or 403 | The job token can't write releases | Add the secret `RELEASE_TOKEN`, a token with release write access |
-| `publish-github` prints "Skipping" | The secret `GITHUB_RELEASE_TOKEN` is absent | Add the secret in the repository settings |
+| `publish-github` prints "Skipping" | The secret `GH_RELEASE_TOKEN` is absent | Add the secret in the repository settings |
 | `publish-github` gets HTTP 422 | The release exists at GitHub already | Delete it there, then re-run |
 | `publish` gets HTTP 409 or 422 | The tag or release exists already, for example after a re-run | Delete the release and its tag, then re-run |
 | `build` fails on `go build` | A compile error, or no `./cmd/vcs` | Fix the code. Run the build locally |
