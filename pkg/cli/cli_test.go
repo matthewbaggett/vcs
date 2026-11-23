@@ -729,3 +729,72 @@ func TestIssueEditVerb(t *testing.T) {
 		}
 	}
 }
+
+type timeFake struct {
+	fake
+	total   int64
+	entries []forge.TimeEntry
+	dogs    []forge.Stopwatch
+	added   *string
+}
+
+func (f timeFake) TimeAdd(_ context.Context, n int, s int64) (int64, error) {
+	if f.added != nil {
+		*f.added = fmt.Sprintf("%d/%d", n, s)
+	}
+	return f.total, f.err
+}
+func (f timeFake) TimeList(_ context.Context, n int, mine bool) ([]forge.TimeEntry, error) {
+	return f.entries, f.err
+}
+func (f timeFake) StopwatchList(context.Context) ([]forge.Stopwatch, error) { return f.dogs, f.err }
+
+func TestTimeVerbs(t *testing.T) {
+	var added string
+	c := timeFake{
+		total:   5400,
+		added:   &added,
+		entries: []forge.TimeEntry{{ID: 1, User: "a", Seconds: 3600, Created: "2026-01-01", Issue: 4}, {ID: 2, User: "b", Seconds: 300, Created: "2026-01-02"}},
+		dogs:    []forge.Stopwatch{{Repo: "o/r", Issue: 4, Seconds: 60, Created: "2026-01-03"}},
+	}
+	if code, out, _ := run(t, c, nil, false, "time", "add", "4", "1h30m"); code != ExitOK || out != "ok\t5400\t1h30m0s\n" || added != "4/5400" {
+		t.Errorf("add: %d %q %q", code, out, added)
+	}
+	c.total = -1
+	if code, out, errb := run(t, c, nil, false, "time", "add", "4", "45s"); code != ExitOK || out != "ok\n" || !strings.Contains(errb, "could not be read") {
+		t.Errorf("add no total: %d %q %q", code, out, errb)
+	}
+	if code, out, _ := run(t, c, nil, false, "time", "list", "4", "--mine"); code != ExitOK || out != "1\ta\t3600\t2026-01-01\t4\n2\tb\t300\t2026-01-02\t\n" {
+		t.Errorf("list: %d %q", code, out)
+	}
+	if code, out, _ := run(t, c, nil, false, "time", "total"); code != ExitOK || out != "3900\t1h5m0s\n" {
+		t.Errorf("total: %d %q", code, out)
+	}
+	if code, out, _ := run(t, c, nil, false, "stopwatch", "list"); code != ExitOK || out != "o/r\t4\t60\t2026-01-03\n" {
+		t.Errorf("stopwatch: %d %q", code, out)
+	}
+	if code, _, _ := run(t, c, nil, false, "stopwatch", "list", "--check"); code != ExitFound {
+		t.Errorf("check found: %d", code)
+	}
+	c.dogs = nil
+	if code, _, _ := run(t, c, nil, false, "stopwatch", "list", "--check"); code != ExitOK {
+		t.Errorf("check none: %d", code)
+	}
+	c.err = forge.ErrNotFound
+	for _, a := range [][]string{{"time", "add", "4", "1h"}, {"time", "list"}, {"stopwatch", "list"}} {
+		if code, _, _ := run(t, c, nil, false, a...); code != ExitFail {
+			t.Errorf("%v: %d", a, code)
+		}
+	}
+	for _, a := range [][]string{
+		{"time", "add"}, {"time", "add", "x", "1h"}, {"time", "add", "4"}, {"time", "add", "4", "0s"},
+		{"time", "add", "4", "soon"}, {"time", "list", "x"}, {"time", "total", "1", "2"}, {"stopwatch", "list", "3"},
+	} {
+		if code, _, _ := run(t, c, nil, false, a...); code != ExitUsage {
+			t.Errorf("%v: %d", a, code)
+		}
+	}
+	if code, _, errb := run(t, fake{}, nil, false, "time", "list"); code != ExitUnavailable || !strings.Contains(errb, "no time tracking") {
+		t.Errorf("unavailable: %d %q", code, errb)
+	}
+}

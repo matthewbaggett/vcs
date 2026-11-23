@@ -413,3 +413,44 @@ func TestIssueEdit(t *testing.T) {
 		t.Errorf("unknown milestone: %v", err)
 	}
 }
+
+func TestTimeTracking(t *testing.T) {
+	var posted string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/repos/o/r/issues/4/times":
+			posted = string(b)
+			w.Write([]byte(`{"id":9}`))
+		case r.URL.Path == "/api/v1/repos/o/r/issues/4/times":
+			w.Write([]byte(`[{"id":1,"user_name":"me","time":3600,"created":"c1","issue":{"number":4}},{"id":2,"user_name":"you","time":60,"created":"c2"}]`))
+		case r.URL.Path == "/api/v1/repos/o/r/times":
+			w.Write([]byte(`[{"id":1,"user_name":"me","time":3600,"created":"c1","issue":{"number":4}}]`))
+		case r.URL.Path == "/api/v1/user":
+			w.Write([]byte(`{"login":"me"}`))
+		case r.URL.Path == "/api/v1/user/stopwatches":
+			w.Write([]byte(`[{"created":"c3","issue_index":4,"repo_owner_name":"o","repo_name":"r","seconds":30}]`))
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL)
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := New(Config{BaseURL: srv.URL, Repo: "o/r", Token: "tok"})
+	ctx := context.Background()
+	total, err := c.TimeAdd(ctx, 4, 120)
+	if err != nil || total != 3660 || posted != `{"time":120}` {
+		t.Fatalf("add: %d %v %q", total, err, posted)
+	}
+	es, err := c.TimeList(ctx, 4, true)
+	if err != nil || len(es) != 1 || es[0].User != "me" || es[0].Issue != 4 {
+		t.Fatalf("mine: %+v %v", es, err)
+	}
+	if es, err := c.TimeList(ctx, 0, false); err != nil || len(es) != 1 {
+		t.Fatalf("repo: %+v %v", es, err)
+	}
+	ws, err := c.StopwatchList(ctx)
+	if err != nil || len(ws) != 1 || ws[0].Repo != "o/r" || ws[0].Seconds != 30 {
+		t.Fatalf("stopwatch: %+v %v", ws, err)
+	}
+}

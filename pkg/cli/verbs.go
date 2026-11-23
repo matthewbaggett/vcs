@@ -4,6 +4,7 @@ package cli
 const (
 	ExitOK          = 0
 	ExitFail        = 1
+	ExitFound       = 2 // stopwatch list --check found a stopwatch. It means "found", not "failed".
 	ExitUsage       = 64
 	ExitLint        = 65
 	ExitUnavailable = 69
@@ -460,6 +461,61 @@ var Tree = []Verb{
 			OutUsage:       "give the board id, the column, then one or more numbers",
 			OutUnavailable: "stop and ask the user. This host has no board support",
 			OutNoSession:   "stop and ask the user to run vcs session login, or vcs session import. Never ask for the password in chat",
+		},
+	},
+	{
+		Noun: "time", Name: "add",
+		Usage:   "vcs time add <n> <duration>",
+		Summary: "Log time on an issue or a pull request. The duration is like 1h25m, 90m, or 45s.",
+		Output:  "One row: `ok`, the new total in seconds, and the new total as 1h25m0s. If vcs can't read the total, one line `ok`.",
+		Exits:   []string{"0 logged", "1 the call failed or the issue isn't found", "64 usage error", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "vcs logged the time once. Don't run the command again to check it",
+			OutFail:        "run vcs time list <n> to see if the entry exists, before you run the command again",
+			OutUsage:       "give the number, then a duration of hours, minutes and seconds, like 1h30m",
+			OutUnavailable: "stop and ask the user. This host has no time tracking yet",
+		},
+	},
+	{
+		Noun: "time", Name: "list",
+		Usage:   "vcs time list [<n>] [--mine]",
+		Summary: "List the time entries of one issue, or of the whole repository with no number.",
+		Output:  "One row for each entry: id, user, seconds, created, issue number.",
+		Flags:   []Flag{{"--mine", "Only the entries of the caller."}},
+		Exits:   []string{"0 listed", "1 the call failed", "64 usage error", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "check the number and the token",
+			OutUsage:       "give no number, or one issue number",
+			OutUnavailable: "stop and ask the user. This host has no time tracking yet",
+		},
+	},
+	{
+		Noun: "time", Name: "total",
+		Usage:   "vcs time total [<n>] [--mine]",
+		Summary: "Add up the time entries of one issue, or of the whole repository with no number.",
+		Output:  "One row: seconds, then the total as 1h25m0s.",
+		Flags:   []Flag{{"--mine", "Only the entries of the caller."}},
+		Exits:   []string{"0 printed", "1 the call failed", "64 usage error", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "check the number and the token",
+			OutUsage:       "give no number, or one issue number",
+			OutUnavailable: "stop and ask the user. This host has no time tracking yet",
+		},
+	},
+	{
+		Noun: "stopwatch", Name: "list",
+		Usage:   "vcs stopwatch list [--check]",
+		Summary: "List the running stopwatches of the caller.",
+		Output:  "One row for each stopwatch: repository, issue, seconds, created.",
+		Flags:   []Flag{{"--check", "Exit 2 when a stopwatch runs. It means found, not failed."}},
+		Exits:   []string{"0 listed, or none runs", "1 the call failed", "2 with --check, a stopwatch runs", "64 usage error", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "check the token and the host",
+			OutUsage:       "this verb takes no number",
+			OutUnavailable: "stop and ask the user. This host has no time tracking yet",
 		},
 	},
 	{

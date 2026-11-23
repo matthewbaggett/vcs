@@ -126,7 +126,7 @@ func hint(v Verb, code int, o opts, env Env) {
 var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true}
 
 // boolean flags take no value.
-var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true}
+var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true}
 
 func parse(args []string) (opts, error) {
 	o := opts{flags: map[string]string{}}
@@ -272,6 +272,10 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		}
 	case "milestone list", "milestone view", "milestone create":
 		if code := milestoneCheck(env, v, o); code >= 0 {
+			return code
+		}
+	case "time add", "time list", "time total", "stopwatch list":
+		if code := timeCheck(env, v, o); code >= 0 {
 			return code
 		}
 	case "board list":
@@ -806,6 +810,62 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			return fail(env, err)
 		}
 		row(env, "edited", strconv.Itoa(n))
+	case "time add", "time list", "time total", "stopwatch list":
+		tt, ok := c.(forge.TimeTracker)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no time tracking yet")
+			return ExitUnavailable
+		}
+		switch v.Noun + " " + v.Name {
+		case "time add":
+			n, _ := strconv.Atoi(o.pos[0])
+			secs, _ := parseDuration(o.pos[1])
+			total, err := tt.TimeAdd(ctx, n, secs)
+			if err != nil {
+				return fail(env, err)
+			}
+			if total < 0 {
+				fmt.Fprintln(env.Stderr, "vcs: the time is logged, but the new total could not be read")
+				row(env, "ok")
+			} else {
+				row(env, "ok", strconv.FormatInt(total, 10), hms(total))
+			}
+		case "time list", "time total":
+			n := 0
+			if len(o.pos) == 1 {
+				n, _ = strconv.Atoi(o.pos[0])
+			}
+			es, err := tt.TimeList(ctx, n, o.flags["mine"] == "true")
+			if err != nil {
+				return fail(env, err)
+			}
+			if v.Name == "total" {
+				var total int64
+				for _, e := range es {
+					total += e.Seconds
+				}
+				row(env, strconv.FormatInt(total, 10), hms(total))
+				break
+			}
+			for _, e := range es {
+				issue := ""
+				if e.Issue > 0 {
+					issue = strconv.Itoa(e.Issue)
+				}
+				row(env, strconv.FormatInt(e.ID, 10), e.User, strconv.FormatInt(e.Seconds, 10), e.Created, issue)
+			}
+		case "stopwatch list":
+			ws, err := tt.StopwatchList(ctx)
+			if err != nil {
+				return fail(env, err)
+			}
+			for _, w := range ws {
+				row(env, w.Repo, strconv.Itoa(w.Issue), strconv.FormatInt(w.Seconds, 10), w.Created)
+			}
+			if o.flags["check"] == "true" && len(ws) > 0 {
+				return ExitFound
+			}
+		}
 	case "board list":
 		bs, err := c.BoardList(ctx, o.flags["state"] == "closed")
 		if err != nil {
