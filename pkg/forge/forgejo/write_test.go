@@ -150,3 +150,92 @@ func TestCreatePR(t *testing.T) {
 		t.Errorf("payload %v", got)
 	}
 }
+
+func TestCreateIssueAndReady(t *testing.T) {
+	var patched, issue map[string]string
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/issues"):
+			json.Unmarshal(b, &issue)
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"number":4,"html_url":"https://git.example/o/r/issues/4"}`))
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/pulls/3"):
+			w.Write([]byte(`{"title":"WIP: Add it"}`))
+		case r.Method == http.MethodPatch && strings.HasSuffix(r.URL.Path, "/pulls/3"):
+			json.Unmarshal(b, &patched)
+			w.Write([]byte(`{}`))
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+	})
+	n, addr, err := c.CreateIssue(context.Background(), "T", "B")
+	if err != nil || n != 4 || addr == "" || issue["title"] != "T" || issue["body"] != "B" {
+		t.Fatalf("issue: n=%d addr=%q err=%v got=%v", n, addr, err, issue)
+	}
+	if err := c.PRReady(context.Background(), 3); err != nil || patched["title"] != "Add it" {
+		t.Fatalf("ready: err=%v patched=%v", err, patched)
+	}
+}
+
+const boardPage = `<div class="project-column" data-id="5">
+<span class="project-column-title-label">Doing</span>
+<div class="issue-card tw-x" data-issue="90">
+<a class="issue-card-title muted" href="/o/r/issues/3">A &amp; B</a>
+</div>
+<div class="issue-card tw-x" data-issue="91">
+<a class="issue-card-title muted" href="/o/r/pulls/4">Other</a>
+</div>
+<div class="project-column" data-id="6">
+<span class="project-column-title-label">Done</span>
+`
+
+func TestBoard(t *testing.T) {
+	var moved, added string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		switch {
+		case r.URL.Path == "/o/r/projects" && r.URL.Query().Get("page") == "1":
+			w.Write([]byte(`<a class="muted tw-break-anywhere" href="/o/r/projects/2">Plan &amp; go</a>`))
+		case r.URL.Path == "/o/r/projects":
+			w.Write([]byte(`<a class="muted tw-break-anywhere" href="/o/r/projects/2">Plan &amp; go</a>`))
+		case r.URL.Path == "/o/r/projects/2":
+			w.Write([]byte(boardPage))
+		case r.URL.Path == "/api/v1/repos/o/r/issues/3":
+			w.Write([]byte(`{"id":90}`))
+		case r.URL.Path == "/api/v1/repos/o/r/issues/7":
+			w.Write([]byte(`{"id":97}`))
+		case r.URL.Path == "/o/r/issues/projects":
+			added = string(b)
+			w.Write([]byte(`{"ok":true}`))
+		case r.URL.Path == "/o/r/projects/2/6/move":
+			moved = string(b)
+			w.Write([]byte(`{"ok":true}`))
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL)
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := New(Config{BaseURL: srv.URL, Repo: "o/r", Token: "tok", Cookie: "sess"})
+	ctx := context.Background()
+	bs, err := c.BoardList(ctx, false)
+	if err != nil || len(bs) != 1 || bs[0].ID != "2" || bs[0].Title != "Plan & go" {
+		t.Fatalf("list: %v %v", bs, err)
+	}
+	cs, err := c.BoardView(ctx, "2")
+	if err != nil || len(cs) != 2 || cs[0].Title != "A & B" || cs[0].Column != "Doing" || cs[0].ItemID != "90" || cs[1].Number != 4 {
+		t.Fatalf("view: %+v %v", cs, err)
+	}
+	if err := c.BoardAdd(ctx, "2", []int{3}); err != nil || !strings.Contains(added, "issue_ids=90") {
+		t.Fatalf("add: %v %q", err, added)
+	}
+	// Done has no cards, so its id comes from the page.
+	if err := c.BoardMove(ctx, "2", "done", []int{7}); err != nil || moved != `{"issues":[{"issueID":97,"sorting":0}]}` {
+		t.Fatalf("move: %v %q", err, moved)
+	}
+	anon := New(Config{BaseURL: srv.URL, Repo: "o/r", Token: "tok"})
+	if err := anon.BoardAdd(ctx, "2", []int{3}); !errors.Is(err, forge.ErrNoSession) {
+		t.Errorf("no session: %v", err)
+	}
+}
