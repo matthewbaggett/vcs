@@ -138,6 +138,24 @@ var Tree = []Verb{
 		},
 	},
 	{
+		Noun: "comment", Name: "add", Sends: true,
+		Usage:   "vcs comment add <n> (--body <text> | --body-file <path>)",
+		Summary: "Post one comment on an issue or a pull request. The prose lint runs first.",
+		Output:  "One line: `comment posted`.",
+		Flags: []Flag{
+			{"--body", "The comment text."},
+			{"--body-file", "A file that holds the comment text. Use - for standard input."},
+		},
+		Exits: []string{"0 posted", "1 the call failed", "64 usage error, or both or neither of the body flags", "65 the text fails the prose lint, and the command sends nothing", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "check the token and the number, then run the command again",
+			OutUsage:       "give the number and one of --body or --body-file",
+			OutLint:        "fix each finding that vcs printed, then run the command again",
+			OutUnavailable: "stop and ask the user. This host has no driver yet",
+		},
+	},
+	{
 		Noun: "attach", Name: "", Sends: true,
 		Usage:   "vcs attach <n> <file>... [--comment] [--title <text>]",
 		Summary: "Upload files to an issue or a pull request, and optionally post one comment that shows them.",
