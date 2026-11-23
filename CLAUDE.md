@@ -35,6 +35,7 @@ Run all of these before each commit. Chain them and read the exit code.
 | Format | `gofmt -l .` prints nothing |
 | Vet | `go vet ./...` |
 | Test | `go test ./...` |
+| Coverage | `.claude/check-coverage.test.sh && .claude/check-coverage.sh` reaches the 75% floor |
 | Lint prose | `.claude/agent-standards/bin/lint-prose-quality.php --base origin/main` |
 | Wiring | `.claude/check-wiring.sh --ci` |
 
