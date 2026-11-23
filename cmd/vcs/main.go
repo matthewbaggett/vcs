@@ -3,7 +3,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -66,6 +68,19 @@ func main() {
 		ConfigDir:  configDir(),
 		Getenv:     os.Getenv,
 		IsTerminal: isTTY(os.Stdin) && isTTY(os.Stdout),
+		Exec: func(ctx context.Context, name string, args []string, stdout, stderr io.Writer) int {
+			cmd := exec.CommandContext(ctx, name, args...)
+			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, stdout, stderr
+			if err := cmd.Run(); err != nil {
+				var ee *exec.ExitError
+				if errors.As(err, &ee) {
+					return ee.ExitCode()
+				}
+				fmt.Fprintf(stderr, "vcs: %v\n", err)
+				return 1
+			}
+			return 0
+		},
 		RemoteURL: func() (string, error) {
 			out, err := exec.Command("git", "remote", "get-url", "origin").Output()
 			return strings.TrimSpace(string(out)), err
