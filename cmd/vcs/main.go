@@ -15,6 +15,7 @@ import (
 	"git.grey.ooo/packages/vcs/pkg/forge/forgejo"
 	"git.grey.ooo/packages/vcs/pkg/lint"
 	"git.grey.ooo/packages/vcs/pkg/session"
+	"github.com/vale-cli/vale/v3/pkg/vale"
 )
 
 func isTTY(f *os.File) bool {
@@ -65,6 +66,15 @@ func main() {
 		var x *lint.Lexi
 		if x, err = lint.NewLexi(opts); err == nil {
 			env.Checkers = append(env.Checkers, x)
+		}
+	}
+	// Vale runs only when the working directory holds a .vale.ini.
+	if err == nil {
+		if _, serr := os.Stat(filepath.Join(wd, ".vale.ini")); serr == nil {
+			var v *lint.Vale
+			if v, err = lint.NewVale(vale.Options{ConfigPath: filepath.Join(wd, ".vale.ini")}); err == nil {
+				env.Checkers = append(env.Checkers, v)
+			}
 		}
 	}
 	if err != nil {
