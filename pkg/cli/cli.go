@@ -252,6 +252,36 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 				return usage(env, v)
 			}
 		}
+	case "pr edit":
+		if len(o.pos) != 1 || (o.flags["body"] != "" && o.flags["body-file"] != "") || (o.flags["title"] == "" && o.flags["body"] == "" && o.flags["body-file"] == "") {
+			return usage(env, v)
+		}
+		var err error
+		if n, err = strconv.Atoi(o.pos[0]); err != nil || n < 1 {
+			return usage(env, v)
+		}
+		if f := o.flags["body-file"]; f != "" {
+			raw, err := readText(env, f)
+			if err != nil {
+				fmt.Fprintf(env.Stderr, "vcs: cannot read a body from %s\n", f)
+				return ExitUsage
+			}
+			o.flags["body"] = raw
+		}
+		if r := guard.Credit(o.flags["title"] + "\n" + o.flags["body"]); len(r) > 0 {
+			fmt.Fprintf(env.Stderr, "vcs: guard: %s\n", r[0])
+			return ExitLint
+		}
+		if o.flags["title"] != "" {
+			if code := lintText(env, o.flags["title"]); code != ExitOK {
+				return code
+			}
+		}
+		if o.flags["body"] != "" {
+			if code := lintText(env, o.flags["body"]); code != ExitOK {
+				return code
+			}
+		}
 	case "pr create":
 		if len(o.pos) != 1 || o.flags["head"] == "" || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
 			return usage(env, v)
@@ -545,6 +575,23 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			return fail(env, err)
 		}
 		row(env, "ready", strconv.Itoa(n))
+	case "pr edit":
+		ed, ok := c.(forge.PREditor)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no pr edit yet")
+			return ExitUnavailable
+		}
+		var in forge.PREdit
+		if t := o.flags["title"]; t != "" {
+			in.Title = &t
+		}
+		if b := o.flags["body"]; b != "" {
+			in.Body = &b
+		}
+		if err := ed.PREdit(ctx, n, in); err != nil {
+			return fail(env, err)
+		}
+		row(env, "edited", strconv.Itoa(n))
 	case "board list":
 		bs, err := c.BoardList(ctx, o.flags["state"] == "closed")
 		if err != nil {

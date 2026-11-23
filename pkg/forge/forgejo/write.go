@@ -221,6 +221,50 @@ func (c *Client) CreateIssue(ctx context.Context, title, body string) (int, stri
 	return out.Number, out.URL, nil
 }
 
+// PREdit changes the title or the body of a pull request. A draft keeps its WIP: prefix,
+// because Forgejo reads the prefix as the draft state.
+func (c *Client) PREdit(ctx context.Context, n int, in forge.PREdit) error {
+	path := fmt.Sprintf("repos/%s/pulls/%d", c.cfg.Repo, n)
+	payload := map[string]string{}
+	if in.Body != nil {
+		payload["body"] = *in.Body
+	}
+	if in.Title != nil {
+		title := strings.TrimSpace(*in.Title)
+		get, err := http.NewRequestWithContext(ctx, http.MethodGet, c.cfg.BaseURL+"/api/v1/"+path, nil)
+		if err != nil {
+			return err
+		}
+		c.authorize(get)
+		resp, err := c.send(get, path)
+		if err != nil {
+			return err
+		}
+		var pr struct {
+			Title string `json:"title"`
+		}
+		if err := json.Unmarshal(resp, &pr); err != nil {
+			return err
+		}
+		if up := strings.ToUpper(strings.TrimSpace(pr.Title)); strings.HasPrefix(up, "WIP:") && !strings.HasPrefix(strings.ToUpper(title), "WIP:") {
+			title = "WIP: " + title
+		}
+		payload["title"] = title
+	}
+	if len(payload) == 0 {
+		return nil
+	}
+	raw, _ := json.Marshal(payload)
+	patch, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.cfg.BaseURL+"/api/v1/"+path, bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	patch.Header.Set("Content-Type", "application/json")
+	c.authorize(patch)
+	_, err = c.send(patch, path)
+	return err
+}
+
 // PRReady removes the WIP: prefix from the title, which takes the pull request out of draft.
 func (c *Client) PRReady(ctx context.Context, n int) error {
 	path := fmt.Sprintf("repos/%s/pulls/%d", c.cfg.Repo, n)
