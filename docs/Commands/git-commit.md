@@ -1,13 +1,13 @@
 # The `vcs git commit` command
 
-Commit with the guard checks. It refuses a hook bypass, a commit on main, a bad branch name, and an AI credit line. It runs the prose lint and the project checks. Then it runs git commit.
+Commit with the guard checks. It refuses a hook bypass, a commit on main, a bad branch name, and an AI credit line. It runs the prose lint, the project's scripts/lint-branch-name.sh, and the project checks. Then it runs git commit. A leading -C <dir> works as it does for git.
 
 The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
 ```text
-vcs git commit <git commit arguments>...
+vcs git [-C <dir>] commit <git commit arguments>...
 ```
 
 ## Output

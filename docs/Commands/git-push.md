@@ -7,7 +7,7 @@ The command tree generates this page. Don't edit it by hand.
 ## Usage
 
 ```text
-vcs git push [<git push arguments>...]
+vcs git [-C <dir>] push [<git push arguments>...]
 ```
 
 ## Output

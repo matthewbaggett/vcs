@@ -20,6 +20,12 @@ func gitVerb(ctx context.Context, v Verb, args []string, env Env) int {
 		return ExitUnavailable
 	}
 	g := gitRunner{ctx: ctx, env: env}
+	if len(args) > 0 && args[0] == "-C" {
+		if len(args) < 2 || args[1] == "" {
+			return usage(env, v)
+		}
+		g.dir, args = args[1], args[2:]
+	}
 	switch v.Name {
 	case "commit":
 		return g.commit(v, args)
@@ -38,18 +44,27 @@ func gitVerb(ctx context.Context, v Verb, args []string, env Env) int {
 type gitRunner struct {
 	ctx context.Context
 	env Env
+	dir string // the -C directory. Empty means the current one
+}
+
+// git puts -C <dir> in front of the arguments of a git call, when the verb got one.
+func (g gitRunner) git(args []string) []string {
+	if g.dir == "" {
+		return args
+	}
+	return append([]string{"-C", g.dir}, args...)
 }
 
 // query runs git and returns the trimmed standard output and the exit code.
 func (g gitRunner) query(args ...string) (string, int) {
 	var out bytes.Buffer
-	code := g.env.Exec(g.ctx, "git", args, &out, &bytes.Buffer{})
+	code := g.env.Exec(g.ctx, "git", g.git(args), &out, &bytes.Buffer{})
 	return strings.TrimSpace(out.String()), code
 }
 
 // run runs git and shows its whole result.
 func (g gitRunner) run(args ...string) int {
-	return g.env.Exec(g.ctx, "git", args, g.env.Stdout, g.env.Stderr)
+	return g.env.Exec(g.ctx, "git", g.git(args), g.env.Stdout, g.env.Stderr)
 }
 
 func (g gitRunner) branchName() string {
@@ -107,6 +122,21 @@ func (g gitRunner) branchOK() int {
 	if r := guard.Branch(b); len(r) > 0 {
 		return g.refuse(ExitFail, "guard: %s. Rename it: vcs git branch rename <type>/<short-description>", r[0])
 	}
+	return g.lintBranch(b)
+}
+
+// lintBranch runs the project's scripts/lint-branch-name.sh on a branch name, when the project has it.
+func (g gitRunner) lintBranch(b string) int {
+	top, code := g.query("rev-parse", "--show-toplevel")
+	if s := filepath.Join(top, "scripts", "lint-branch-name.sh"); code == 0 && isExec(s) {
+		var out bytes.Buffer
+		if g.env.Exec(g.ctx, s, []string{b}, &out, &out) != 0 {
+			fmt.Fprint(g.env.Stderr, out.String())
+			return g.refuse(ExitFail, "check branch-name failed in scripts/lint-branch-name.sh. Rename the branch")
+		}
+		g.ok("branch-name")
+		return -1
+	}
 	g.ok("branch-name")
 	return -1
 }
@@ -161,19 +191,41 @@ func (g gitRunner) text(msg string) int {
 	return -1
 }
 
+// wiring runs the project's wiring check. It returns 0 when it passes or the project has none,
+// and 1 when it fails. The output of a failure goes to stderr.
+func (g gitRunner) wiring(top string, quiet bool) int {
+	s := filepath.Join(top, ".claude", "check-wiring.sh")
+	if !isExec(s) {
+		if !quiet {
+			fmt.Fprintln(g.env.Stdout, "vcs: check wiring: skipped (no .claude/check-wiring.sh)")
+		}
+		return 0
+	}
+	if g.env.Exec(g.ctx, s, []string{"--ci"}, g.env.Stdout, g.env.Stderr) != 0 {
+		return 1
+	}
+	return 0
+}
+
 // project runs the project's own check scripts, when the project has them.
 func (g gitRunner) project(verb string) int {
 	top, code := g.query("rev-parse", "--show-toplevel")
 	if code != 0 {
 		return -1
 	}
-	if s := filepath.Join(top, ".claude", "check-wiring.sh"); isExec(s) {
-		if g.env.Exec(g.ctx, s, []string{"--ci"}, g.env.Stdout, g.env.Stderr) != 0 {
-			return g.refuse(ExitFail, "check wiring failed. Fix the wiring, then run the command again")
-		}
+	if g.wiring(top, false) != 0 {
+		return g.refuse(ExitFail, "check wiring failed. Fix the wiring, then run the command again")
+	}
+	if isExec(filepath.Join(top, ".claude", "check-wiring.sh")) {
 		g.ok("wiring")
-	} else {
-		fmt.Fprintln(g.env.Stdout, "vcs: check wiring: skipped (no .claude/check-wiring.sh)")
+	}
+	return g.projectScript(top, code, verb)
+}
+
+// projectScript runs scripts/vcs-checks.sh <verb>, when the project has it.
+func (g gitRunner) projectScript(top string, code int, verb string) int {
+	if code != 0 {
+		return -1
 	}
 	if s := filepath.Join(top, "scripts", "vcs-checks.sh"); isExec(s) {
 		if g.env.Exec(g.ctx, s, []string{verb}, g.env.Stdout, g.env.Stderr) != 0 {
@@ -248,13 +300,19 @@ func (g gitRunner) merge(v Verb, args []string) int {
 	if c := g.bypass(v, args, false); c >= 0 {
 		return c
 	}
-	control := false
+	control, cont := false, false
 	for _, a := range args {
-		if a == "--abort" || a == "--continue" || a == "--quit" {
+		switch a {
+		case "--abort", "--quit":
 			control = true
+		case "--continue":
+			control, cont = true, true
 		}
 	}
-	if !control {
+	top, topCode := g.query("rev-parse", "--show-toplevel")
+	heal := false
+	switch {
+	case !control:
 		if c := g.notDefault("merge"); c >= 0 {
 			return c
 		}
@@ -263,11 +321,39 @@ func (g gitRunner) merge(v Verb, args []string) int {
 				return c
 			}
 		}
+		if topCode == 0 && g.wiring(top, false) != 0 {
+			// The wiring can fail only because the branch lacks what main gained. The merge can be the
+			// fix. So with a clean tree and no merge in progress, try the merge, then check again.
+			dirty, _ := g.query("status", "--porcelain", "--untracked-files=no")
+			_, inMerge := g.query("rev-parse", "--verify", "--quiet", "MERGE_HEAD")
+			if dirty != "" || inMerge == 0 {
+				return g.refuse(ExitFail, "check wiring failed, and the tree has changes or a merge in progress, so vcs can't try the merge. Commit or set the changes aside first")
+			}
+			fmt.Fprintln(g.env.Stderr, "vcs: check wiring failed before the merge. vcs runs the merge, then checks the wiring on the result")
+			heal = true
+		} else if topCode == 0 && isExec(filepath.Join(top, ".claude", "check-wiring.sh")) {
+			g.ok("wiring")
+		}
+		if c := g.projectScript(top, topCode, "merge"); c >= 0 {
+			return c
+		}
+	case cont:
+		if topCode == 0 && g.wiring(top, true) != 0 {
+			return g.refuse(ExitFail, "check wiring failed. Fix the wiring, then run the command again")
+		}
 	}
-	if c := g.project("merge"); c >= 0 && !control {
-		return c
+	before, _ := g.query("rev-parse", "--verify", "--quiet", "HEAD")
+	code := g.run(append([]string{"merge"}, args...)...)
+	if heal && code == 0 {
+		if g.wiring(top, true) != 0 {
+			if before != "" {
+				g.run("reset", "-q", "--hard", before)
+			}
+			return g.refuse(ExitFail, "check wiring still fails after the merge. vcs put the branch back. The merge doesn't fix the wiring")
+		}
+		g.ok("wiring (after the merge)")
 	}
-	return g.run(append([]string{"merge"}, args...)...)
+	return code
 }
 
 func (g gitRunner) rebase(v Verb, args []string) int {
@@ -328,7 +414,9 @@ func (g gitRunner) branch(v Verb, args []string) int {
 		if r := guard.Branch(names[0]); len(r) > 0 {
 			return g.refuse(ExitFail, "guard: %s", r[0])
 		}
-		g.ok("branch-name")
+		if c := g.lintBranch(names[0]); c >= 0 {
+			return c
+		}
 		start := ""
 		if len(names) == 2 {
 			start = names[1]
@@ -358,7 +446,9 @@ func (g gitRunner) branch(v Verb, args []string) int {
 		if r := guard.Branch(next); len(r) > 0 {
 			return g.refuse(ExitFail, "guard: %s", r[0])
 		}
-		g.ok("branch-name")
+		if c := g.lintBranch(next); c >= 0 {
+			return c
+		}
 		old := g.branchName()
 		if len(names) == 2 {
 			old = names[0]

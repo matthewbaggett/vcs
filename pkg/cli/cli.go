@@ -77,12 +77,21 @@ var ansiRe = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 func Run(ctx context.Context, args []string, env Env) int {
 	if len(args) >= 2 && args[0] == "git" {
 		// The git verbs pass their arguments to git. The flag parser would refuse most of them.
-		verb, ok := Find("git", args[1])
+		// A leading -C <dir> works as it does for git, and it comes before the verb.
+		rest, dir := args[1:], []string(nil)
+		if rest[0] == "-C" {
+			if len(rest) < 3 || rest[1] == "" {
+				fmt.Fprintln(env.Stderr, "usage: vcs git -C <dir> <verb> [args]")
+				return ExitUsage
+			}
+			dir, rest = rest[:2], rest[2:]
+		}
+		verb, ok := Find("git", rest[0])
 		if !ok {
-			fmt.Fprintf(env.Stderr, "vcs: no verb %q %q\n", "git", args[1])
+			fmt.Fprintf(env.Stderr, "vcs: no verb %q %q\n", "git", rest[0])
 			return ExitUsage
 		}
-		code := gitVerb(ctx, verb, args[2:], env)
+		code := gitVerb(ctx, verb, append(dir, rest[1:]...), env)
 		hint(verb, code, opts{}, env)
 		return code
 	}
