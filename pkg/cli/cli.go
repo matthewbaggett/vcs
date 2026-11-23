@@ -123,10 +123,10 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "desc": true, "method": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true}
 
 // boolean flags take no value.
-var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true}
+var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true}
 
 func parse(args []string) (opts, error) {
 	o := opts{flags: map[string]string{}}
@@ -270,6 +270,14 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		if len(o.pos) != 1 || !regexp.MustCompile(`^([0-9]{1,6}|[0-9A-Fa-f]{7,40})$`).MatchString(o.pos[0]) {
 			return usage(env, v)
 		}
+	case "milestone list", "milestone view", "milestone create":
+		if code := milestoneCheck(env, v, o); code >= 0 {
+			return code
+		}
+	case "time add", "time list", "time total", "stopwatch list":
+		if code := timeCheck(env, v, o); code >= 0 {
+			return code
+		}
 	case "label list":
 		if len(o.pos) != 0 {
 			return usage(env, v)
@@ -330,6 +338,34 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		}
 		if o.flags["body"] != "" {
 			if code := lintText(env, o.flags["body"]); code != ExitOK {
+				return code
+			}
+		}
+	case "issue edit":
+		if len(o.pos) != 1 || !isNum(o.pos[0]) || issueEditEmpty(o) || (o.flags["body"] != "" && o.flags["body-file"] != "") {
+			return usage(env, v)
+		}
+		if s := o.flags["state"]; s != "" && s != "open" && s != "closed" {
+			return usage(env, v)
+		}
+		n, _ = strconv.Atoi(o.pos[0])
+		if f := o.flags["body-file"]; f != "" {
+			raw, err := readText(env, f)
+			if err != nil {
+				fmt.Fprintf(env.Stderr, "vcs: cannot read a body from %s\n", f)
+				return ExitUsage
+			}
+			o.flags["body"] = raw
+		}
+		if r := guard.Credit(o.flags["title"] + "\n" + o.flags["body"]); len(r) > 0 {
+			fmt.Fprintf(env.Stderr, "vcs: guard: %s\n", r[0])
+			return ExitLint
+		}
+		for _, text := range []string{o.flags["title"], o.flags["body"]} {
+			if text == "" {
+				continue
+			}
+			if code := lintText(env, text); code != ExitOK {
 				return code
 			}
 		}
@@ -744,6 +780,104 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			return fail(env, err)
 		}
 		row(env, "edited", strconv.Itoa(n))
+	case "milestone list", "milestone view", "milestone create":
+		mm, ok := c.(forge.MilestoneManager)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no milestone support yet")
+			return ExitUnavailable
+		}
+		switch v.Name {
+		case "list":
+			state := o.flags["state"]
+			if state == "" {
+				state = "open"
+			}
+			ms, err := mm.MilestoneList(ctx, state)
+			if err != nil {
+				return fail(env, err)
+			}
+			for _, m := range ms {
+				row(env, strconv.FormatInt(m.ID, 10), m.Title, m.State, strconv.Itoa(m.Open), strconv.Itoa(m.Closed), m.Due)
+			}
+		case "view":
+			m, err := mm.MilestoneView(ctx, o.pos[0])
+			if err != nil {
+				return fail(env, err)
+			}
+			desc := strings.NewReplacer("\r\n", `\n`, "\n", `\n`, "\r", `\n`).Replace(m.Description)
+			row(env, strconv.FormatInt(m.ID, 10), m.Title, m.State, strconv.Itoa(m.Open), strconv.Itoa(m.Closed), m.Due, desc)
+		case "create":
+			if err := mm.MilestoneCreate(ctx, o.pos[0], o.flags["due"], o.flags["desc"]); err != nil {
+				return fail(env, err)
+			}
+			row(env, "created", o.pos[0])
+		}
+	case "issue edit":
+		ed, ok := c.(forge.IssueEditor)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no issue edit yet")
+			return ExitUnavailable
+		}
+		if err := ed.IssueEdit(ctx, n, issueEditInput(o)); err != nil {
+			return fail(env, err)
+		}
+		row(env, "edited", strconv.Itoa(n))
+	case "time add", "time list", "time total", "stopwatch list":
+		tt, ok := c.(forge.TimeTracker)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no time tracking yet")
+			return ExitUnavailable
+		}
+		switch v.Noun + " " + v.Name {
+		case "time add":
+			n, _ := strconv.Atoi(o.pos[0])
+			secs, _ := parseDuration(o.pos[1])
+			total, err := tt.TimeAdd(ctx, n, secs)
+			if err != nil {
+				return fail(env, err)
+			}
+			if total < 0 {
+				fmt.Fprintln(env.Stderr, "vcs: the time is logged, but the new total could not be read")
+				row(env, "ok")
+			} else {
+				row(env, "ok", strconv.FormatInt(total, 10), hms(total))
+			}
+		case "time list", "time total":
+			n := 0
+			if len(o.pos) == 1 {
+				n, _ = strconv.Atoi(o.pos[0])
+			}
+			es, err := tt.TimeList(ctx, n, o.flags["mine"] == "true")
+			if err != nil {
+				return fail(env, err)
+			}
+			if v.Name == "total" {
+				var total int64
+				for _, e := range es {
+					total += e.Seconds
+				}
+				row(env, strconv.FormatInt(total, 10), hms(total))
+				break
+			}
+			for _, e := range es {
+				issue := ""
+				if e.Issue > 0 {
+					issue = strconv.Itoa(e.Issue)
+				}
+				row(env, strconv.FormatInt(e.ID, 10), e.User, strconv.FormatInt(e.Seconds, 10), e.Created, issue)
+			}
+		case "stopwatch list":
+			ws, err := tt.StopwatchList(ctx)
+			if err != nil {
+				return fail(env, err)
+			}
+			for _, w := range ws {
+				row(env, w.Repo, strconv.Itoa(w.Issue), strconv.FormatInt(w.Seconds, 10), w.Created)
+			}
+			if o.flags["check"] == "true" && len(ws) > 0 {
+				return ExitFound
+			}
+		}
 	case "label list", "label create", "label rename":
 		lm, ok := c.(forge.LabelManager)
 		if !ok {

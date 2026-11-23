@@ -279,6 +279,51 @@ func TestPRMerge(t *testing.T) {
 	}
 }
 
+func TestMilestones(t *testing.T) {
+	var posted map[string]string
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/milestones"):
+			if r.URL.Query().Get("state") != "all" && r.URL.Query().Get("state") != "open" {
+				t.Errorf("state %q", r.URL.Query().Get("state"))
+			}
+			w.Write([]byte(`[{"id":2,"title":"v1","state":"open","open_issues":3,"closed_issues":1,"due_on":"2026-12-01T00:00:00Z","description":"First"},{"id":3,"title":"v0","state":"closed","open_issues":0,"closed_issues":5,"due_on":null,"description":""}]`))
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/milestones/2"):
+			w.Write([]byte(`{"id":2,"title":"v1","state":"open","open_issues":3,"closed_issues":1,"due_on":"2026-12-01T00:00:00Z","description":"First"}`))
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/milestones"):
+			b, _ := io.ReadAll(r.Body)
+			posted = nil
+			json.Unmarshal(b, &posted)
+			w.Write([]byte(`{}`))
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+	})
+	ctx := context.Background()
+	ms, err := c.MilestoneList(ctx, "open")
+	if err != nil || len(ms) != 2 || ms[0].Due != "2026-12-01" || ms[1].Due != "" || ms[0].Open != 3 {
+		t.Fatalf("list: %v %v", ms, err)
+	}
+	if m, err := c.MilestoneView(ctx, "2"); err != nil || m.Title != "v1" {
+		t.Fatalf("view by id: %v %v", m, err)
+	}
+	if m, err := c.MilestoneView(ctx, "v0"); err != nil || m.ID != 3 || m.State != "closed" {
+		t.Fatalf("view by title: %v %v", m, err)
+	}
+	if _, err := c.MilestoneView(ctx, "nope"); !errors.Is(err, forge.ErrNotFound) {
+		t.Fatalf("missing: %v", err)
+	}
+	if err := c.MilestoneCreate(ctx, "V1", "", ""); err == nil || !strings.Contains(err.Error(), "exists already") {
+		t.Fatalf("duplicate: %v", err)
+	}
+	if err := c.MilestoneCreate(ctx, "v2", "2027-01-31", "Next"); err != nil || posted["title"] != "v2" || posted["due_on"] != "2027-01-31T00:00:00Z" || posted["description"] != "Next" {
+		t.Fatalf("create: %v %v", err, posted)
+	}
+	if err := c.MilestoneCreate(ctx, "v3", "", ""); err != nil || posted["due_on"] != "" {
+		t.Fatalf("create no due: %v %v", err, posted)
+	}
+}
+
 const boardPage = `<div class="project-column" data-id="5">
 <span class="project-column-title-label">Doing</span>
 <div class="issue-card tw-x" data-issue="90">
@@ -338,5 +383,104 @@ func TestBoard(t *testing.T) {
 	anon := New(Config{BaseURL: srv.URL, Repo: "o/r", Token: "tok"})
 	if err := anon.BoardAdd(ctx, "2", []int{3}); !errors.Is(err, forge.ErrNoSession) {
 		t.Errorf("no session: %v", err)
+	}
+}
+
+func TestIssueEdit(t *testing.T) {
+	var calls []string
+	var patched map[string]any
+	var added map[string]any
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		calls = append(calls, r.Method+" "+r.URL.Path)
+		switch {
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/milestones"):
+			w.Write([]byte(`[{"id":4,"title":"v1"}]`))
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/labels"):
+			w.Write([]byte(`[{"id":10,"name":"bug"},{"id":11,"name":"wip"}]`))
+		case r.Method == http.MethodPatch:
+			patched = nil
+			json.Unmarshal(b, &patched)
+			w.Write([]byte(`{}`))
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/issues/8/labels"):
+			added = nil
+			json.Unmarshal(b, &added)
+			w.Write([]byte(`[]`))
+		case r.Method == http.MethodDelete && strings.HasSuffix(r.URL.Path, "/issues/8/labels/11"):
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+	})
+	ctx := context.Background()
+	title, state, ms := "T", "closed", "v1"
+	in := forge.IssueEdit{Title: &title, State: &state, Milestone: &ms, AddLabels: []string{"bug"}, RmLabels: []string{"wip"}}
+	if err := c.IssueEdit(ctx, 8, in); err != nil {
+		t.Fatal(err)
+	}
+	if patched["title"] != "T" || patched["state"] != "closed" || patched["milestone"] != float64(4) {
+		t.Errorf("patched=%v", patched)
+	}
+	if ids, _ := added["labels"].([]any); len(ids) != 1 || ids[0] != float64(10) {
+		t.Errorf("added=%v", added)
+	}
+	none := "none"
+	if err := c.IssueEdit(ctx, 8, forge.IssueEdit{Milestone: &none}); err != nil || patched["milestone"] != float64(0) {
+		t.Errorf("clear: err=%v patched=%v", err, patched)
+	}
+	// An unknown label stops the call before any write.
+	calls = nil
+	if err := c.IssueEdit(ctx, 8, forge.IssueEdit{Title: &title, AddLabels: []string{"nope"}}); !errors.Is(err, forge.ErrNotFound) {
+		t.Errorf("unknown label: %v", err)
+	}
+	for _, call := range calls {
+		if !strings.HasPrefix(call, "GET ") {
+			t.Errorf("a write ran before the label check: %s", call)
+		}
+	}
+	bad := "ghost"
+	if err := c.IssueEdit(ctx, 8, forge.IssueEdit{Milestone: &bad}); !errors.Is(err, forge.ErrNotFound) {
+		t.Errorf("unknown milestone: %v", err)
+	}
+}
+
+func TestTimeTracking(t *testing.T) {
+	var posted string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/repos/o/r/issues/4/times":
+			posted = string(b)
+			w.Write([]byte(`{"id":9}`))
+		case r.URL.Path == "/api/v1/repos/o/r/issues/4/times":
+			w.Write([]byte(`[{"id":1,"user_name":"me","time":3600,"created":"c1","issue":{"number":4}},{"id":2,"user_name":"you","time":60,"created":"c2"}]`))
+		case r.URL.Path == "/api/v1/repos/o/r/times":
+			w.Write([]byte(`[{"id":1,"user_name":"me","time":3600,"created":"c1","issue":{"number":4}}]`))
+		case r.URL.Path == "/api/v1/user":
+			w.Write([]byte(`{"login":"me"}`))
+		case r.URL.Path == "/api/v1/user/stopwatches":
+			w.Write([]byte(`[{"created":"c3","issue_index":4,"repo_owner_name":"o","repo_name":"r","seconds":30}]`))
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL)
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := New(Config{BaseURL: srv.URL, Repo: "o/r", Token: "tok"})
+	ctx := context.Background()
+	total, err := c.TimeAdd(ctx, 4, 120)
+	if err != nil || total != 3660 || posted != `{"time":120}` {
+		t.Fatalf("add: %d %v %q", total, err, posted)
+	}
+	es, err := c.TimeList(ctx, 4, true)
+	if err != nil || len(es) != 1 || es[0].User != "me" || es[0].Issue != 4 {
+		t.Fatalf("mine: %+v %v", es, err)
+	}
+	if es, err := c.TimeList(ctx, 0, false); err != nil || len(es) != 1 {
+		t.Fatalf("repo: %+v %v", es, err)
+	}
+	ws, err := c.StopwatchList(ctx)
+	if err != nil || len(ws) != 1 || ws[0].Repo != "o/r" || ws[0].Seconds != 30 {
+		t.Fatalf("stopwatch: %+v %v", ws, err)
 	}
 }

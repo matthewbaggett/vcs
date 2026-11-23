@@ -4,6 +4,7 @@ package cli
 const (
 	ExitOK          = 0
 	ExitFail        = 1
+	ExitFound       = 2 // stopwatch list --check found a stopwatch. It means "found", not "failed".
 	ExitUsage       = 64
 	ExitLint        = 65
 	ExitUnavailable = 69
@@ -340,6 +341,74 @@ var Tree = []Verb{
 		},
 	},
 	{
+		Noun: "milestone", Name: "list",
+		Usage:   "vcs milestone list [--state open|closed|all]",
+		Summary: "List the milestones of the repository.",
+		Output:  "One row for each milestone, tab-separated: id, title, state, open issues, closed issues, due date. The due date looks like 2026-12-01, or the field is empty.",
+		Flags:   []Flag{{"--state", "open, closed, or all. The default is open."}},
+		Exits:   []string{"0 listed", "1 the call failed", "64 usage error", "69 no usable driver, or the driver has no milestone support"},
+		Hints: map[string]string{
+			OutOK:          "use the title with vcs issue edit --milestone",
+			OutFail:        "check the token and the host",
+			OutUsage:       "use --state open, closed, or all",
+			OutUnavailable: "stop and ask the user. This host has no milestone support yet",
+		},
+	},
+	{
+		Noun: "milestone", Name: "view",
+		Usage:   "vcs milestone view <id|title>",
+		Summary: "Show one milestone. Give the id or the title. A closed milestone counts too.",
+		Output:  "One row: id, title, state, open issues, closed issues, due date, description. The description fits on one line, and each newline shows as the two characters \\n.",
+		Exits:   []string{"0 shown", "1 the call failed or the milestone isn't found", "64 usage error", "69 no usable driver, or the driver has no milestone support"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "run vcs milestone list --state all to see the titles",
+			OutUsage:       "give an id or a one-line title",
+			OutUnavailable: "stop and ask the user. This host has no milestone support yet",
+		},
+	},
+	{
+		Noun: "milestone", Name: "create", Sends: true,
+		Usage:   "vcs milestone create <title> [--due <date>] [--desc <text>]",
+		Summary: "Make one milestone. The command refuses the AI credit line, and the prose lint runs on the title and the description first.",
+		Output:  "One row: `created` and the title.",
+		Flags: []Flag{
+			{"--due", "The due date, like 2027-01-31."},
+			{"--desc", "A description of the milestone."},
+		},
+		Exits: []string{"0 created", "1 the call failed, or a milestone with that title exists", "64 usage error, or a bad date", "65 a guard rule or the prose lint refuses the text, and the command sends nothing", "69 no usable driver, or the driver has no milestone support"},
+		Hints: map[string]string{
+			OutOK:          "run vcs milestone view <title> to check it",
+			OutFail:        "run vcs milestone list --state all to see if the title exists",
+			OutUsage:       "give a one-line title, and a date like 2027-01-31 if you use --due",
+			OutLint:        "fix each finding that vcs printed, then run the command again",
+			OutUnavailable: "stop and ask the user. This host has no milestone support yet",
+		},
+	},
+	{
+		Noun: "issue", Name: "edit", Sends: true,
+		Usage:   "vcs issue edit <n> [--title <text>] [--body <text> | --body-file <path>] [--state open|closed] [--milestone <title|id|none>] [--add-label <a,b>] [--rm-label <a,b>]",
+		Summary: "Change the title, the body, the state, the milestone, or the labels of an issue. The command refuses the AI credit line, and the prose lint runs on the new text. An unknown label or milestone stops the command before anything changes.",
+		Output:  "One line: `edited` and the number.",
+		Flags: []Flag{
+			{"--title", "The new title."},
+			{"--body", "The new body text."},
+			{"--body-file", "A file that holds the new body. Use - for standard input."},
+			{"--state", "open to reopen the issue, or closed to close it."},
+			{"--milestone", "A milestone title or id. Use none to clear it."},
+			{"--add-label", "Labels to add, separated by commas."},
+			{"--rm-label", "Labels to remove, separated by commas."},
+		},
+		Exits: []string{"0 edited", "1 the call failed, or the issue, a label or the milestone isn't found", "64 usage error", "65 a guard rule or the prose lint refuses the text, and the command sends nothing", "69 no usable driver, or the driver has no issue edit"},
+		Hints: map[string]string{
+			OutOK:          "run vcs issue view <n> to check the issue",
+			OutFail:        "check the number, the label names and the token",
+			OutUsage:       "give the issue number and at least one change. The state is open or closed",
+			OutLint:        "fix each finding that vcs printed, then run the command again",
+			OutUnavailable: "stop and ask the user. This host has no issue edit yet",
+		},
+	},
+	{
 		Noun: "label", Name: "list",
 		Usage:   "vcs label list",
 		Summary: "List the labels of the repository.",
@@ -433,6 +502,61 @@ var Tree = []Verb{
 			OutUsage:       "give the board id, the column, then one or more numbers",
 			OutUnavailable: "stop and ask the user. This host has no board support",
 			OutNoSession:   "stop and ask the user to run vcs session login, or vcs session import. Never ask for the password in chat",
+		},
+	},
+	{
+		Noun: "time", Name: "add",
+		Usage:   "vcs time add <n> <duration>",
+		Summary: "Log time on an issue or a pull request. The duration is like 1h25m, 90m, or 45s.",
+		Output:  "One row: `ok`, the new total in seconds, and the new total as 1h25m0s. If vcs can't read the total, one line `ok`.",
+		Exits:   []string{"0 logged", "1 the call failed or the issue isn't found", "64 usage error", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "vcs logged the time once. Don't run the command again to check it",
+			OutFail:        "run vcs time list <n> to see if the entry exists, before you run the command again",
+			OutUsage:       "give the number, then a duration of hours, minutes and seconds, like 1h30m",
+			OutUnavailable: "stop and ask the user. This host has no time tracking yet",
+		},
+	},
+	{
+		Noun: "time", Name: "list",
+		Usage:   "vcs time list [<n>] [--mine]",
+		Summary: "List the time entries of one issue, or of the whole repository with no number.",
+		Output:  "One row for each entry: id, user, seconds, created, issue number.",
+		Flags:   []Flag{{"--mine", "Only the entries of the caller."}},
+		Exits:   []string{"0 listed", "1 the call failed", "64 usage error", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "check the number and the token",
+			OutUsage:       "give no number, or one issue number",
+			OutUnavailable: "stop and ask the user. This host has no time tracking yet",
+		},
+	},
+	{
+		Noun: "time", Name: "total",
+		Usage:   "vcs time total [<n>] [--mine]",
+		Summary: "Add up the time entries of one issue, or of the whole repository with no number.",
+		Output:  "One row: seconds, then the total as 1h25m0s.",
+		Flags:   []Flag{{"--mine", "Only the entries of the caller."}},
+		Exits:   []string{"0 printed", "1 the call failed", "64 usage error", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "check the number and the token",
+			OutUsage:       "give no number, or one issue number",
+			OutUnavailable: "stop and ask the user. This host has no time tracking yet",
+		},
+	},
+	{
+		Noun: "stopwatch", Name: "list",
+		Usage:   "vcs stopwatch list [--check]",
+		Summary: "List the running stopwatches of the caller.",
+		Output:  "One row for each stopwatch: repository, issue, seconds, created.",
+		Flags:   []Flag{{"--check", "Exit 2 when a stopwatch runs. It means found, not failed."}},
+		Exits:   []string{"0 listed, or none runs", "1 the call failed", "2 with --check, a stopwatch runs", "64 usage error", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "check the token and the host",
+			OutUsage:       "this verb takes no number",
+			OutUnavailable: "stop and ask the user. This host has no time tracking yet",
 		},
 	},
 	{
