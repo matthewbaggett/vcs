@@ -129,6 +129,53 @@ type PREditor interface {
 	PREdit(ctx context.Context, n int, in PREdit) error
 }
 
+// PRInfo is one row of a pull request list.
+type PRInfo struct {
+	Number    int
+	Title     string
+	Head      string
+	Base      string
+	Mergeable bool
+	CI        string // set only when the list asked for it
+	Labels    []string
+	Milestone string
+}
+
+// IssueInfo is one issue. List rows leave Body and Comments empty.
+type IssueInfo struct {
+	Number    int
+	Title     string
+	State     string
+	Labels    []string
+	Milestone string
+	Body      string
+	Comments  []Comment
+}
+
+// Comment is one comment on an issue or a pull request.
+type Comment struct {
+	Author  string
+	Created string
+	Body    string
+}
+
+// ListFilter narrows a list of pull requests or issues. The driver reads every page.
+// An empty State means open. Labels keeps only items that carry every label.
+type ListFilter struct {
+	State     string // open, closed, or all
+	Labels    []string
+	Milestone string
+	Limit     int // keep the newest n after the filter. 0 keeps all
+}
+
+// Reader is the optional interface of a driver that lists pull requests and issues.
+// The command asserts it, so a driver without it needs no stub.
+type Reader interface {
+	PRList(ctx context.Context, f ListFilter) ([]PRInfo, error)
+	IssueList(ctx context.Context, f ListFilter) ([]IssueInfo, error)
+	IssueView(ctx context.Context, n int) (IssueInfo, error)
+}
+
 // Asset is one uploaded file.
 type Asset struct {
 	Name string
