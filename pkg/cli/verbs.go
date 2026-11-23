@@ -5,6 +5,7 @@ const (
 	ExitOK          = 0
 	ExitFail        = 1
 	ExitUsage       = 64
+	ExitLint        = 65
 	ExitUnavailable = 69
 	ExitNoSession   = 77
 )
@@ -14,6 +15,7 @@ const (
 	OutOK          = "ok"
 	OutFail        = "fail"
 	OutUsage       = "usage"
+	OutLint        = "lint"
 	OutUnavailable = "unavailable"
 	OutNoSession   = "nosession"
 )
@@ -28,7 +30,9 @@ type Verb struct {
 	Flags   []Flag
 	// Session is true when the verb needs a web session.
 	Session bool
-	Exits   []string
+	// Sends is true when the verb sends text that the prose linters check first.
+	Sends bool
+	Exits []string
 	// Hints holds the agent message of each outcome. A person never sees it.
 	// An empty text means the human message is enough.
 	Hints map[string]string
@@ -134,7 +138,7 @@ var Tree = []Verb{
 		},
 	},
 	{
-		Noun: "attach", Name: "",
+		Noun: "attach", Name: "", Sends: true,
 		Usage:   "vcs attach <n> <file>... [--comment] [--title <text>]",
 		Summary: "Upload files to an issue or a pull request, and optionally post one comment that shows them.",
 		Output:  "One row for each file: name, download address. With --comment, a last line `comment posted`.",
@@ -142,11 +146,12 @@ var Tree = []Verb{
 			{"--comment", "Post one comment that embeds each file as an image."},
 			{"--title", "The first line of the comment. The default is Screenshots."},
 		},
-		Exits: []string{"0 uploaded", "1 an upload or the comment failed", "64 usage error, or a file isn't a plain file", "69 no usable driver"},
+		Exits: []string{"0 uploaded", "1 an upload or the comment failed", "64 usage error, or a file isn't a plain file", "65 the comment text fails the prose lint, and the command sends nothing", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "check the token. Run the command again for the files that didn't upload",
 			OutUsage:       "give the number, then one or more plain files",
+			OutLint:        "fix each finding that vcs printed in the comment text or the --title, then run the command again",
 			OutUnavailable: "stop and ask the user. This host has no upload route",
 		},
 	},
