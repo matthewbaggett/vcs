@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"git.grey.ooo/packages/vcs/pkg/forge"
+	"git.grey.ooo/packages/vcs/pkg/guard"
 	"git.grey.ooo/packages/vcs/pkg/lint"
 	"git.grey.ooo/packages/vcs/pkg/session"
 )
@@ -118,10 +119,10 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "interval": true, "timeout": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true}
 
 // boolean flags take no value.
-var boolean = map[string]bool{"failed": true, "comment": true}
+var boolean = map[string]bool{"failed": true, "comment": true, "draft": true}
 
 func parse(args []string) (opts, error) {
 	o := opts{flags: map[string]string{}}
@@ -192,7 +193,7 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 	var limit, tail int
 	var good bool
 	switch v.Key() {
-	case "pr status", "pr watch":
+	case "pr status", "pr watch", "pr ready":
 		if len(o.pos) != 1 {
 			return usage(env, v)
 		}
@@ -207,6 +208,133 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 			if t, ok := intFlag(o, "timeout", 3600); !ok || t < 1 {
 				return usage(env, v)
 			}
+		}
+	case "issue create":
+		if len(o.pos) != 1 || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
+			return usage(env, v)
+		}
+		if f := o.flags["body-file"]; f != "" {
+			raw, err := readText(env, f)
+			if err != nil {
+				fmt.Fprintf(env.Stderr, "vcs: cannot read a body from %s\n", f)
+				return ExitUsage
+			}
+			o.flags["body"] = raw
+		}
+		if r := guard.Credit(o.pos[0] + "\n" + o.flags["body"]); len(r) > 0 {
+			fmt.Fprintf(env.Stderr, "vcs: guard: %s\n", r[0])
+			return ExitLint
+		}
+		if code := lintText(env, o.pos[0]); code != ExitOK {
+			return code
+		}
+		if code := lintText(env, o.flags["body"]); code != ExitOK {
+			return code
+		}
+	case "board list":
+		if len(o.pos) != 0 || (o.flags["state"] != "" && o.flags["state"] != "open" && o.flags["state"] != "closed") {
+			return usage(env, v)
+		}
+	case "board view":
+		if len(o.pos) != 1 || !isNum(o.pos[0]) {
+			return usage(env, v)
+		}
+	case "board add", "board move":
+		skip := 1
+		if v.Name == "move" {
+			skip = 2
+		}
+		if len(o.pos) < skip+1 || !isNum(o.pos[0]) {
+			return usage(env, v)
+		}
+		for _, a := range o.pos[skip:] {
+			if !isNum(a) {
+				return usage(env, v)
+			}
+		}
+	case "pr edit":
+		if len(o.pos) != 1 || (o.flags["body"] != "" && o.flags["body-file"] != "") || (o.flags["title"] == "" && o.flags["body"] == "" && o.flags["body-file"] == "") {
+			return usage(env, v)
+		}
+		var err error
+		if n, err = strconv.Atoi(o.pos[0]); err != nil || n < 1 {
+			return usage(env, v)
+		}
+		if f := o.flags["body-file"]; f != "" {
+			raw, err := readText(env, f)
+			if err != nil {
+				fmt.Fprintf(env.Stderr, "vcs: cannot read a body from %s\n", f)
+				return ExitUsage
+			}
+			o.flags["body"] = raw
+		}
+		if r := guard.Credit(o.flags["title"] + "\n" + o.flags["body"]); len(r) > 0 {
+			fmt.Fprintf(env.Stderr, "vcs: guard: %s\n", r[0])
+			return ExitLint
+		}
+		if o.flags["title"] != "" {
+			if code := lintText(env, o.flags["title"]); code != ExitOK {
+				return code
+			}
+		}
+		if o.flags["body"] != "" {
+			if code := lintText(env, o.flags["body"]); code != ExitOK {
+				return code
+			}
+		}
+	case "pr create":
+		if len(o.pos) != 1 || o.flags["head"] == "" || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
+			return usage(env, v)
+		}
+		if f := o.flags["body-file"]; f != "" {
+			raw, err := readText(env, f)
+			if err != nil {
+				fmt.Fprintf(env.Stderr, "vcs: cannot read a body from %s\n", f)
+				return ExitUsage
+			}
+			o.flags["body"] = raw
+		}
+		if o.flags["base"] == "" {
+			o.flags["base"] = "main"
+		}
+		var refuse []string
+		refuse = append(refuse, guard.Branch(o.flags["head"])...)
+		refuse = append(refuse, guard.Credit(o.pos[0]+"\n"+o.flags["body"])...)
+		if len(refuse) > 0 {
+			for _, r := range refuse {
+				fmt.Fprintf(env.Stderr, "vcs: guard: %s\n", r)
+			}
+			return ExitLint
+		}
+		if code := lintText(env, o.pos[0]); code != ExitOK {
+			return code
+		}
+		if code := lintText(env, o.flags["body"]); code != ExitOK {
+			return code
+		}
+	case "comment add":
+		if len(o.pos) != 1 || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
+			return usage(env, v)
+		}
+		var err error
+		if n, err = strconv.Atoi(o.pos[0]); err != nil || n < 1 {
+			return usage(env, v)
+		}
+		if f := o.flags["body-file"]; f != "" {
+			var raw []byte
+			if f == "-" {
+				raw, err = io.ReadAll(env.Stdin)
+			} else {
+				raw, err = os.ReadFile(f)
+			}
+			if err != nil || strings.TrimSpace(string(raw)) == "" {
+				fmt.Fprintf(env.Stderr, "vcs: cannot read a comment text from %s\n", f)
+				return ExitUsage
+			}
+			o.flags["body"] = string(raw)
+		}
+		if code := lintText(env, o.flags["body"]); code != ExitOK {
+			return code
 		}
 	case "ci runs":
 		if len(o.pos) != 0 {
@@ -436,6 +564,81 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			}
 			fmt.Fprintln(env.Stdout, "comment posted")
 		}
+	case "issue create":
+		num, addr, err := c.CreateIssue(ctx, o.pos[0], o.flags["body"])
+		if err != nil {
+			return fail(env, err)
+		}
+		row(env, strconv.Itoa(num), addr)
+	case "pr ready":
+		if err := c.PRReady(ctx, n); err != nil {
+			return fail(env, err)
+		}
+		row(env, "ready", strconv.Itoa(n))
+	case "pr edit":
+		ed, ok := c.(forge.PREditor)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no pr edit yet")
+			return ExitUnavailable
+		}
+		var in forge.PREdit
+		if t := o.flags["title"]; t != "" {
+			in.Title = &t
+		}
+		if b := o.flags["body"]; b != "" {
+			in.Body = &b
+		}
+		if err := ed.PREdit(ctx, n, in); err != nil {
+			return fail(env, err)
+		}
+		row(env, "edited", strconv.Itoa(n))
+	case "board list":
+		bs, err := c.BoardList(ctx, o.flags["state"] == "closed")
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, b := range bs {
+			row(env, b.ID, b.Title, b.URL)
+		}
+	case "board view":
+		cs, err := c.BoardView(ctx, o.pos[0])
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, k := range cs {
+			row(env, k.ColumnID, k.Column, k.ItemID, strconv.Itoa(k.Number), k.Title)
+		}
+	case "board add", "board move":
+		skip := 1
+		if v.Name == "move" {
+			skip = 2
+		}
+		var nums []int
+		for _, a := range o.pos[skip:] {
+			x, _ := strconv.Atoi(a)
+			nums = append(nums, x)
+		}
+		var err error
+		if v.Name == "add" {
+			err = c.BoardAdd(ctx, o.pos[0], nums)
+		} else {
+			err = c.BoardMove(ctx, o.pos[0], o.pos[1], nums)
+		}
+		if err != nil {
+			return fail(env, err)
+		}
+		fmt.Fprintln(env.Stdout, "ok")
+	case "pr create":
+		num, addr, err := c.CreatePR(ctx, forge.NewPR{Title: o.pos[0], Body: o.flags["body"], Head: o.flags["head"], Base: o.flags["base"], Draft: o.flags["draft"] == "true"})
+		if err != nil {
+			return fail(env, err)
+		}
+		row(env, strconv.Itoa(num), addr)
+	case "comment add":
+		if err := c.Comment(ctx, n, o.flags["body"]); err != nil {
+			return fail(env, err)
+		}
+		fmt.Fprintln(env.Stdout, "comment posted")
 	case "ci log":
 		text, err := c.CILog(ctx, int64(n))
 		if errors.Is(err, forge.ErrNoLog) {
@@ -534,4 +737,24 @@ func sessionVerb(ctx context.Context, v Verb, o opts, env Env) int {
 	}
 	fmt.Fprintln(env.Stdout, "ok")
 	return ExitOK
+}
+
+// readText reads a body from a file, or from standard input for "-". An empty text is an error.
+func readText(env Env, name string) (string, error) {
+	var raw []byte
+	var err error
+	if name == "-" {
+		raw, err = io.ReadAll(env.Stdin)
+	} else {
+		raw, err = os.ReadFile(name)
+	}
+	if err == nil && strings.TrimSpace(string(raw)) == "" {
+		err = errors.New("empty")
+	}
+	return string(raw), err
+}
+
+func isNum(s string) bool {
+	n, err := strconv.Atoi(s)
+	return err == nil && n > 0
 }
