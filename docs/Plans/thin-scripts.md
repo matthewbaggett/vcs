@@ -27,7 +27,7 @@ request. It reaches every project that imports that repository.
 | `vcs-pr.sh edit`, `merge` | `vcs pr edit`, `vcs pr merge` | Ready to switch |
 | `vcs-pr.sh` close and comment | none | Gap |
 | `vcs-pr-list.sh` | `vcs pr list` | Ready to switch |
-| `watch-pr.sh` | `vcs pr watch` | Ready to switch |
+| `watch-pr.sh` | `vcs pr watch` | Gap until the release that holds the parity change |
 | `vcs-issue.sh create` | `vcs issue create` | Ready to switch |
 | `vcs-issue.sh edit` | `vcs issue edit` | Ready to switch |
 | `vcs-issue.sh` other actions | none | Gap |
