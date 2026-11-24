@@ -25,9 +25,10 @@ request. It reaches every project that imports that repository.
 | `vcs-pr-status.sh` | `vcs pr status` | Ready to switch |
 | `vcs-pr.sh create`, `ready` | `vcs pr create`, `vcs pr ready` | Ready to switch |
 | `vcs-pr.sh edit`, `merge` | `vcs pr edit`, `vcs pr merge` | Ready to switch |
-| `vcs-pr.sh` close and comment | none | Gap |
+| `vcs-pr.sh` close | `vcs pr close` | Done. The script runs the binary |
+| `vcs-pr.sh` comment | `vcs comment add` | Done. The script runs the binary |
 | `vcs-pr-list.sh` | `vcs pr list` | Ready to switch |
-| `watch-pr.sh` | `vcs pr watch` | Gap until the release that holds the parity change |
+| `watch-pr.sh` | `vcs pr watch` | Done. The script runs the binary since v0.0.6 |
 | `vcs-issue.sh create` | `vcs issue create` | Ready to switch |
 | `vcs-issue.sh edit` | `vcs issue edit` | Ready to switch |
 | `vcs-issue.sh` other actions | none | Gap |
@@ -39,7 +40,7 @@ request. It reaches every project that imports that repository.
 | `vcs-ci-failed.sh` | `vcs ci failed` | Ready to switch |
 | `vcs-attach.sh` | `vcs attach` | Needs a live proof with a token |
 | `vcs-session.sh` | `vcs session` | Needs a live proof with a login |
-| `vcs-statuses.sh` | `vcs pr statuses` | Gap |
+| `vcs-statuses.sh` | `vcs pr statuses` | Ready to switch |
 | `vcs-label.sh`, `vcs-milestone.sh`, `vcs-time.sh` | `vcs label`, `milestone`, `time` | Ready to switch |
 | `vcs-stopwatch.sh` | `vcs stopwatch list` | Gap for the other actions |
 | `vcs-secret.sh`, `vcs-package.sh`, `vcs-protection.sh`, `vcs-runners.sh`, `vcs-workflow.sh` | one noun each | Gap |

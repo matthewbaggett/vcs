@@ -257,3 +257,31 @@ func TestPRWatch(t *testing.T) {
 		t.Errorf("want ErrNotFound, got %v", err)
 	}
 }
+
+func TestCommitStatuses(t *testing.T) {
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/repos/o/r/commits/abc/statuses" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.URL.Query().Get("page") != "1" {
+			w.Write([]byte("[]"))
+			return
+		}
+		w.Write([]byte(`[{"id":9,"context":"ci / test","status":"success","target_url":"/o/r/actions/runs/1","description":"ok"},
+ {"id":7,"context":"ci / lint","status":"failure","target_url":"https://x/y","description":""}]`))
+	})
+	rows, err := c.CommitStatuses(context.Background(), "abc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 || rows[0].ID != 9 || rows[0].Description != "ok" || rows[1].URL != "https://x/y" {
+		t.Fatalf("rows = %+v", rows)
+	}
+	if !strings.HasSuffix(rows[0].URL, "/o/r/actions/runs/1") || !strings.HasPrefix(rows[0].URL, "http") {
+		t.Errorf("path address not completed: %q", rows[0].URL)
+	}
+	if _, err := c.CommitStatuses(context.Background(), "nope"); !errors.Is(err, forge.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
