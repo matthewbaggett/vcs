@@ -45,7 +45,7 @@ request. It reaches every project that imports that repository.
 | `vcs-label.sh`, `vcs-milestone.sh`, `vcs-time.sh` | `vcs label`, `milestone`, `time` | Done. The script runs the binary |
 | `vcs-stopwatch.sh` | `vcs stopwatch list` | Done. The script runs the binary |
 | `vcs-secret.sh`, `vcs-package.sh`, `vcs-protection.sh`, `vcs-runners.sh`, `vcs-workflow.sh`, `vcs-pr-bind.sh` | `vcs secret`, `package`, `protection list`, `runners list`, `workflow dispatch`, `pr bind` | Done since v0.0.9. Each script runs the binary and keeps its old path for an older binary |
-| `vcs-tick-merge.sh`, `vcs-heal-label.sh` | `vcs pr tick`, `vcs pr heal` | Tick: done. Heal: needs a live proof of its write paths |
+| `vcs-tick-merge.sh`, `vcs-heal-label.sh` | `vcs pr tick`, `vcs pr heal` | Tick: done. Heal: done. A live run on a scratch repo passed the label, add, remove and sweep calls |
 | `vcs-branch.sh`, `vcs-commit.sh`, `vcs-push.sh`, `vcs-merge.sh`, `vcs-rebase.sh` | `vcs git ...` | Built. The wiring retry and the server rename need a live proof |
 
 ## Order of work
@@ -55,7 +55,7 @@ request. It reaches every project that imports that repository.
 2. Done. Add the verbs for the read gaps: `pr list`, `issue list`, `issue view`, `ci failed`.
 3. Done. Add the write gaps: `pr edit`, `pr merge`, `issue edit`, `label`, `milestone`, `time`.
 4. Done. Add the git verbs, with the guard checks the hook runs today.
-5. Verbs done. The script rewrite waits on a live proof of `pr heal`. Rewrite `vcs-tick-merge.sh` and `vcs-heal-label.sh` on top of the verbs.
+5. Done. The live proof of `pr heal` passed. `vcs-tick-merge.sh` and `vcs-heal-label.sh` run the verbs.
 6. Delete the old `forgejo-` names in the release that ships the binary.
 
 ## Blockers
