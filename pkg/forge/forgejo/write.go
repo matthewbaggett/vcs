@@ -156,17 +156,27 @@ func (c *Client) Attach(ctx context.Context, n int, files []string) ([]forge.Ass
 }
 
 // Comment posts one comment.
-func (c *Client) Comment(ctx context.Context, n int, body string) error {
+func (c *Client) Comment(ctx context.Context, n int, body string) (int64, string, error) {
 	payload, _ := json.Marshal(map[string]string{"body": body})
 	path := fmt.Sprintf("repos/%s/issues/%d/comments", c.cfg.Repo, n)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+"/api/v1/"+path, bytes.NewReader(payload))
 	if err != nil {
-		return err
+		return 0, "", err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	c.authorize(req)
-	_, err = c.send(req, path)
-	return err
+	resp, err := c.send(req, path)
+	if err != nil {
+		return 0, "", err
+	}
+	var out struct {
+		ID  int64  `json:"id"`
+		URL string `json:"html_url"`
+	}
+	if json.Unmarshal(resp, &out) != nil || out.ID == 0 {
+		return 0, "", fmt.Errorf("the server gave no comment id")
+	}
+	return out.ID, out.URL, nil
 }
 
 // CreatePR opens a pull request. A draft carries the WIP: prefix, which Forgejo reads as a draft.
@@ -221,7 +231,7 @@ func (c *Client) CreateIssue(ctx context.Context, title, body string) (int, stri
 	return out.Number, out.URL, nil
 }
 
-// PREdit changes the title or the body of a pull request. A draft keeps its WIP: prefix,
+// PREdit changes the title, the body or the base branch of a pull request. A draft keeps its WIP: prefix,
 // because Forgejo reads the prefix as the draft state.
 func (c *Client) PREdit(ctx context.Context, n int, in forge.PREdit) error {
 	path := fmt.Sprintf("repos/%s/pulls/%d", c.cfg.Repo, n)
@@ -250,6 +260,9 @@ func (c *Client) PREdit(ctx context.Context, n int, in forge.PREdit) error {
 			title = "WIP: " + title
 		}
 		payload["title"] = title
+	}
+	if in.Base != nil {
+		payload["base"] = *in.Base
 	}
 	if len(payload) == 0 {
 		return nil

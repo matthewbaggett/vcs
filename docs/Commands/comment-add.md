@@ -12,7 +12,7 @@ vcs comment add <n> (--body <text> | --body-file <path>)
 
 ## Output
 
-One line: `comment posted`.
+One row: the comment id and its web address.
 
 ## Example
 
@@ -20,7 +20,7 @@ The output below is an example with made-up data, not a real run.
 
 ```text
 $ vcs comment add 14 --body "Fixed in the pull request."
-comment posted
+14012 https://git.example.com/acme/app/issues/14#issuecomment-14012
 ```
 
 ## Flags

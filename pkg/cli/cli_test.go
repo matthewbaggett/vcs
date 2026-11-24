@@ -52,11 +52,11 @@ func (f fake) CIRerun(_ context.Context, id int64, failed bool) error {
 func (f fake) Attach(_ context.Context, _ int, files []string) ([]forge.Asset, error) {
 	return f.assets, f.err
 }
-func (f fake) Comment(_ context.Context, _ int, body string) error {
+func (f fake) Comment(_ context.Context, _ int, body string) (int64, string, error) {
 	if f.comment != nil {
 		*f.comment = body
 	}
-	return f.err
+	return 901, "https://x/c/901", f.err
 }
 func (f fake) CreatePR(_ context.Context, in forge.NewPR) (int, string, error) {
 	if f.comment != nil {
@@ -85,7 +85,11 @@ func (f fake) PREdit(_ context.Context, n int, in forge.PREdit) error {
 		if in.Body != nil {
 			b = *in.Body
 		}
-		*f.comment = fmt.Sprintf("edit %d|%s|%s", n, t, b)
+		base := "-"
+		if in.Base != nil {
+			base = *in.Base
+		}
+		*f.comment = fmt.Sprintf("edit %d|%s|%s|%s", n, t, b, base)
 	}
 	return f.err
 }
@@ -508,7 +512,7 @@ func TestCommentAdd(t *testing.T) {
 		}
 		return Run(context.Background(), args, env), out.String(), errb.String()
 	}
-	if code, out, _ := run(nil, "comment", "add", "5", "--body", "Plain text."); code != ExitOK || out != "comment posted\n" || body != "Plain text." {
+	if code, out, _ := run(nil, "comment", "add", "5", "--body", "Plain text."); code != ExitOK || out != "901\thttps://x/c/901\n" || body != "Plain text." {
 		t.Fatalf("body: code=%d out=%q body=%q", code, out, body)
 	}
 	if code, _, _ := run(nil, "comment", "add", "5", "--body-file", "-"); code != ExitOK || body != "from stdin" {
@@ -583,12 +587,16 @@ func TestPREdit(t *testing.T) {
 	var got string
 	c := fake{comment: &got}
 	code, out, _ := run(t, c, nil, false, "pr", "edit", "12", "--title", "New title")
-	if code != ExitOK || out != "edited\t12\n" || got != "edit 12|New title|-" {
+	if code != ExitOK || out != "edited\t12\n" || got != "edit 12|New title|-|-" {
 		t.Fatalf("title: code=%d out=%q got=%q", code, out, got)
 	}
 	code, out, _ = run(t, c, nil, false, "pr", "edit", "12", "--body", "New body.")
-	if code != ExitOK || out != "edited\t12\n" || got != "edit 12|-|New body." {
+	if code != ExitOK || out != "edited\t12\n" || got != "edit 12|-|New body.|-" {
 		t.Fatalf("body: code=%d out=%q got=%q", code, out, got)
+	}
+	code, out, _ = run(t, c, nil, false, "pr", "edit", "12", "--base", "feature/x")
+	if code != ExitOK || out != "edited\t12\n" || got != "edit 12|-|-|feature/x" {
+		t.Fatalf("base: code=%d out=%q got=%q", code, out, got)
 	}
 	got = ""
 	if code, out, errb := run(t, c, nil, false, "pr", "edit", "12", "--body", "🤖 Generated with Claude"); code != ExitLint || out != "" || got != "" || !strings.Contains(errb, "guard:") {

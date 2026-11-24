@@ -60,7 +60,12 @@ func recorded(t *testing.T) (*Client, *rec) {
 		case req.URL.Path == "/repos/o/r/issues" && req.Method == http.MethodPost:
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(`{"number":8,"html_url":"https://github.com/o/r/issues/8"}`))
-		case strings.HasSuffix(req.URL.Path, "/comments"), strings.Contains(req.URL.Path, "/rerun"):
+		case strings.HasSuffix(req.URL.Path, "/comments"):
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"id":77,"html_url":"https://github.com/o/r/issues/8#issuecomment-77"}`))
+		case req.Method == http.MethodPatch && req.URL.Path == "/repos/o/r/pulls/7":
+			w.Write([]byte(`{}`))
+		case strings.Contains(req.URL.Path, "/rerun"):
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(`{}`))
 		case req.URL.Path != "/graphql":
@@ -181,8 +186,8 @@ func TestCreateIssueCommentRerun(t *testing.T) {
 	if n, url, err := c.CreateIssue(ctx, "T", "B"); err != nil || n != 8 || !strings.HasSuffix(url, "/issues/8") {
 		t.Fatalf("%d %s %v", n, url, err)
 	}
-	if err := c.Comment(ctx, 8, "hi"); err != nil {
-		t.Fatal(err)
+	if id, addr, err := c.Comment(ctx, 8, "hi"); err != nil || id != 77 || !strings.HasSuffix(addr, "#issuecomment-77") {
+		t.Fatalf("comment: %d %q %v", id, addr, err)
 	}
 	if err := c.CIRerun(ctx, 5, true); err != nil {
 		t.Fatal(err)
@@ -195,6 +200,21 @@ func TestCreateIssueCommentRerun(t *testing.T) {
 	}
 	if _, err := c.Attach(ctx, 8, []string{"x"}); !errors.Is(err, forge.ErrUnsupported) {
 		t.Errorf("attach: %v", err)
+	}
+}
+
+func TestPREdit(t *testing.T) {
+	c, r := recorded(t)
+	title, base := "New", "feature/x"
+	if err := c.PREdit(context.Background(), 7, forge.PREdit{Title: &title, Base: &base}); err != nil {
+		t.Fatal(err)
+	}
+	p := r.find("/pulls/7")
+	if len(p) != 1 || p[0].Method != http.MethodPatch || p[0].Body["title"] != "New" || p[0].Body["base"] != "feature/x" || len(p[0].Body) != 2 {
+		t.Errorf("calls = %+v", p)
+	}
+	if err := c.PREdit(context.Background(), 7, forge.PREdit{}); err != nil || len(r.find("/pulls/7")) != 1 {
+		t.Errorf("empty edit sent a call: %v", err)
 	}
 }
 

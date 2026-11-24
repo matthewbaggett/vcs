@@ -11,10 +11,10 @@
 <div class="layout">
 <main>
 <h1 id="the-vcs-pr-edit-command">The <code>vcs pr edit</code> command</h1>
-<p>Change the title or the body of a pull request. The command refuses the AI credit line, and the prose lint runs on the new text. A draft stays a draft.</p>
+<p>Change the title, the body or the base branch of a pull request. The command refuses the AI credit line, and the prose lint runs on the new text. A draft stays a draft.</p>
 <p>The command tree generates this page. Don't edit it by hand.</p>
 <h2 id="usage">Usage</h2>
-<pre><code class="language-text">vcs pr edit &lt;n&gt; [--title &lt;text&gt;] [--body &lt;text&gt; | --body-file &lt;path&gt;]
+<pre><code class="language-text">vcs pr edit &lt;n&gt; [--title &lt;text&gt;] [--body &lt;text&gt; | --body-file &lt;path&gt;] [--base &lt;branch&gt;]
 </code></pre>
 <h2 id="output">Output</h2>
 <p>One line: <code>edited</code> and the number.</p>
@@ -43,6 +43,10 @@ edited 13
 <tr>
 <td><code>--body-file</code></td>
 <td>A file that holds the new body. Use - for standard input.</td>
+</tr>
+<tr>
+<td><code>--base</code></td>
+<td>The new base branch.</td>
 </tr>
 </tbody>
 </table>
@@ -82,7 +86,7 @@ edited 13
 </tr>
 <tr>
 <td>usage</td>
-<td>give the pull request number and at least one of --title, --body or --body-file</td>
+<td>give the pull request number and at least one of --title, --body, --body-file or --base</td>
 </tr>
 </tbody>
 </table>
