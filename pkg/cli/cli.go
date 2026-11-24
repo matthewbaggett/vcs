@@ -369,6 +369,10 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		if code := timeCheck(env, v, o); code >= 0 {
 			return code
 		}
+	case "runners list":
+		if len(o.pos) != 0 {
+			return usage(env, v)
+		}
 	case "label list":
 		if len(o.pos) != 0 {
 			return usage(env, v)
@@ -1077,6 +1081,19 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			if o.flags["check"] == "true" && len(ws) > 0 {
 				return ExitFound
 			}
+		}
+	case "runners list":
+		rl, ok := c.(forge.RunnerLister)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no runner list yet")
+			return ExitUnavailable
+		}
+		rs, err := rl.RunnerList(ctx)
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, r := range rs {
+			row(env, strconv.FormatInt(r.ID, 10), r.Name, r.Status, strings.Join(r.Labels, ","), r.UUID, r.Version)
 		}
 	case "label list", "label create", "label rename":
 		lm, ok := c.(forge.LabelManager)
