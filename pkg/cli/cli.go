@@ -851,7 +851,11 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		if err != nil {
 			return fail(env, err)
 		}
-		row(env, strconv.Itoa(i.Number), i.Title, i.State, strings.Join(i.Labels, ","), i.Milestone)
+		id := ""
+		if i.ID != 0 {
+			id = strconv.FormatInt(i.ID, 10)
+		}
+		row(env, strconv.Itoa(i.Number), i.Title, i.State, strings.Join(i.Labels, ","), i.Milestone, id, i.URL)
 		fmt.Fprintf(env.Stdout, "\n%s\n", strings.TrimRight(i.Body, "\n"))
 		for _, cm := range i.Comments {
 			fmt.Fprintf(env.Stdout, "\ncomment\t%s\t%s\n%s\n", field(cm.Author), field(cm.Created), strings.TrimRight(cm.Body, "\n"))

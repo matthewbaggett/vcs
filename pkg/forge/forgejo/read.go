@@ -16,6 +16,8 @@ type labelJSON struct {
 }
 
 type itemJSON struct {
+	ID        int64       `json:"id"`
+	HTMLURL   string      `json:"html_url"`
 	Number    int         `json:"number"`
 	Title     string      `json:"title"`
 	State     string      `json:"state"`
@@ -148,6 +150,7 @@ func (c *Client) IssueView(ctx context.Context, n int) (forge.IssueInfo, error) 
 	out := forge.IssueInfo{
 		Number: it.Number, Title: it.Title, State: it.State,
 		Labels: it.labels(), Milestone: it.milestone(), Body: it.Body,
+		ID: it.ID, URL: it.HTMLURL,
 	}
 	for page := 1; page <= 100; page++ {
 		body, err := c.get(ctx, fmt.Sprintf("repos/%s/issues/%d/comments?page=%d&limit=50", c.cfg.Repo, n, page))

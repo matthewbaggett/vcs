@@ -12,7 +12,7 @@ vcs issue view <n>
 
 ## Output
 
-A first row, tab-separated: number, title, state, labels, milestone. Then a blank line and the body. Then each comment: a blank line, a row of `comment`, the writer, and the date, and the text.
+A first row, tab-separated: number, title, state, labels, milestone, global id, web address. The id and the address stay empty when the driver has none. Then a blank line and the body. Then each comment: a blank line, a row of `comment`, the writer, and the date, and the text.
 
 ## Example
 
