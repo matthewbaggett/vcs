@@ -63,14 +63,23 @@ func TestIssueListAndView(t *testing.T) {
 	c := reader{items: []forge.IssueInfo{{
 		Number: 8, Title: "Thin scripts", State: "open", Labels: []string{"plan"}, Milestone: "v1",
 		Body: "The body.\n", Comments: []forge.Comment{{Author: "ann", Created: "2026-01-02", Body: "Hi\n"}},
+		ID: 3990, URL: "https://git.grey.ooo/o/r/issues/8",
 	}}}
 	if _, out, _ := run(t, c, nil, true, "issue", "list"); out != "8\tThin scripts\topen\tplan\tv1\n" {
 		t.Errorf("list: %q", out)
 	}
 	_, out, _ := run(t, c, nil, true, "issue", "view", "8")
-	want := "8\tThin scripts\topen\tplan\tv1\n\nThe body.\n\ncomment\tann\t2026-01-02\nHi\n"
+	want := "8\tThin scripts\topen\tplan\tv1\t3990\thttps://git.grey.ooo/o/r/issues/8\n\nThe body.\n\ncomment\tann\t2026-01-02\nHi\n"
 	if out != want {
 		t.Errorf("view: %q", out)
+	}
+	// A carriage return of a Windows line ending never reaches the output. A bare issue has empty columns.
+	c.items[0].Body = "Line one.\r\n\r\n- a\tb\r\n"
+	c.items[0].Comments = nil
+	c.items[0].ID, c.items[0].URL = 0, ""
+	_, out, _ = run(t, c, nil, true, "issue", "view", "8")
+	if want := "8\tThin scripts\topen\tplan\tv1\t\t\n\nLine one.\n\n- a\tb\n"; out != want {
+		t.Errorf("crlf: %q, want %q", out, want)
 	}
 	if code, _, _ := run(t, reader{}, nil, true, "issue", "view", "8"); code != ExitFail {
 		t.Errorf("missing issue: exit %d", code)

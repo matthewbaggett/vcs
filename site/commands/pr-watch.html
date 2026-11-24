@@ -11,18 +11,20 @@
 <div class="layout">
 <main>
 <h1 id="the-vcs-pr-watch-command">The <code>vcs pr watch</code> command</h1>
-<p>Poll the checks and the merge state of one pull request until both are good.</p>
+<p>Poll the checks and the merge state of one pull request until both settle.</p>
 <p>The command tree generates this page. Don't edit it by hand.</p>
 <h2 id="usage">Usage</h2>
-<pre><code class="language-text">vcs pr watch &lt;n&gt; [--interval &lt;seconds&gt;] [--timeout &lt;seconds&gt;]
+<pre><code class="language-text">vcs pr watch &lt;n&gt; [--interval &lt;seconds&gt;] [--timeout &lt;seconds&gt;] [--remote &lt;name&gt;]
+       vcs pr watch &lt;n&gt; --status
 </code></pre>
 <h2 id="output">Output</h2>
-<p>One row each time the state changes, in the format of vcs pr status.</p>
+<p>One line each time the state changes: time, number, head, ci, and merge. Then a RESULT line. A failed check or a conflict adds a list before the RESULT line. With --status: watching #<n> pid=<pid>, or not watching #<n>.</p>
 <h2 id="example">Example</h2>
 <p>The output below is an example with made-up data, not a real run.</p>
 <pre><code class="language-text">$ vcs pr watch 12 --interval 30
-open	true	true	0	pending	29a8b0f4c2d1	https://forge.example/acme/app/pulls/12
-open	false	true	0	success	29a8b0f4c2d1	https://forge.example/acme/app/pulls/12
+2026-10-17T10:00:00Z #12 head=29a8b0f ci=pending (1/2 done, 0 failed) merge=clean
+2026-10-17T10:01:00Z #12 head=29a8b0f ci=green (2/2 done, 0 failed) merge=clean
+RESULT: every check passed and the pull request merges cleanly
 </code></pre>
 <h2 id="flags">Flags</h2>
 <table>
@@ -41,12 +43,24 @@ open	false	true	0	success	29a8b0f4c2d1	https://forge.example/acme/app/pulls/12
 <td><code>--timeout</code></td>
 <td>Seconds to wait before the command gives up. The default is 3600.</td>
 </tr>
+<tr>
+<td><code>--remote</code></td>
+<td>The git remote that holds the pull request refs. The default is origin.</td>
+</tr>
+<tr>
+<td><code>--status</code></td>
+<td>Tell whether a watcher of this pull request is alive. Exit 0 if one is, 1 if none is.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="exit-codes">Exit codes</h2>
 <ul>
-<li>0 the pull request merged, or its checks are green and its merge state is clean</li>
-<li>1 a check failed, the pull request has a conflict or closed, the call failed, or the wait timed out</li>
+<li>0 every check passed, every required check has a status, and the merge is clean</li>
+<li>1 a check failed, or a read failed</li>
+<li>2 the pull request conflicts with its base branch</li>
+<li>3 the pull request closed or merged</li>
+<li>4 the timeout came first</li>
+<li>5 another watcher of this pull request is alive</li>
 <li>64 usage error</li>
 <li>69 no usable driver</li>
 </ul>
@@ -62,7 +76,7 @@ open	false	true	0	success	29a8b0f4c2d1	https://forge.example/acme/app/pulls/12
 <tbody>
 <tr>
 <td>fail</td>
-<td>read the last row. If ci is failure, run vcs ci runs --sha <head sha> --limit 3 and vcs ci log. If conflicted files show, merge main in. Then run vcs pr watch <n> again</td>
+<td>read the last lines. If a check failed, run vcs ci runs --sha <head sha> --limit 3 and vcs ci log. If conflicted files show, merge main in. Then run vcs pr watch <n> again</td>
 </tr>
 <tr>
 <td>ok</td>

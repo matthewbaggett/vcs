@@ -188,3 +188,72 @@ func TestCommitTime(t *testing.T) {
 		t.Fatal("a missing commit must fail")
 	}
 }
+
+func TestPRWatch(t *testing.T) {
+	page := func(rows string) string { return rows }
+	var protection = `{"status_check_contexts":["CI / * (pull_request)"]}`
+	var rule int
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/repos/o/r/pulls/7":
+			w.Write([]byte(`{"state":"open","merged":false,"head":{"sha":"abc1234def"},"base":{"ref":"main"}}`))
+		case "/api/v1/repos/o/r/pulls/8":
+			w.Write([]byte(`{"state":"closed","merged":true,"head":{"sha":"abc1234def"},"base":{"ref":"main"}}`))
+		case "/api/v1/repos/o/r/commits/abc1234def/statuses":
+			if r.URL.Query().Get("page") == "2" {
+				w.Write([]byte(page(`[{"id":9,"context":"CI / z (pull_request)","status":"failure","target_url":"/run/9"}]`)))
+				return
+			}
+			// 50 rows, so that the driver asks for page 2. The newest row of CI / a wins.
+			var rows []string
+			rows = append(rows, `{"id":1,"context":"CI / a (pull_request)","status":"failure","target_url":"/run/1"}`)
+			rows = append(rows, `{"id":2,"context":"CI / a (pull_request)","status":"success","target_url":"/run/2"}`)
+			for i := 3; i <= 50; i++ {
+				rows = append(rows, `{"id":`+strings.Repeat("1", 1)+`00`+string(rune('0'+i%10))+`,"context":"CI / p`+string(rune('a'+i%26))+string(rune('a'+i/26))+` (pull_request)","status":"success","target_url":""}`)
+			}
+			w.Write([]byte("[" + strings.Join(rows, ",") + "]"))
+		case "/api/v1/repos/o/r/branch_protections/main":
+			rule++
+			if rule > 1 {
+				http.Error(w, "no", http.StatusForbidden)
+				return
+			}
+			w.Write([]byte(protection))
+		default:
+			http.NotFound(w, r)
+		}
+	})
+	w, err := c.PRWatch(context.Background(), 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.State != "open" || w.HeadSHA != "abc1234def" || w.Base != "main" {
+		t.Errorf("state = %+v", w)
+	}
+	if len(w.Required) != 1 || w.Required[0] != "CI / * (pull_request)" {
+		t.Errorf("required = %v", w.Required)
+	}
+	got := map[string]forge.Check{}
+	for _, ck := range w.Checks {
+		got[ck.Context] = ck
+	}
+	if a := got["CI / a (pull_request)"]; a.Status != "success" || a.URL != "/run/2" {
+		t.Errorf("newest row of CI / a: %+v", a)
+	}
+	if z := got["CI / z (pull_request)"]; z.Status != "failure" || z.URL != "/run/9" {
+		t.Errorf("a status on page 2 is missing: %+v", z)
+	}
+	// A rule that the token can't read is no rule.
+	w, err = c.PRWatch(context.Background(), 7)
+	if err != nil || len(w.Required) != 0 {
+		t.Errorf("unreadable rule: %v %v", w.Required, err)
+	}
+	// A merged pull request reads no statuses.
+	w, err = c.PRWatch(context.Background(), 8)
+	if err != nil || w.State != "merged" || len(w.Checks) != 0 {
+		t.Errorf("merged: %+v %v", w, err)
+	}
+	if _, err := c.PRWatch(context.Background(), 99); !errors.Is(err, forge.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
