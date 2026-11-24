@@ -29,7 +29,7 @@ $ vcs runners list
 - 1 the call failed
 - 64 usage error
 - 69 no usable driver
-- 77 the server refused the token. It is missing, too weak, or not an admin
+- 77 the server refused the token: it's missing, too weak, or not an admin
 
 ## Agent hints
 

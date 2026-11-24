@@ -740,7 +740,7 @@ var Tree = []Verb{
 		Usage:   "vcs runners list",
 		Summary: "List the CI runners of the whole instance. The call needs a token of an admin user. Match the runner uuid of a failed job log to a name here.",
 		Output:  "One row for each runner, sorted by id: id, name, status, labels, uuid, version. The labels are a comma list.",
-		Exits:   []string{"0 listed, or no runner exists", "1 the call failed", "64 usage error", "69 no usable driver", "77 the server refused the token. It is missing, too weak, or not an admin"},
+		Exits:   []string{"0 listed, or no runner exists", "1 the call failed", "64 usage error", "69 no usable driver", "77 the server refused the token: it's missing, too weak, or not an admin"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "check the host and the token",
