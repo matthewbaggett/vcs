@@ -26,7 +26,7 @@ ok
 ## Exit codes
 
 - 0 deleted
-- 1 the call failed, or the secret does not exist
+- 1 the call failed, or the secret is missing
 - 64 usage error
 - 69 no usable driver
 - 77 the server refused the token

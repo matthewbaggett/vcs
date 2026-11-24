@@ -736,6 +736,20 @@ var Tree = []Verb{
 		},
 	},
 	{
+		Noun: "protection", Name: "list",
+		Usage:   "vcs protection list [<branch>]",
+		Summary: "List the branch protection rules of the repository. With a branch, keep the rules that cover it. A merge that the server refuses with a green run points at this list.",
+		Output:  "One row for each rule: rule, required contexts (a comma list), required approvals, push (none, whitelist, or all), admins (yes or no). No row means the branch has no protection.",
+		Exits:   []string{"0 listed, or no rule covers the branch", "1 the call failed", "64 usage error", "69 no usable driver", "77 the server refused the token"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "check the host, the repository, and the token",
+			OutUsage:       "give at most one branch name",
+			OutUnavailable: "stop and ask the user. This host has no protection list yet",
+			OutNoSession:   "stop and ask the user for a token. The list needs one, even on a public repository",
+		},
+	},
+	{
 		Noun: "runners", Name: "list",
 		Usage:   "vcs runners list",
 		Summary: "List the CI runners of the whole instance. The call needs a token of an admin user. Match the runner uuid of a failed job log to a name here.",
@@ -772,7 +786,7 @@ var Tree = []Verb{
 			{"--value-file <file|->", "Read the value from a file, or from standard input for -."},
 			{"--from-env <VAR>", "Read the value from this environment variable."},
 		},
-		Exits: []string{"0 set", "1 the call failed", "64 usage error, a bad name, or an empty value. Nothing is sent", "69 no usable driver", "77 the server refused the token"},
+		Exits: []string{"0 set", "1 the call failed", "64 usage error, a bad name, or an empty value. The verb sends nothing", "69 no usable driver", "77 the server refused the token"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "check the host, the repository, and the token",
@@ -786,7 +800,7 @@ var Tree = []Verb{
 		Usage:   "vcs secret delete <name>",
 		Summary: "Delete one Actions secret.",
 		Output:  "ok.",
-		Exits:   []string{"0 deleted", "1 the call failed, or the secret does not exist", "64 usage error", "69 no usable driver", "77 the server refused the token"},
+		Exits:   []string{"0 deleted", "1 the call failed, or the secret is missing", "64 usage error", "69 no usable driver", "77 the server refused the token"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "check the name with vcs secret list",

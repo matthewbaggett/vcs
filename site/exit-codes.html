@@ -240,6 +240,10 @@
 <td>0 printed; 1 the call failed; 64 usage error; 69 no usable driver</td>
 </tr>
 <tr>
+<td><a href="commands/protection-list.html"><code>vcs protection list</code></a></td>
+<td>0 listed, or no rule covers the branch; 1 the call failed; 64 usage error; 69 no usable driver; 77 the server refused the token</td>
+</tr>
+<tr>
 <td><a href="commands/runners-list.html"><code>vcs runners list</code></a></td>
 <td>0 listed, or no runner exists; 1 the call failed; 64 usage error; 69 no usable driver; 77 the server refused the token: it's missing, too weak, or not an admin</td>
 </tr>
@@ -249,11 +253,11 @@
 </tr>
 <tr>
 <td><a href="commands/secret-set.html"><code>vcs secret set</code></a></td>
-<td>0 set; 1 the call failed; 64 usage error, a bad name, or an empty value. Nothing is sent; 69 no usable driver; 77 the server refused the token</td>
+<td>0 set; 1 the call failed; 64 usage error, a bad name, or an empty value. The verb sends nothing; 69 no usable driver; 77 the server refused the token</td>
 </tr>
 <tr>
 <td><a href="commands/secret-delete.html"><code>vcs secret delete</code></a></td>
-<td>0 deleted; 1 the call failed, or the secret does not exist; 64 usage error; 69 no usable driver; 77 the server refused the token</td>
+<td>0 deleted; 1 the call failed, or the secret is missing; 64 usage error; 69 no usable driver; 77 the server refused the token</td>
 </tr>
 <tr>
 <td><a href="commands/stopwatch-list.html"><code>vcs stopwatch list</code></a></td>
@@ -410,6 +414,10 @@
 <li><a href="commands/pr-statuses.html">pr statuses</a></li>
 <li><a href="commands/pr-tick.html">pr tick</a></li>
 <li><a href="commands/pr-watch.html">pr watch</a></li>
+</ul>
+<h2>vcs protection</h2>
+<ul>
+<li><a href="commands/protection-list.html">protection list</a></li>
 </ul>
 <h2>vcs runners</h2>
 <ul>

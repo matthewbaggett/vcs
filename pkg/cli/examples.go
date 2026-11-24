@@ -51,6 +51,7 @@ var Examples = map[string]string{
 	"secret list":      "$ vcs secret list\nDEPLOY_KEY\t2026-11-01T10:00:00Z",
 	"secret set":       "$ printf '%s' \"$TOKEN\" | vcs secret set DEPLOY_KEY --value-file -\nok",
 	"secret delete":    "$ vcs secret delete DEPLOY_KEY\nok",
+	"protection list":  "$ vcs protection list main\nmain\tCI / test (pull_request)\t1\tnone\tyes",
 	"runners list":     "$ vcs runners list\n3\tbuild-1\tidle\tubuntu-latest,docker\t5f0c9a2e-1111-2222-3333-444455556666\tv6.0.1",
 	"stopwatch list":   "$ vcs stopwatch list\nacme/app\t14\t1260\t2026-11-23T09:12:00Z",
 	"git commit":       "$ vcs git commit -m \"Add the retry\"\nvcs: check not-default-branch: ok\nvcs: check attribution: ok\n[fix/retry 29a8b0f] Add the retry\n 2 files changed, 18 insertions(+)",

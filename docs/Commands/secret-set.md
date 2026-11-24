@@ -34,7 +34,7 @@ ok
 
 - 0 set
 - 1 the call failed
-- 64 usage error, a bad name, or an empty value. Nothing is sent
+- 64 usage error, a bad name, or an empty value. The verb sends nothing
 - 69 no usable driver
 - 77 the server refused the token
 
