@@ -361,7 +361,7 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 			}
 		}
 	case "pr edit":
-		if len(o.pos) != 1 || (o.flags["body"] != "" && o.flags["body-file"] != "") || (o.flags["title"] == "" && o.flags["body"] == "" && o.flags["body-file"] == "") {
+		if len(o.pos) != 1 || (o.flags["body"] != "" && o.flags["body-file"] != "") || (o.flags["title"] == "" && o.flags["body"] == "" && o.flags["body-file"] == "" && o.flags["base"] == "") {
 			return usage(env, v)
 		}
 		var err error
@@ -762,7 +762,7 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			for _, a := range assets {
 				fmt.Fprintf(&b, "\n![%s](%s)", a.Name, a.URL)
 			}
-			if err := c.Comment(ctx, n, b.String()); err != nil {
+			if _, _, err := c.Comment(ctx, n, b.String()); err != nil {
 				return fail(env, err)
 			}
 			fmt.Fprintln(env.Stdout, "comment posted")
@@ -884,6 +884,9 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		}
 		if b := o.flags["body"]; b != "" {
 			in.Body = &b
+		}
+		if b := o.flags["base"]; b != "" {
+			in.Base = &b
 		}
 		if err := ed.PREdit(ctx, n, in); err != nil {
 			return fail(env, err)
@@ -1057,10 +1060,11 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		}
 		row(env, strconv.Itoa(num), addr)
 	case "comment add":
-		if err := c.Comment(ctx, n, o.flags["body"]); err != nil {
+		id, addr, err := c.Comment(ctx, n, o.flags["body"])
+		if err != nil {
 			return fail(env, err)
 		}
-		fmt.Fprintln(env.Stdout, "comment posted")
+		row(env, strconv.FormatInt(id, 10), addr)
 	case "comment list", "comment edit", "comment delete":
 		cm, ok := c.(forge.CommentManager)
 		if !ok {

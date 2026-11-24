@@ -26,7 +26,7 @@ var Examples = map[string]string{
 	"ci artifact get":  "$ vcs ci artifact get 331 coverage -o out/coverage.txt\nout/coverage.txt\t20480",
 	"ci log":           "$ vcs ci log 902 --tail 3\ngo vet ./...\npkg/cli/cli.go:41:2: unreachable code\nError: Process completed with exit code 1.",
 	"ci rerun":         "$ vcs ci rerun 331 --failed\nrerun\t331",
-	"comment add":      "$ vcs comment add 14 --body \"Fixed in the pull request.\"\ncomment posted",
+	"comment add":      "$ vcs comment add 14 --body \"Fixed in the pull request.\"\n14012 https://git.example.com/acme/app/issues/14#issuecomment-14012",
 	"comment list":     "$ vcs comment list 14\n501\tmaria\t2026-11-20T10:00:00Z\tI can reproduce this.\\nSteps below.\t2026-11-20T10:05:00Z",
 	"comment edit":     "$ vcs comment edit 501 --body \"Fixed in the pull request.\"\nok",
 	"comment delete":   "$ vcs comment delete 501\nok",
