@@ -109,7 +109,7 @@
 </tr>
 <tr>
 <td><a href="commands/pr-watch.html"><code>vcs pr watch</code></a></td>
-<td>0 the pull request merged, or its checks are green and its merge state is clean; 1 a check failed, the pull request has a conflict or closed, the call failed, or the wait timed out; 64 usage error; 69 no usable driver</td>
+<td>0 every check passed, every required check has a status, and the merge is clean; 1 a check failed, or a read failed; 2 the pull request conflicts with its base branch; 3 the pull request is closed or merged; 4 the timeout came first; 5 another watcher of this pull request is alive; 64 usage error; 69 no usable driver</td>
 </tr>
 <tr>
 <td><a href="commands/pr-list.html"><code>vcs pr list</code></a></td>

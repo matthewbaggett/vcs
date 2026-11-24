@@ -84,6 +84,9 @@ type prJSON struct {
 	Head            struct {
 		SHA string `json:"sha"`
 	} `json:"head"`
+	Base struct {
+		Ref string `json:"ref"`
+	} `json:"base"`
 }
 
 // PRStatus reads one pull request and the CI state of its head commit.
@@ -111,25 +114,31 @@ func (c *Client) PRStatus(ctx context.Context, n int) (forge.PRStatus, error) {
 }
 
 type statusJSON struct {
-	ID      int64  `json:"id"`
-	Context string `json:"context"`
-	Status  string `json:"status"`
+	ID        int64  `json:"id"`
+	Context   string `json:"context"`
+	Status    string `json:"status"`
+	TargetURL string `json:"target_url"`
 }
 
-// ciSummary reads every commit status, keeps the newest row of each context, and takes the worst.
-func (c *Client) ciSummary(ctx context.Context, sha string) (string, error) {
+// newestStatuses reads every commit status and keeps the newest row of each context.
+func (c *Client) newestStatuses(ctx context.Context, sha string) ([]statusJSON, error) {
 	newest := map[string]statusJSON{}
+	var order []string
 	for page := 1; page <= 20; page++ {
 		body, err := c.get(ctx, fmt.Sprintf("repos/%s/commits/%s/statuses?page=%d&limit=50", c.cfg.Repo, sha, page))
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		var rows []statusJSON
 		if err := json.Unmarshal(body, &rows); err != nil {
-			return "", fmt.Errorf("the server did not return statuses")
+			return nil, fmt.Errorf("the server did not return statuses")
 		}
 		for _, r := range rows {
-			if old, ok := newest[r.Context]; !ok || r.ID > old.ID {
+			old, ok := newest[r.Context]
+			if !ok {
+				order = append(order, r.Context)
+			}
+			if !ok || r.ID > old.ID {
 				newest[r.Context] = r
 			}
 		}
@@ -137,13 +146,61 @@ func (c *Client) ciSummary(ctx context.Context, sha string) (string, error) {
 			break
 		}
 	}
-	return Summarize(func() []string {
-		s := make([]string, 0, len(newest))
-		for _, r := range newest {
-			s = append(s, r.Status)
+	out := make([]statusJSON, 0, len(order))
+	for _, k := range order {
+		out = append(out, newest[k])
+	}
+	return out, nil
+}
+
+// ciSummary reads every commit status, keeps the newest row of each context, and takes the worst.
+func (c *Client) ciSummary(ctx context.Context, sha string) (string, error) {
+	rows, err := c.newestStatuses(ctx, sha)
+	if err != nil {
+		return "", err
+	}
+	s := make([]string, 0, len(rows))
+	for _, r := range rows {
+		s = append(s, r.Status)
+	}
+	return Summarize(s), nil
+}
+
+// PRWatch reads the pull request, the newest status of each context, and the required contexts of
+// the base branch. A token without admin rights can't read the rule, and an unprotected branch has
+// none. Either way no check counts as required.
+func (c *Client) PRWatch(ctx context.Context, n int) (forge.WatchState, error) {
+	body, err := c.get(ctx, fmt.Sprintf("repos/%s/pulls/%d", c.cfg.Repo, n))
+	if err != nil {
+		return forge.WatchState{}, err
+	}
+	var pr prJSON
+	if err := json.Unmarshal(body, &pr); err != nil || pr.Head.SHA == "" {
+		return forge.WatchState{}, fmt.Errorf("the server did not return pull request %d", n)
+	}
+	w := forge.WatchState{State: pr.State, HeadSHA: pr.Head.SHA, Base: pr.Base.Ref}
+	if pr.Merged {
+		w.State = "merged"
+	}
+	if w.State != "open" {
+		return w, nil
+	}
+	rows, err := c.newestStatuses(ctx, pr.Head.SHA)
+	if err != nil {
+		return forge.WatchState{}, err
+	}
+	for _, r := range rows {
+		w.Checks = append(w.Checks, forge.Check{Context: r.Context, Status: r.Status, URL: r.TargetURL})
+	}
+	if raw, err := c.get(ctx, fmt.Sprintf("repos/%s/branch_protections/%s", c.cfg.Repo, pr.Base.Ref)); err == nil {
+		var rule struct {
+			Contexts []string `json:"status_check_contexts"`
 		}
-		return s
-	}()), nil
+		if json.Unmarshal(raw, &rule) == nil {
+			w.Required = rule.Contexts
+		}
+	}
+	return w, nil
 }
 
 // Summarize gives the worst state of a set of statuses.

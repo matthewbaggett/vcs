@@ -44,6 +44,9 @@ type Env struct {
 	Checkers []lint.Checker
 	// Exec runs a program with the given streams and returns its exit code. The git verbs use it.
 	Exec func(ctx context.Context, name string, args []string, stdout, stderr io.Writer) int
+	// Pid and PidAlive feed the pid file of pr watch. A nil value reads the real process table.
+	Pid      func() int
+	PidAlive func(pid int) bool
 }
 
 // IsAgent tells whether an agent called vcs.
@@ -148,7 +151,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true, "remote": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true, "pushed": true}
@@ -171,6 +174,11 @@ func parse(args []string) (opts, error) {
 		}
 		if !valued[name] {
 			return o, fmt.Errorf("unknown flag --%s", name)
+		}
+		// pr watch takes --status with no value. ci runs takes --status <state>.
+		if !hasVal && name == "status" && (i+1 >= len(args) || strings.HasPrefix(args[i+1], "--")) {
+			o.flags[name] = "true"
+			continue
 		}
 		if !hasVal {
 			if i+1 >= len(args) {
