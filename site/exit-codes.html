@@ -144,6 +144,18 @@
 <td>0 posted; 1 the call failed; 64 usage error, or both or neither of the body flags; 65 the text fails the prose lint, and the command sends nothing; 69 no usable driver</td>
 </tr>
 <tr>
+<td><a href="commands/comment-list.html"><code>vcs comment list</code></a></td>
+<td>0 listed; 1 the call failed; 64 usage error; 69 no usable driver, or the driver has no comment support</td>
+</tr>
+<tr>
+<td><a href="commands/comment-edit.html"><code>vcs comment edit</code></a></td>
+<td>0 edited; 1 the call failed or the comment isn't found; 64 usage error, or both or neither of the body flags; 65 the text fails the prose lint, and the command sends nothing; 69 no usable driver, or the driver has no comment support</td>
+</tr>
+<tr>
+<td><a href="commands/comment-delete.html"><code>vcs comment delete</code></a></td>
+<td>0 deleted; 1 the call failed or the comment isn't found; 64 usage error; 69 no usable driver, or the driver has no comment support</td>
+</tr>
+<tr>
 <td><a href="commands/milestone-list.html"><code>vcs milestone list</code></a></td>
 <td>0 listed; 1 the call failed; 64 usage error; 69 no usable driver, or the driver has no milestone support</td>
 </tr>
@@ -297,6 +309,9 @@
 <h2>vcs comment</h2>
 <ul>
 <li><a href="commands/comment-add.html">comment add</a></li>
+<li><a href="commands/comment-delete.html">comment delete</a></li>
+<li><a href="commands/comment-edit.html">comment edit</a></li>
+<li><a href="commands/comment-list.html">comment list</a></li>
 </ul>
 <h2>vcs docs</h2>
 <ul>
