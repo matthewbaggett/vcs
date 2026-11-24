@@ -244,6 +244,18 @@
 <td>0 listed, or no runner exists; 1 the call failed; 64 usage error; 69 no usable driver; 77 the server refused the token: it's missing, too weak, or not an admin</td>
 </tr>
 <tr>
+<td><a href="commands/secret-list.html"><code>vcs secret list</code></a></td>
+<td>0 listed, or none exists; 1 the call failed; 64 usage error; 69 no usable driver; 77 the server refused the token</td>
+</tr>
+<tr>
+<td><a href="commands/secret-set.html"><code>vcs secret set</code></a></td>
+<td>0 set; 1 the call failed; 64 usage error, a bad name, or an empty value. Nothing is sent; 69 no usable driver; 77 the server refused the token</td>
+</tr>
+<tr>
+<td><a href="commands/secret-delete.html"><code>vcs secret delete</code></a></td>
+<td>0 deleted; 1 the call failed, or the secret does not exist; 64 usage error; 69 no usable driver; 77 the server refused the token</td>
+</tr>
+<tr>
 <td><a href="commands/stopwatch-list.html"><code>vcs stopwatch list</code></a></td>
 <td>0 listed, or none runs; 1 the call failed; 2 with --check, a stopwatch runs; 64 usage error; 69 no usable driver</td>
 </tr>
@@ -402,6 +414,12 @@
 <h2>vcs runners</h2>
 <ul>
 <li><a href="commands/runners-list.html">runners list</a></li>
+</ul>
+<h2>vcs secret</h2>
+<ul>
+<li><a href="commands/secret-delete.html">secret delete</a></li>
+<li><a href="commands/secret-list.html">secret list</a></li>
+<li><a href="commands/secret-set.html">secret set</a></li>
 </ul>
 <h2>vcs session</h2>
 <ul>

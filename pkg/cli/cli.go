@@ -164,7 +164,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true, "remote": true, "kind": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true, "remote": true, "kind": true, "value-file": true, "from-env": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true, "pushed": true, "latest": true, "description": true}
@@ -368,6 +368,18 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 	case "time add", "time list", "time total", "stopwatch list":
 		if code := timeCheck(env, v, o); code >= 0 {
 			return code
+		}
+	case "secret list":
+		if len(o.pos) != 0 {
+			return usage(env, v)
+		}
+	case "secret set":
+		if code := secretSetCheck(env, v, &o); code >= 0 {
+			return code
+		}
+	case "secret delete":
+		if len(o.pos) != 1 || !secretName.MatchString(o.pos[0]) {
+			return usage(env, v)
 		}
 	case "runners list":
 		if len(o.pos) != 0 {
@@ -1081,6 +1093,32 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			if o.flags["check"] == "true" && len(ws) > 0 {
 				return ExitFound
 			}
+		}
+	case "secret list", "secret set", "secret delete":
+		sm, ok := c.(forge.SecretManager)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no secret verbs yet")
+			return ExitUnavailable
+		}
+		switch v.Name {
+		case "list":
+			ss, err := sm.SecretList(ctx)
+			if err != nil {
+				return fail(env, err)
+			}
+			for _, s := range ss {
+				row(env, s.Name, s.Created)
+			}
+		case "set":
+			if err := sm.SecretSet(ctx, o.pos[0], o.flags["value"]); err != nil {
+				return fail(env, err)
+			}
+			fmt.Fprintln(env.Stdout, "ok")
+		default:
+			if err := sm.SecretDelete(ctx, o.pos[0]); err != nil {
+				return fail(env, err)
+			}
+			fmt.Fprintln(env.Stdout, "ok")
 		}
 	case "runners list":
 		rl, ok := c.(forge.RunnerLister)
