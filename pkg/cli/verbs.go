@@ -69,7 +69,7 @@ var Tree = []Verb{
 		Noun: "pr", Name: "statuses",
 		Usage:   "vcs pr statuses <sha> [--latest] [--description]",
 		Summary: "Print the status rows of one commit, one line for each row.",
-		Output:  "Rows, tab-separated, no header: context, state, address. The server lists every row it ever got, newest first. A state is success, pending, failure, error, or warning. With --description, a fourth column holds the description of the check. An empty list is not an error.",
+		Output:  "Rows, tab-separated, no header: context, state, address. The server lists every row it ever got, newest first. A state is success, pending, failure, error, or warning. With --description, a fourth column holds the description of the check. An empty list isn't an error.",
 		Flags: []Flag{
 			{"--latest", "Keep the newest row of each context, sorted by context."},
 			{"--description", "Add the description as the last column."},

@@ -17,7 +17,7 @@
 <pre><code class="language-text">vcs pr statuses &lt;sha&gt; [--latest] [--description]
 </code></pre>
 <h2 id="output">Output</h2>
-<p>Rows, tab-separated, no header: context, state, address. The server lists every row it ever got, newest first. A state is success, pending, failure, error, or warning. With --description, a fourth column holds the description of the check. An empty list is not an error.</p>
+<p>Rows, tab-separated, no header: context, state, address. The server lists every row it ever got, newest first. A state is success, pending, failure, error, or warning. With --description, a fourth column holds the description of the check. An empty list isn't an error.</p>
 <h2 id="example">Example</h2>
 <p>The output below is an example with made-up data, not a real run.</p>
 <pre><code class="language-text">$ vcs pr statuses 5888000a1bc3 --latest

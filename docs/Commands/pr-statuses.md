@@ -12,7 +12,7 @@ vcs pr statuses <sha> [--latest] [--description]
 
 ## Output
 
-Rows, tab-separated, no header: context, state, address. The server lists every row it ever got, newest first. A state is success, pending, failure, error, or warning. With --description, a fourth column holds the description of the check. An empty list is not an error.
+Rows, tab-separated, no header: context, state, address. The server lists every row it ever got, newest first. A state is success, pending, failure, error, or warning. With --description, a fourth column holds the description of the check. An empty list isn't an error.
 
 ## Example
 
