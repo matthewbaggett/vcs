@@ -45,7 +45,7 @@ request. It reaches every project that imports that repository.
 | `vcs-label.sh`, `vcs-milestone.sh`, `vcs-time.sh` | `vcs label`, `milestone`, `time` | Done. The script runs the binary |
 | `vcs-stopwatch.sh` | `vcs stopwatch list` | Done. The script runs the binary |
 | `vcs-secret.sh`, `vcs-package.sh`, `vcs-protection.sh`, `vcs-runners.sh`, `vcs-workflow.sh`, `vcs-pr-bind.sh` | `vcs secret`, `package`, `protection list`, `runners list`, `workflow dispatch`, `pr bind` | Done since v0.0.9. Each script runs the binary and keeps its old path for an older binary |
-| `vcs-tick-merge.sh`, `vcs-heal-label.sh` | `vcs pr tick`, `vcs pr heal` | Tick: done. Heal: done. A live run on a scratch repo passed ensure, add, remove and sweep |
+| `vcs-tick-merge.sh`, `vcs-heal-label.sh` | `vcs pr tick`, `vcs pr heal` | Tick: done. Heal: done. A live run on a scratch repo passed the label, add, remove and sweep calls |
 | `vcs-branch.sh`, `vcs-commit.sh`, `vcs-push.sh`, `vcs-merge.sh`, `vcs-rebase.sh` | `vcs git ...` | Built. The wiring retry and the server rename need a live proof |
 
 ## Order of work
