@@ -120,6 +120,18 @@
 <td>0 every check passed, every required check has a status, and the merge is clean; 1 a check failed, or a read failed; 2 the pull request conflicts with its base branch; 3 the pull request closed or merged; 4 the timeout came first; 5 another watcher of this pull request is alive; 64 usage error; 69 no usable driver</td>
 </tr>
 <tr>
+<td><a href="commands/package-list.html"><code>vcs package list</code></a></td>
+<td>0 listed, or no package exists; 1 the call failed; 64 usage error; 69 no usable driver; 77 the server refused the token</td>
+</tr>
+<tr>
+<td><a href="commands/package-upload.html"><code>vcs package upload</code></a></td>
+<td>0 uploaded, or the dry run passed; 1 a call failed, the version exists, or the checksum differs; 64 usage error, or a name, a version, or a file that the scope rules refuse; 69 no usable driver; 77 the server refused the token</td>
+</tr>
+<tr>
+<td><a href="commands/package-delete.html"><code>vcs package delete</code></a></td>
+<td>0 deleted; 1 a call failed, the version is missing, or it's the newest; 64 usage error; 69 no usable driver; 77 the server refused the token</td>
+</tr>
+<tr>
 <td><a href="commands/pr-bind.html"><code>vcs pr bind</code></a></td>
 <td>0 printed the rows; 1 no open pull request has the branch, or a call failed; 64 usage error; 69 no usable driver, or the driver has no pr list</td>
 </tr>
@@ -406,6 +418,12 @@
 <li><a href="commands/milestone-create.html">milestone create</a></li>
 <li><a href="commands/milestone-list.html">milestone list</a></li>
 <li><a href="commands/milestone-view.html">milestone view</a></li>
+</ul>
+<h2>vcs package</h2>
+<ul>
+<li><a href="commands/package-delete.html">package delete</a></li>
+<li><a href="commands/package-list.html">package list</a></li>
+<li><a href="commands/package-upload.html">package upload</a></li>
 </ul>
 <h2>vcs pr</h2>
 <ul>
