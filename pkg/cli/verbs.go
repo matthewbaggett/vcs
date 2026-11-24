@@ -240,7 +240,7 @@ var Tree = []Verb{
 			{"--remote", "The git remote that holds the pull request refs. The default is origin."},
 			{"--status", "Tell whether a watcher of this pull request is alive. Exit 0 if one is, 1 if none is."},
 		},
-		Exits: []string{"0 every check passed, every required check has a status, and the merge is clean", "1 a check failed, or a read failed", "2 the pull request conflicts with its base branch", "3 the pull request is closed or merged", "4 the timeout came first", "5 another watcher of this pull request is alive", "64 usage error", "69 no usable driver"},
+		Exits: []string{"0 every check passed, every required check has a status, and the merge is clean", "1 a check failed, or a read failed", "2 the pull request conflicts with its base branch", "3 the pull request closed or merged", "4 the timeout came first", "5 another watcher of this pull request is alive", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "the pull request is good. Hand it off, or mark it ready with vcs pr ready <n>",
 			OutFail:        "read the last lines. If a check failed, run vcs ci runs --sha <head sha> --limit 3 and vcs ci log. If conflicted files show, merge main in. Then run vcs pr watch <n> again",

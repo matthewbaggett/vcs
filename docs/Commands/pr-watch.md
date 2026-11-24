@@ -40,7 +40,7 @@ RESULT: every check passed and the pull request merges cleanly
 - 0 every check passed, every required check has a status, and the merge is clean
 - 1 a check failed, or a read failed
 - 2 the pull request conflicts with its base branch
-- 3 the pull request is closed or merged
+- 3 the pull request closed or merged
 - 4 the timeout came first
 - 5 another watcher of this pull request is alive
 - 64 usage error
