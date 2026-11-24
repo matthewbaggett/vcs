@@ -369,6 +369,10 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		if code := timeCheck(env, v, o); code >= 0 {
 			return code
 		}
+	case "protection list":
+		if len(o.pos) > 1 || (len(o.pos) == 1 && !branchName.MatchString(o.pos[0])) {
+			return usage(env, v)
+		}
 	case "secret list":
 		if len(o.pos) != 0 {
 			return usage(env, v)
@@ -1093,6 +1097,26 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			if o.flags["check"] == "true" && len(ws) > 0 {
 				return ExitFound
 			}
+		}
+	case "protection list":
+		pl, ok := c.(forge.ProtectionLister)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no protection list yet")
+			return ExitUnavailable
+		}
+		ps, err := pl.ProtectionList(ctx)
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, p := range ps {
+			if len(o.pos) == 1 && !protectionCovers(p.Rule, o.pos[0]) {
+				continue
+			}
+			admins := "no"
+			if p.Admins {
+				admins = "yes"
+			}
+			row(env, p.Rule, strings.Join(p.Contexts, ","), strconv.Itoa(p.Approvals), p.Push, admins)
 		}
 	case "secret list", "secret set", "secret delete":
 		sm, ok := c.(forge.SecretManager)
