@@ -237,7 +237,7 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 	var limit, tail int
 	var good bool
 	switch v.Key() {
-	case "pr status", "pr watch", "pr ready":
+	case "pr status", "pr watch", "pr ready", "pr draft", "pr close", "pr rebase":
 		if len(o.pos) != 1 {
 			return usage(env, v)
 		}
@@ -770,6 +770,34 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			return fail(env, err)
 		}
 		row(env, "ready", strconv.Itoa(n))
+	case "pr draft", "pr close", "pr rebase":
+		sc, ok := c.(forge.PRStateChanger)
+		if !ok {
+			fmt.Fprintf(env.Stderr, "vcs: this host has no pr %s yet\n", v.Name)
+			return ExitUnavailable
+		}
+		switch v.Name {
+		case "draft":
+			if err := sc.PRDraft(ctx, n); err != nil {
+				return fail(env, err)
+			}
+			row(env, "draft", strconv.Itoa(n))
+		case "close":
+			if err := sc.PRClose(ctx, n); err != nil {
+				return fail(env, err)
+			}
+			row(env, "closed", strconv.Itoa(n))
+		case "rebase":
+			ticked, err := sc.PRRebase(ctx, n)
+			if err != nil {
+				return fail(env, err)
+			}
+			if ticked {
+				fmt.Fprintln(env.Stdout, "ok")
+			} else {
+				fmt.Fprintln(env.Stdout, "already")
+			}
+		}
 	case "pr list":
 		rd, ok := c.(forge.Reader)
 		if !ok {
