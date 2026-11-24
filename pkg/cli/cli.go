@@ -164,10 +164,10 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true, "remote": true, "kind": true, "value-file": true, "from-env": true, "ref": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true, "remote": true, "kind": true, "value-file": true, "from-env": true, "ref": true, "stale-days": true, "max-mib": true, "sha256": true}
 
 // boolean flags take no value.
-var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true, "pushed": true, "latest": true, "description": true}
+var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true, "pushed": true, "latest": true, "description": true, "allow-newest": true}
 
 func parse(args []string) (opts, error) {
 	o := opts{flags: map[string]string{}}
@@ -367,6 +367,10 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		}
 	case "time add", "time list", "time total", "stopwatch list":
 		if code := timeCheck(env, v, o); code >= 0 {
+			return code
+		}
+	case "package list", "package upload", "package delete":
+		if code := packageCheck(env, v, &o); code >= 0 {
 			return code
 		}
 	case "pr bind":
@@ -935,6 +939,8 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		return ciFailed(ctx, c, env, o.pos[0])
 	case "pr bind":
 		return prBind(ctx, c, env, o)
+	case "package list", "package upload", "package delete":
+		return packageRun(ctx, c, env, v, o)
 	case "pr statuses":
 		return prStatuses(ctx, c, env, o)
 	case "issue newer", "issue top":
