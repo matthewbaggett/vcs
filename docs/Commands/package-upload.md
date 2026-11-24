@@ -12,7 +12,7 @@ vcs package upload <name> <version> <file> [--sha256 <hex>] [--max-mib <n>] [--s
 
 ## Output
 
-A first row: ok, the download address, the SHA-256 of the file. With --dry-run the first word is dry-run and nothing is sent. Then the list rows of the same name, so the old versions show at once.
+A first row: ok, the download address, the checksum of the file. With --dry-run the first word is dry-run, and the verb sends nothing. Then the list rows of the same name, so the old versions show at once.
 
 ## Example
 

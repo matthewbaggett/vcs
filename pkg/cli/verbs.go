@@ -297,7 +297,7 @@ var Tree = []Verb{
 		Noun: "package", Name: "upload",
 		Usage:   "vcs package upload <name> <version> <file> [--sha256 <hex>] [--max-mib <n>] [--stale-days <n>] [--dry-run]",
 		Summary: "Upload one file as a version of a generic package, and link the package to the repository. An upload never replaces: an existing version stops the verb. The file must be a plain file, not a link, not empty, and within the size limit.",
-		Output:  "A first row: ok, the download address, the SHA-256 of the file. With --dry-run the first word is dry-run and nothing is sent. Then the list rows of the same name, so the old versions show at once.",
+		Output:  "A first row: ok, the download address, the checksum of the file. With --dry-run the first word is dry-run, and the verb sends nothing. Then the list rows of the same name, so the old versions show at once.",
 		Flags: []Flag{
 			{"--sha256 <hex>", "Stop with exit 1 unless the file has this checksum."},
 			{"--max-mib <n>", "The size limit in MiB. The default is 512."},
@@ -316,10 +316,10 @@ var Tree = []Verb{
 	{
 		Noun: "package", Name: "delete",
 		Usage:   "vcs package delete <name> <version> [--allow-newest]",
-		Summary: "Delete one version of a generic package. The verb refuses the newest version unless you pass --allow-newest.",
+		Summary: "Delete one version of a generic package. The verb refuses the newest version unless you pass the flag for it.",
 		Output:  "ok.",
 		Flags:   []Flag{{"--allow-newest", "Delete the newest version on purpose."}},
-		Exits:   []string{"0 deleted", "1 a call failed, the version is missing, or it is the newest", "64 usage error", "69 no usable driver", "77 the server refused the token"},
+		Exits:   []string{"0 deleted", "1 a call failed, the version is missing, or it's the newest", "64 usage error", "69 no usable driver", "77 the server refused the token"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "list the versions with vcs package list <name>",

@@ -11,7 +11,7 @@
 <div class="layout">
 <main>
 <h1 id="the-vcs-package-delete-command">The <code>vcs package delete</code> command</h1>
-<p>Delete one version of a generic package. The verb refuses the newest version unless you pass --allow-newest.</p>
+<p>Delete one version of a generic package. The verb refuses the newest version unless you pass the flag for it.</p>
 <p>The command tree generates this page. Don't edit it by hand.</p>
 <h2 id="usage">Usage</h2>
 <pre><code class="language-text">vcs package delete &lt;name&gt; &lt;version&gt; [--allow-newest]
@@ -41,7 +41,7 @@ ok
 <h2 id="exit-codes">Exit codes</h2>
 <ul>
 <li>0 deleted</li>
-<li>1 a call failed, the version is missing, or it is the newest</li>
+<li>1 a call failed, the version is missing, or it's the newest</li>
 <li>64 usage error</li>
 <li>69 no usable driver</li>
 <li>77 the server refused the token</li>

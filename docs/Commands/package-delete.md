@@ -1,6 +1,6 @@
 # The `vcs package delete` command
 
-Delete one version of a generic package. The verb refuses the newest version unless you pass --allow-newest.
+Delete one version of a generic package. The verb refuses the newest version unless you pass the flag for it.
 
 The command tree generates this page. Don't edit it by hand.
 
@@ -32,7 +32,7 @@ ok
 ## Exit codes
 
 - 0 deleted
-- 1 a call failed, the version is missing, or it is the newest
+- 1 a call failed, the version is missing, or it's the newest
 - 64 usage error
 - 69 no usable driver
 - 77 the server refused the token

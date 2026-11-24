@@ -17,7 +17,7 @@
 <pre><code class="language-text">vcs package upload &lt;name&gt; &lt;version&gt; &lt;file&gt; [--sha256 &lt;hex&gt;] [--max-mib &lt;n&gt;] [--stale-days &lt;n&gt;] [--dry-run]
 </code></pre>
 <h2 id="output">Output</h2>
-<p>A first row: ok, the download address, the SHA-256 of the file. With --dry-run the first word is dry-run and nothing is sent. Then the list rows of the same name, so the old versions show at once.</p>
+<p>A first row: ok, the download address, the checksum of the file. With --dry-run the first word is dry-run, and the verb sends nothing. Then the list rows of the same name, so the old versions show at once.</p>
 <h2 id="example">Example</h2>
 <p>The output below is an example with made-up data, not a real run.</p>
 <pre><code class="language-text">$ vcs package upload vendor-tool 2.0 vendor-tool-2.0.tgz
