@@ -147,8 +147,8 @@ func TestGitCommit(t *testing.T) {
 	}
 	// git failing gives its own exit code.
 	s = &gitSim{branch: "feature/x", top: t.TempDir(), fail: map[string]int{"git commit": 1}}
-	if code, _, _ := gitRun(t, s, "commit", "-m", "A"); code != 1 {
-		t.Errorf("git fail: %d", code)
+	if code, _, errb := gitRun(t, s, "commit", "-m", "A"); code != 1 || !strings.Contains(errb, "git commit failed with exit 1") {
+		t.Errorf("git fail: %d %q", code, errb)
 	}
 }
 

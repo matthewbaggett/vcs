@@ -66,7 +66,11 @@ func (g gitRunner) query(args ...string) (string, int) {
 
 // run runs git and shows its whole result.
 func (g gitRunner) run(args ...string) int {
-	return g.env.Exec(g.ctx, "git", g.git(args), g.env.Stdout, g.env.Stderr)
+	code := g.env.Exec(g.ctx, "git", g.git(args), g.env.Stdout, g.env.Stderr)
+	if code != 0 && len(args) > 0 {
+		fmt.Fprintf(g.env.Stderr, "vcs: git %s failed with exit %d. Read the output above before the next step.\n", args[0], code)
+	}
+	return code
 }
 
 func (g gitRunner) branchName() string {
