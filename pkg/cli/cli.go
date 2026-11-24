@@ -44,6 +44,8 @@ type Env struct {
 	Checkers []lint.Checker
 	// Exec runs a program with the given streams and returns its exit code. The git verbs use it.
 	Exec func(ctx context.Context, name string, args []string, stdout, stderr io.Writer) int
+	// Version is the release tag, or dev-<sha> for a dev build. `vcs version` prints it.
+	Version string
 	// Pid and PidAlive feed the pid file of pr watch. A nil value reads the real process table.
 	Pid      func() int
 	PidAlive func(pid int) bool
@@ -100,6 +102,16 @@ func Run(ctx context.Context, args []string, env Env) int {
 		code := gitVerb(ctx, verb, append(dir, rest[1:]...), env)
 		hint(verb, code, opts{}, env)
 		return code
+	}
+	if len(args) == 1 && (args[0] == "--version" || args[0] == "version") {
+		verb, _ := Find("version", "")
+		v := env.Version
+		if v == "" {
+			v = "dev"
+		}
+		fmt.Fprintln(env.Stdout, v)
+		hint(verb, ExitOK, opts{}, env)
+		return ExitOK
 	}
 	o, err := parse(args)
 	if err != nil {

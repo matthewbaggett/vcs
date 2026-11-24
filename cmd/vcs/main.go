@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -21,6 +22,25 @@ import (
 	"git.grey.ooo/packages/vcs/pkg/session"
 	"github.com/matthewbaggett/vale/v3/pkg/vale"
 )
+
+// version is the release tag. The build sets it with -ldflags "-X main.version=<tag>".
+var version = ""
+
+// buildVersion names this build. A plain `go build` has no tag, so it reads the commit that
+// the toolchain stamped into the binary.
+func buildVersion() string {
+	if version != "" {
+		return version
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		for _, s := range bi.Settings {
+			if s.Key == "vcs.revision" && len(s.Value) >= 7 {
+				return "dev-" + s.Value[:7]
+			}
+		}
+	}
+	return "dev"
+}
 
 func isTTY(f *os.File) bool {
 	st, err := f.Stat()
@@ -66,6 +86,7 @@ func main() {
 		Stderr:     os.Stderr,
 		Stdin:      os.Stdin,
 		ConfigDir:  configDir(),
+		Version:    buildVersion(),
 		Getenv:     os.Getenv,
 		IsTerminal: isTTY(os.Stdin) && isTTY(os.Stdout),
 		Exec: func(ctx context.Context, name string, args []string, stdout, stderr io.Writer) int {
