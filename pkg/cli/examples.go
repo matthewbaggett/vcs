@@ -51,6 +51,7 @@ var Examples = map[string]string{
 	"secret list":       "$ vcs secret list\nDEPLOY_KEY\t2026-11-01T10:00:00Z",
 	"secret set":        "$ printf '%s' \"$TOKEN\" | vcs secret set DEPLOY_KEY --value-file -\nok",
 	"secret delete":     "$ vcs secret delete DEPLOY_KEY\nok",
+	"pr bind":           "$ vcs pr bind\npr\t12\topen\tfalse\ttrue\t\tfailure\tabc1234def\thttps://git.example/o/r/pulls/12\nred\t301\t902\ttest\tFAIL TestX",
 	"workflow dispatch": "$ vcs workflow dispatch nightly.yml --ref main\nok",
 	"protection list":   "$ vcs protection list main\nmain\tCI / test (pull_request)\t1\tnone\tyes",
 	"runners list":      "$ vcs runners list\n3\tbuild-1\tidle\tubuntu-latest,docker\t5f0c9a2e-1111-2222-3333-444455556666\tv6.0.1",

@@ -369,6 +369,10 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		if code := timeCheck(env, v, o); code >= 0 {
 			return code
 		}
+	case "pr bind":
+		if len(o.pos) > 1 || (len(o.pos) == 1 && (o.flags["branch"] != "" || !isNum(o.pos[0]))) {
+			return usage(env, v)
+		}
 	case "workflow dispatch":
 		if len(o.pos) != 1 || !workflowFile.MatchString(o.pos[0]) || !refOK(o.flags["ref"]) {
 			return usage(env, v)
@@ -929,6 +933,8 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		}
 	case "ci failed":
 		return ciFailed(ctx, c, env, o.pos[0])
+	case "pr bind":
+		return prBind(ctx, c, env, o)
 	case "pr statuses":
 		return prStatuses(ctx, c, env, o)
 	case "issue newer", "issue top":
