@@ -73,6 +73,14 @@ func TestIssueListAndView(t *testing.T) {
 	if out != want {
 		t.Errorf("view: %q", out)
 	}
+	// A carriage return of a Windows line ending never reaches the output. A bare issue has empty columns.
+	c.items[0].Body = "Line one.\r\n\r\n- a\tb\r\n"
+	c.items[0].Comments = nil
+	c.items[0].ID, c.items[0].URL = 0, ""
+	_, out, _ = run(t, c, nil, true, "issue", "view", "8")
+	if want := "8\tThin scripts\topen\tplan\tv1\t\t\n\nLine one.\n\n- a\tb\n"; out != want {
+		t.Errorf("crlf: %q, want %q", out, want)
+	}
 	if code, _, _ := run(t, reader{}, nil, true, "issue", "view", "8"); code != ExitFail {
 		t.Errorf("missing issue: exit %d", code)
 	}
