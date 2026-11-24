@@ -81,6 +81,65 @@ func (g gitRunner) branchName() string {
 	return b
 }
 
+// remote reads the origin address without the network. It returns the host name and the owner/name path.
+func (g gitRunner) remote() (host, repo string, ok bool) {
+	url, code := g.query("remote", "get-url", "origin")
+	if code != 0 {
+		return "", "", false
+	}
+	h, r, err := forge.ParseRemote(url)
+	return h, r, err == nil
+}
+
+// forgeKind names the forge as the scripts do: github for github.com, forgejo for any other host.
+func forgeKind(host string) string {
+	switch strings.ToLower(host) {
+	case "github.com", "www.github.com":
+		return "github"
+	}
+	return "forgejo"
+}
+
+// note prints which forge origin is, on stderr, before the git call. The scripts print it too.
+func (g gitRunner) note() {
+	if h, _, ok := g.remote(); ok {
+		fmt.Fprintf(g.env.Stderr, "vcs: host=%s\n", forgeKind(h))
+	}
+}
+
+// defaultBranch finds the default branch of origin without the network. It reads origin/HEAD, tries
+// main and master, then falls back to main.
+func (g gitRunner) defaultBranch() string {
+	if ref, code := g.query("symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"); code == 0 && ref != "" {
+		return strings.TrimPrefix(ref, "origin/")
+	}
+	for _, b := range []string{"main", "master"} {
+		for _, ref := range []string{"refs/remotes/origin/" + b, "refs/heads/" + b} {
+			if _, code := g.query("show-ref", "--verify", "--quiet", ref); code == 0 {
+				return b
+			}
+		}
+	}
+	return "main"
+}
+
+// prHint says how to open the pull request for a branch that a push just sent.
+func (g gitRunner) prHint(branch string) {
+	h, repo, ok := g.remote()
+	if !ok {
+		return
+	}
+	base := g.defaultBranch()
+	if branch == base {
+		return
+	}
+	if forgeKind(h) == "github" {
+		fmt.Fprintf(g.env.Stdout, "vcs: host=github. Open the pull request: vcs pr create --head %s, or open https://%s/%s/compare/%s...%s?expand=1\n", branch, h, repo, base, branch)
+		return
+	}
+	fmt.Fprintf(g.env.Stdout, "vcs: host=forgejo. Open the pull request: vcs pr create <title> --body-file <file> --draft, or open https://%s/%s/compare/%s...%s\n", h, repo, base, branch)
+}
+
 func (g gitRunner) ok(check string) { fmt.Fprintf(g.env.Stdout, "vcs: check %s: ok\n", check) }
 
 func (g gitRunner) refuse(code int, format string, a ...any) int {
@@ -197,20 +256,53 @@ func (g gitRunner) text(msg string) int {
 	return -1
 }
 
-// wiring runs the project's wiring check. It returns 0 when it passes or the project has none,
-// and 1 when it fails. The output of a failure goes to stderr.
+// wiringScript finds the wiring check the scripts use. A project holds it in its agent-standards
+// submodule. The agent-standards checkout holds it in hooks/.
+func wiringScript(top string) string {
+	if s := filepath.Join(top, ".claude", "agent-standards", "hooks", "check-wiring.sh"); isFile(s) {
+		return s
+	}
+	if _, err := os.Lstat(filepath.Join(top, ".claude", "agent-standards")); err != nil &&
+		isFile(filepath.Join(top, "bin", "install.sh")) {
+		if s := filepath.Join(top, "hooks", "check-wiring.sh"); isFile(s) {
+			return s
+		}
+	}
+	return ""
+}
+
+// wiring runs the wiring check, as vcs-lib.sh does. It returns 0 when it passes or the check is off
+// or absent, and 1 when it fails. The output of a failure goes to stderr. AGENT_STANDARDS_WIRING_GUARD=off
+// skips the check on purpose.
 func (g gitRunner) wiring(top string, quiet bool) int {
-	s := filepath.Join(top, ".claude", "check-wiring.sh")
-	if !isExec(s) {
+	skip := func(why string) int {
 		if !quiet {
-			fmt.Fprintln(g.env.Stdout, "vcs: check wiring: skipped (no .claude/check-wiring.sh)")
+			fmt.Fprintf(g.env.Stdout, "vcs: check wiring: skipped (%s)\n", why)
 		}
 		return 0
 	}
-	if g.env.Exec(g.ctx, s, []string{"--ci"}, g.env.Stdout, g.env.Stderr) != 0 {
+	if g.env.Getenv != nil && g.env.Getenv("AGENT_STANDARDS_WIRING_GUARD") == "off" {
+		return skip("AGENT_STANDARDS_WIRING_GUARD=off")
+	}
+	s := wiringScript(top)
+	if s == "" {
+		return skip("no check-wiring.sh")
+	}
+	var out bytes.Buffer
+	if g.env.Exec(g.ctx, "env", []string{"CLAUDE_PROJECT_DIR=" + top, "bash", s, "--ci"}, &out, &out) != 0 {
+		fmt.Fprint(g.env.Stderr, out.String())
 		return 1
 	}
 	return 0
+}
+
+func (g gitRunner) wiringOff() bool {
+	return g.env.Getenv != nil && g.env.Getenv("AGENT_STANDARDS_WIRING_GUARD") == "off"
+}
+
+func isFile(p string) bool {
+	st, err := os.Stat(p)
+	return err == nil && !st.IsDir()
 }
 
 // project runs the project's own check scripts, when the project has them.
@@ -222,7 +314,7 @@ func (g gitRunner) project(verb string) int {
 	if g.wiring(top, false) != 0 {
 		return g.refuse(ExitFail, "check wiring failed. Fix the wiring, then run the command again")
 	}
-	if isExec(filepath.Join(top, ".claude", "check-wiring.sh")) {
+	if wiringScript(top) != "" && !g.wiringOff() {
 		g.ok("wiring")
 	}
 	return g.projectScript(top, code, verb)
@@ -270,6 +362,7 @@ func (g gitRunner) commit(v Verb, args []string) int {
 	if c := g.project("commit"); c >= 0 {
 		return c
 	}
+	g.note()
 	return g.run(append([]string{"commit"}, args...)...)
 }
 
@@ -296,7 +389,14 @@ func (g gitRunner) push(v Verb, args []string) int {
 			}
 		}
 	}
-	return g.run(append([]string{"push"}, args...)...)
+	g.note()
+	code := g.run(append([]string{"push"}, args...)...)
+	if code == 0 {
+		if b := g.branchName(); b != "" {
+			g.prHint(b)
+		}
+	}
+	return code
 }
 
 func (g gitRunner) merge(v Verb, args []string) int {
@@ -337,7 +437,7 @@ func (g gitRunner) merge(v Verb, args []string) int {
 			}
 			fmt.Fprintln(g.env.Stderr, "vcs: check wiring failed before the merge. vcs runs the merge, then checks the wiring on the result")
 			heal = true
-		} else if topCode == 0 && isExec(filepath.Join(top, ".claude", "check-wiring.sh")) {
+		} else if topCode == 0 && wiringScript(top) != "" && !g.wiringOff() {
 			g.ok("wiring")
 		}
 		if c := g.projectScript(top, topCode, "merge"); c >= 0 {
@@ -349,6 +449,7 @@ func (g gitRunner) merge(v Verb, args []string) int {
 		}
 	}
 	before, _ := g.query("rev-parse", "--verify", "--quiet", "HEAD")
+	g.note()
 	code := g.run(append([]string{"merge"}, args...)...)
 	if heal && code == 0 {
 		if g.wiring(top, true) != 0 {
@@ -383,8 +484,9 @@ func (g gitRunner) rebase(v Verb, args []string) int {
 			return c
 		}
 		if b := g.branchName(); b != "" {
-			if _, code := g.query("ls-remote", "--exit-code", "--heads", "origin", b); code == 0 {
-				return g.refuse(ExitFail, "origin holds %s, and a rebase needs a force-push. Merge instead: vcs git merge origin/main", b)
+			// Read the local origin ref, as the script does. The check needs no network.
+			if _, code := g.query("show-ref", "--verify", "--quiet", "refs/remotes/origin/"+b); code == 0 {
+				return g.refuse(ExitFail, "origin already holds %s, and a rebase needs a force-push. Merge instead: vcs git merge origin/%s", b, g.defaultBranch())
 			}
 		}
 		g.ok("not-published")
@@ -392,6 +494,7 @@ func (g gitRunner) rebase(v Verb, args []string) int {
 			return c
 		}
 	}
+	g.note()
 	return g.run(append([]string{"rebase"}, args...)...)
 }
 
@@ -426,18 +529,21 @@ func (g gitRunner) branch(v Verb, args []string) int {
 		start := ""
 		if len(names) == 2 {
 			start = names[1]
-		} else if _, code := g.query("rev-parse", "--verify", "--quiet", "refs/remotes/origin/main"); code == 0 {
-			start = "origin/main"
+		} else {
+			d := g.defaultBranch()
+			if _, code := g.query("show-ref", "--verify", "--quiet", "refs/remotes/origin/"+d); code == 0 {
+				start = "origin/" + d
+			} else {
+				start = "HEAD"
+			}
 		}
-		a := []string{"switch", "-c", names[0]}
-		if start != "" {
-			a = append(a, start)
-		}
-		return g.run(a...)
+		g.note()
+		return g.run("switch", "--no-track", "-c", names[0], start)
 	case "switch":
 		if len(names) != 1 || force || remote || strings.HasPrefix(names[0], "-") {
 			return usage(g.env, v)
 		}
+		g.note()
 		return g.run("switch", names[0])
 	case "list":
 		if len(names) != 0 || force || remote {

@@ -19,7 +19,8 @@ type gitSim struct {
 	branch   string
 	upstream string
 	top      string
-	held     bool // origin holds the branch
+	held     bool   // origin holds the branch
+	remote   string // the origin address. Empty means no origin
 	hasMain  bool
 	calls    []string
 	fail     map[string]int   // a call prefix to an exit code
@@ -31,6 +32,9 @@ type gitSim struct {
 }
 
 func (s *gitSim) exec(_ context.Context, name string, args []string, stdout, _ io.Writer) int {
+	if name == "env" && len(args) == 4 && args[1] == "bash" && s.scripts != nil {
+		name, args = args[2], args[3:] // the wiring check runs as: env CLAUDE_PROJECT_DIR=<top> bash <script> --ci
+	}
 	if strings.HasPrefix(name, s.top) && s.scripts != nil {
 		base := filepath.Base(name)
 		s.ran = append(s.ran, base+" "+strings.Join(args, " "))
@@ -77,6 +81,28 @@ func (s *gitSim) exec(_ context.Context, name string, args []string, stdout, _ i
 		}
 		io.WriteString(stdout, s.upstream+"\n")
 		return 0
+	case line == "git remote get-url origin":
+		if s.remote == "" {
+			return 1
+		}
+		io.WriteString(stdout, s.remote+"\n")
+		return 0
+	case line == "git symbolic-ref --quiet --short refs/remotes/origin/HEAD":
+		return 1
+	case strings.HasPrefix(line, "git show-ref --verify --quiet "):
+		ref := strings.TrimPrefix(line, "git show-ref --verify --quiet ")
+		switch {
+		case ref == "refs/remotes/origin/main":
+			if s.hasMain {
+				return 0
+			}
+			return 1
+		case ref == "refs/remotes/origin/"+s.branch:
+			if s.held {
+				return 0
+			}
+		}
+		return 1
 	case strings.HasPrefix(line, "git ls-remote"):
 		if s.held {
 			return 0
@@ -154,9 +180,9 @@ func TestGitCommit(t *testing.T) {
 
 func TestGitProjectChecks(t *testing.T) {
 	top := t.TempDir()
-	os.MkdirAll(filepath.Join(top, ".claude"), 0o755)
+	os.MkdirAll(filepath.Join(top, ".claude", "agent-standards", "hooks"), 0o755)
 	os.MkdirAll(filepath.Join(top, "scripts"), 0o755)
-	os.WriteFile(filepath.Join(top, ".claude", "check-wiring.sh"), []byte("#!/bin/sh\n"), 0o755)
+	os.WriteFile(filepath.Join(top, ".claude", "agent-standards", "hooks", "check-wiring.sh"), []byte("#!/bin/sh\n"), 0o644)
 	os.WriteFile(filepath.Join(top, "scripts", "vcs-checks.sh"), []byte("#!/bin/sh\n"), 0o755)
 	var ran []string
 	var failOn string
@@ -164,6 +190,9 @@ func TestGitProjectChecks(t *testing.T) {
 	sim := &gitSim{branch: "feature/x", top: top}
 	env := Env{Stdout: &out, Stderr: &errb, Getenv: func(string) string { return "" },
 		Exec: func(ctx context.Context, name string, args []string, so, se io.Writer) int {
+			if name == "env" && len(args) == 4 {
+				name, args = args[2], args[3:]
+			}
 			if strings.HasPrefix(name, top) {
 				ran = append(ran, filepath.Base(name)+" "+strings.Join(args, " "))
 				if filepath.Base(name) == failOn {
@@ -238,7 +267,7 @@ func TestGitMergeRebase(t *testing.T) {
 		t.Errorf("rebase: %v", s.calls)
 	}
 	s = &gitSim{branch: "feature/x", top: t.TempDir(), held: true}
-	if code, _, errb := gitRun(t, s, "rebase", "origin/main"); code != ExitFail || len(s.calls) != 0 || !strings.Contains(errb, "origin holds") {
+	if code, _, errb := gitRun(t, s, "rebase", "origin/main"); code != ExitFail || len(s.calls) != 0 || !strings.Contains(errb, "origin already holds feature/x") {
 		t.Errorf("rebase held: %d %v %q", code, s.calls, errb)
 	}
 	s = &gitSim{branch: "feature/x", top: t.TempDir(), held: true}
@@ -259,15 +288,15 @@ func TestGitMergeRebase(t *testing.T) {
 
 func TestGitBranch(t *testing.T) {
 	s := &gitSim{branch: "feature/x", top: t.TempDir(), hasMain: true}
-	if code, _, _ := gitRun(t, s, "branch", "create", "fix/thing"); code != ExitOK || s.calls[0] != "git switch -c fix/thing origin/main" {
+	if code, _, _ := gitRun(t, s, "branch", "create", "fix/thing"); code != ExitOK || s.calls[0] != "git switch --no-track -c fix/thing origin/main" {
 		t.Errorf("create: %v", s.calls)
 	}
 	s = &gitSim{branch: "feature/x", top: t.TempDir()}
-	if code, _, _ := gitRun(t, s, "branch", "create", "fix/thing", "abc123"); code != ExitOK || s.calls[0] != "git switch -c fix/thing abc123" {
+	if code, _, _ := gitRun(t, s, "branch", "create", "fix/thing", "abc123"); code != ExitOK || s.calls[0] != "git switch --no-track -c fix/thing abc123" {
 		t.Errorf("create start: %v", s.calls)
 	}
 	s = &gitSim{branch: "feature/x", top: t.TempDir()}
-	if code, _, _ := gitRun(t, s, "branch", "create", "fix/thing"); code != ExitOK || s.calls[0] != "git switch -c fix/thing" {
+	if code, _, _ := gitRun(t, s, "branch", "create", "fix/thing"); code != ExitOK || s.calls[0] != "git switch --no-track -c fix/thing HEAD" {
 		t.Errorf("create no main: %v", s.calls)
 	}
 	s = &gitSim{branch: "feature/x", top: t.TempDir()}
@@ -384,7 +413,8 @@ func scriptSim(t *testing.T, scripts map[string][]int) *gitSim {
 	for name := range scripts {
 		dir := "scripts"
 		if name == "check-wiring.sh" {
-			dir = ".claude"
+			dir = filepath.Join(".claude", "agent-standards", "hooks")
+			os.MkdirAll(filepath.Join(top, dir), 0o755)
 		}
 		os.WriteFile(filepath.Join(top, dir, name), []byte("#!/bin/sh\n"), 0o755)
 	}
@@ -474,5 +504,67 @@ func TestGitMergeWiringRetry(t *testing.T) {
 	s = scriptSim(t, map[string][]int{"check-wiring.sh": {1}})
 	if code, _, _ := gitRun(t, s, "merge", "--abort"); code != ExitOK || len(s.ran) != 0 {
 		t.Errorf("abort: %d %v", code, s.ran)
+	}
+}
+
+func TestGitHostNoteAndPushHint(t *testing.T) {
+	s := &gitSim{branch: "feature/x", top: t.TempDir(), remote: "https://git.grey.ooo/packages/vcs.git", upstream: "origin/feature/x"}
+	code, out, errb := gitRun(t, s, "push")
+	if code != ExitOK || !strings.Contains(errb, "vcs: host=forgejo\n") ||
+		!strings.Contains(out, "Open the pull request: vcs pr create <title> --body-file <file> --draft, or open https://git.grey.ooo/packages/vcs/compare/main...feature/x") {
+		t.Errorf("forgejo: %d %q %q", code, out, errb)
+	}
+	s = &gitSim{branch: "feature/x", top: t.TempDir(), remote: "git@github.com:me/repo.git", upstream: "origin/feature/x"}
+	code, out, errb = gitRun(t, s, "push")
+	if code != ExitOK || !strings.Contains(errb, "vcs: host=github\n") ||
+		!strings.Contains(out, "vcs pr create --head feature/x, or open https://github.com/me/repo/compare/main...feature/x?expand=1") {
+		t.Errorf("github: %d %q %q", code, out, errb)
+	}
+	// A failed push prints no hint. A repo with no origin prints no note and no hint.
+	s = &gitSim{branch: "feature/x", top: t.TempDir(), remote: "https://git.grey.ooo/a/b.git", fail: map[string]int{"git push": 1}}
+	if code, out, _ := gitRun(t, s, "push"); code != 1 || strings.Contains(out, "Open the pull request") {
+		t.Errorf("failed push: %d %q", code, out)
+	}
+	s = &gitSim{branch: "feature/x", top: t.TempDir()}
+	if _, out, errb := gitRun(t, s, "push"); strings.Contains(out+errb, "host=") {
+		t.Errorf("no origin: %q %q", out, errb)
+	}
+	for _, v := range [][]string{{"commit", "-m", "A"}, {"merge", "origin/main"}, {"rebase", "origin/main"}, {"branch", "create", "fix/a"}, {"branch", "switch", "fix/a"}} {
+		s = &gitSim{branch: "feature/x", top: t.TempDir(), remote: "https://git.grey.ooo/a/b.git"}
+		if _, _, errb := gitRun(t, s, v...); !strings.Contains(errb, "vcs: host=forgejo") {
+			t.Errorf("%v: no host note: %q", v, errb)
+		}
+	}
+}
+
+func TestGitWiringLookup(t *testing.T) {
+	// The AGENT_STANDARDS_WIRING_GUARD=off switch skips a failing check.
+	s := scriptSim(t, map[string][]int{"check-wiring.sh": {1}})
+	var out, errb bytes.Buffer
+	env := Env{Stdout: &out, Stderr: &errb, Exec: s.exec,
+		Getenv: func(k string) string {
+			if k == "AGENT_STANDARDS_WIRING_GUARD" {
+				return "off"
+			}
+			return ""
+		}}
+	if code := Run(context.Background(), []string{"git", "commit", "-m", "A"}, env); code != ExitOK || !strings.Contains(out.String(), "check wiring: skipped (AGENT_STANDARDS_WIRING_GUARD=off)") {
+		t.Errorf("guard off: %d %q", code, out.String())
+	}
+	// The agent-standards checkout holds the check in hooks/, and has no submodule.
+	top := t.TempDir()
+	os.MkdirAll(filepath.Join(top, "hooks"), 0o755)
+	os.MkdirAll(filepath.Join(top, "bin"), 0o755)
+	os.WriteFile(filepath.Join(top, "hooks", "check-wiring.sh"), []byte("#!/bin/sh\n"), 0o644)
+	os.WriteFile(filepath.Join(top, "bin", "install.sh"), []byte("#!/bin/sh\n"), 0o644)
+	if got := wiringScript(top); got != filepath.Join(top, "hooks", "check-wiring.sh") {
+		t.Errorf("hooks lookup: %q", got)
+	}
+	// A script in .claude/ alone is not the wiring check.
+	top = t.TempDir()
+	os.MkdirAll(filepath.Join(top, ".claude"), 0o755)
+	os.WriteFile(filepath.Join(top, ".claude", "check-wiring.sh"), []byte("#!/bin/sh\n"), 0o755)
+	if got := wiringScript(top); got != "" {
+		t.Errorf("project script: %q", got)
 	}
 }
