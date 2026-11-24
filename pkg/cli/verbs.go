@@ -772,7 +772,7 @@ var Tree = []Verb{
 			{"--value-file <file|->", "Read the value from a file, or from standard input for -."},
 			{"--from-env <VAR>", "Read the value from this environment variable."},
 		},
-		Exits: []string{"0 set", "1 the call failed", "64 usage error, a bad name, or an empty value. Nothing is sent", "69 no usable driver", "77 the server refused the token"},
+		Exits: []string{"0 set", "1 the call failed", "64 usage error, a bad name, or an empty value. The verb sends nothing", "69 no usable driver", "77 the server refused the token"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "check the host, the repository, and the token",
@@ -786,7 +786,7 @@ var Tree = []Verb{
 		Usage:   "vcs secret delete <name>",
 		Summary: "Delete one Actions secret.",
 		Output:  "ok.",
-		Exits:   []string{"0 deleted", "1 the call failed, or the secret does not exist", "64 usage error", "69 no usable driver", "77 the server refused the token"},
+		Exits:   []string{"0 deleted", "1 the call failed, or the secret doesn't exist", "64 usage error", "69 no usable driver", "77 the server refused the token"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "check the name with vcs secret list",
