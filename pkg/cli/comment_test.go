@@ -22,7 +22,7 @@ func (m commenter) CommentList(_ context.Context, n int) ([]forge.CommentRow, er
 	return m.rows, m.err
 }
 func (m commenter) CommentEdit(_ context.Context, id int64, body string) error {
-	*m.last = fmt.Sprintf("edit %d|%s", id, body)
+	*m.last = fmt.Sprintf("edit %d|%s", id, unstamp(body))
 	return m.err
 }
 func (m commenter) CommentDelete(_ context.Context, id int64) error {

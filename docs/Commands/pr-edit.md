@@ -30,6 +30,7 @@ edited 13
 | `--title` | The new title. |
 | `--body` | The new body text. |
 | `--body-file` | A file that holds the new body. Use - for standard input. |
+| `--trace` | Name the skill and step that sent the text, as skill or skill:step. $VCS_TRACE is the fallback. The command adds a hidden trace line to the end of the body. |
 
 ## Exit codes
 

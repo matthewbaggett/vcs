@@ -54,19 +54,19 @@ func (f fake) Attach(_ context.Context, _ int, files []string) ([]forge.Asset, e
 }
 func (f fake) Comment(_ context.Context, _ int, body string) error {
 	if f.comment != nil {
-		*f.comment = body
+		*f.comment = unstamp(body)
 	}
 	return f.err
 }
 func (f fake) CreatePR(_ context.Context, in forge.NewPR) (int, string, error) {
 	if f.comment != nil {
-		*f.comment = in.Head + "<-" + in.Base + "|" + in.Title + "|" + in.Body
+		*f.comment = in.Head + "<-" + in.Base + "|" + in.Title + "|" + unstamp(in.Body)
 	}
 	return 7, "https://git.example/o/r/pulls/7", f.err
 }
 func (f fake) CreateIssue(_ context.Context, title, body string) (int, string, error) {
 	if f.comment != nil {
-		*f.comment = title + "|" + body
+		*f.comment = title + "|" + unstamp(body)
 	}
 	return 8, "https://git.example/o/r/issues/8", f.err
 }
@@ -83,7 +83,7 @@ func (f fake) PREdit(_ context.Context, n int, in forge.PREdit) error {
 			t = *in.Title
 		}
 		if in.Body != nil {
-			b = *in.Body
+			b = unstamp(*in.Body)
 		}
 		*f.comment = fmt.Sprintf("edit %d|%s|%s", n, t, b)
 	}
@@ -756,7 +756,7 @@ func (f fake) IssueEdit(_ context.Context, n int, in forge.IssueEdit) error {
 			if s == nil {
 				return "-"
 			}
-			return *s
+			return unstamp(*s)
 		}
 		*f.comment = fmt.Sprintf("issue %d|%s|%s|%s|%s|%v|%v", n, p(in.Title), p(in.Body), p(in.State), p(in.Milestone), in.AddLabels, in.RmLabels)
 	}

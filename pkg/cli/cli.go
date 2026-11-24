@@ -37,6 +37,9 @@ type Env struct {
 	NewClient func(host, repo string) (forge.Client, error)
 	// Sleep waits between two polls. A nil value waits in real time.
 	Sleep func(ctx context.Context, d time.Duration)
+	// Now and Hostname feed the trace stamp. A nil value reads the clock and the host.
+	Now      func() time.Time
+	Hostname func() string
 	// Checkers lint each text that a write verb sends. A finding stops the send.
 	Checkers []lint.Checker
 	// Exec runs a program with the given streams and returns its exit code. The git verbs use it.
@@ -145,7 +148,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true, "pushed": true}
@@ -275,6 +278,7 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		if code := lintText(env, o.flags["body"]); code != ExitOK {
 			return code
 		}
+		o.flags["body"] = stampTrace(env, o.flags, o.flags["body"])
 	case "pr list", "issue list":
 		if len(o.pos) != 0 {
 			return usage(env, v)
@@ -385,6 +389,7 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 			if code := lintText(env, o.flags["body"]); code != ExitOK {
 				return code
 			}
+			o.flags["body"] = stampTrace(env, o.flags, o.flags["body"])
 		}
 	case "issue edit":
 		if len(o.pos) != 1 || !isNum(o.pos[0]) || issueEditEmpty(o) || (o.flags["body"] != "" && o.flags["body-file"] != "") {
@@ -414,6 +419,7 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 				return code
 			}
 		}
+		o.flags["body"] = stampTrace(env, o.flags, o.flags["body"])
 	case "pr create":
 		if len(o.pos) != 1 || o.flags["head"] == "" || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
 			return usage(env, v)
@@ -444,6 +450,7 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		if code := lintText(env, o.flags["body"]); code != ExitOK {
 			return code
 		}
+		o.flags["body"] = stampTrace(env, o.flags, o.flags["body"])
 	case "comment list", "comment delete":
 		if len(o.pos) != 1 || !isNum(o.pos[0]) {
 			return usage(env, v)
@@ -473,6 +480,7 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		if code := lintText(env, o.flags["body"]); code != ExitOK {
 			return code
 		}
+		o.flags["body"] = stampTrace(env, o.flags, o.flags["body"])
 	case "ci runs":
 		if len(o.pos) != 0 {
 			return usage(env, v)
