@@ -151,7 +151,7 @@ func (g gitRunner) refuse(code int, format string, a ...any) int {
 func (g gitRunner) bypass(v Verb, args []string, shortN bool) int {
 	for _, a := range args {
 		if a == "--no-verify" {
-			return g.refuse(ExitUsage, "--no-verify skips the git hooks, which run the same steps as CI. Fix what the hook reports")
+			return g.refuse(ExitUsage, "--no-verify skips the git hooks, which run the same steps as CI. Drop the flag and run the command again. If a hook fails, read what it reports and fix that. To run one hook alone: git hook run pre-commit")
 		}
 		if shortN && strings.HasPrefix(a, "-") && !strings.HasPrefix(a, "--") {
 			// The letters before m, F, C, c, or S can hold -n. A later letter starts a value.
@@ -160,7 +160,7 @@ func (g gitRunner) bypass(v Verb, args []string, shortN bool) int {
 				pre = pre[:i]
 			}
 			if strings.Contains(pre, "n") {
-				return g.refuse(ExitUsage, "-n skips the git hooks, as --no-verify does. Fix what the hook reports")
+				return g.refuse(ExitUsage, "-n skips the git hooks, as --no-verify does. Drop the flag and run the command again. If a hook fails, read what it reports and fix that. To run one hook alone: git hook run pre-commit")
 			}
 		}
 	}
@@ -244,12 +244,13 @@ func message(args []string) (string, bool) {
 }
 
 // text checks a message for an AI credit line, then runs the prose lint.
-func (g gitRunner) text(msg string) int {
+func (g gitRunner) text(msg, what string) int {
 	if r := guard.Credit(msg); len(r) > 0 {
-		return g.refuse(ExitLint, "guard: %s", r[0])
+		return g.refuse(ExitLint, "guard: %s. Delete that line from the %s, then run the command again", r[0], what)
 	}
 	g.ok("attribution")
 	if code := lintText(g.env, msg); code != ExitOK {
+		fmt.Fprintf(g.env.Stderr, "vcs: Rewrite the %s with the fixes above, then run the command again.\n", what)
 		return code
 	}
 	g.ok("prose")
@@ -296,6 +297,24 @@ func (g gitRunner) wiring(top string, quiet bool) int {
 	return 0
 }
 
+// wiringNotes says how to repair the wiring and how to run the check alone. It prints them when a
+// wiring check fails and stops a verb.
+func (g gitRunner) wiringNotes(top string) {
+	s := wiringScript(top)
+	if s == "" {
+		return
+	}
+	rel := func(p string) string {
+		if r, err := filepath.Rel(top, p); err == nil {
+			return r
+		}
+		return p
+	}
+	install := filepath.Join(filepath.Dir(filepath.Dir(s)), "bin", "install.sh")
+	fmt.Fprintf(g.env.Stderr, "vcs: To repair the wiring, run from %s: %s\n", top, rel(install))
+	fmt.Fprintf(g.env.Stderr, "vcs: Read what the installer changed, then commit .claude/ with any submodule bump. To run only this check: %s --ci\n", rel(s))
+}
+
 func (g gitRunner) wiringOff() bool {
 	return g.env.Getenv != nil && g.env.Getenv("AGENT_STANDARDS_WIRING_GUARD") == "off"
 }
@@ -312,7 +331,8 @@ func (g gitRunner) project(verb string) int {
 		return -1
 	}
 	if g.wiring(top, false) != 0 {
-		return g.refuse(ExitFail, "check wiring failed. Fix the wiring, then run the command again")
+		g.wiringNotes(top)
+		return g.refuse(ExitFail, "check wiring failed in %s. Fix each line above, or run the installer, then run the command again", top)
 	}
 	if wiringScript(top) != "" && !g.wiringOff() {
 		g.ok("wiring")
@@ -327,7 +347,8 @@ func (g gitRunner) projectScript(top string, code int, verb string) int {
 	}
 	if s := filepath.Join(top, "scripts", "vcs-checks.sh"); isExec(s) {
 		if g.env.Exec(g.ctx, s, []string{verb}, g.env.Stdout, g.env.Stderr) != 0 {
-			return g.refuse(ExitFail, "check project failed. Fix what scripts/vcs-checks.sh printed")
+			fmt.Fprintf(g.env.Stderr, "vcs: To run only this check, from %s: ./scripts/vcs-checks.sh %s\n", top, verb)
+			return g.refuse(ExitFail, "check project (%s) failed. Fix what the lines above report, run the check alone until it passes, then run the command again", verb)
 		}
 		g.ok("project")
 	} else {
@@ -352,7 +373,7 @@ func (g gitRunner) commit(v Verb, args []string) int {
 		return c
 	}
 	if msg, found := message(args); found {
-		if c := g.text(msg); c >= 0 {
+		if c := g.text(msg, "commit message"); c >= 0 {
 			return c
 		}
 	} else {
@@ -423,7 +444,7 @@ func (g gitRunner) merge(v Verb, args []string) int {
 			return c
 		}
 		if msg, found := message(args); found {
-			if c := g.text(msg); c >= 0 {
+			if c := g.text(msg, "merge message"); c >= 0 {
 				return c
 			}
 		}
@@ -445,7 +466,8 @@ func (g gitRunner) merge(v Verb, args []string) int {
 		}
 	case cont:
 		if topCode == 0 && g.wiring(top, true) != 0 {
-			return g.refuse(ExitFail, "check wiring failed. Fix the wiring, then run the command again")
+			g.wiringNotes(top)
+			return g.refuse(ExitFail, "check wiring failed in %s. Fix each line above, or run the installer, then run the command again", top)
 		}
 	}
 	before, _ := g.query("rev-parse", "--verify", "--quiet", "HEAD")
@@ -555,18 +577,27 @@ func (g gitRunner) branch(v Verb, args []string) int {
 			return usage(g.env, v)
 		}
 		next := names[len(names)-1]
+		old := g.branchName()
+		if len(names) == 2 {
+			old = names[0]
+		}
+		if old == "" {
+			return g.refuse(ExitFail, "detached head: name the branch to rename")
+		}
+		d := g.defaultBranch()
+		for _, n := range []string{old, next} {
+			if n == d || n == "main" || n == "master" {
+				return g.refuse(ExitFail, "refusing to rename to or from the default branch %s", n)
+			}
+		}
+		if _, code := g.query("show-ref", "--verify", "--quiet", "refs/heads/"+old); code != 0 {
+			return g.refuse(ExitFail, "no local branch %s", old)
+		}
 		if r := guard.Branch(next); len(r) > 0 {
 			return g.refuse(ExitFail, "guard: %s", r[0])
 		}
 		if c := g.lintBranch(next); c >= 0 {
 			return c
-		}
-		old := g.branchName()
-		if len(names) == 2 {
-			old = names[0]
-		}
-		if old == "main" || old == "master" || old == "" {
-			return g.refuse(ExitFail, "never rename the default branch, or a detached head")
 		}
 		if remote {
 			return g.renameRemote(old, next)
@@ -599,11 +630,23 @@ func (g gitRunner) branch(v Verb, args []string) int {
 // each open pull request, so the pull request keeps its number. A branch that origin doesn't hold
 // gets no server call: the new name is pushed instead. The driver check runs before any change.
 func (g gitRunner) renameRemote(old, next string) int {
-	if _, held := g.query("ls-remote", "--exit-code", "--heads", "origin", old); held != 0 {
+	held := g.originHolds(old)
+	if !held || g.forgeOf() != "forgejo" {
+		// No server rename: push the new name first, so the commits are never off the remote. Then
+		// drop the old name.
 		if c := g.run("branch", "-m", old, next); c != ExitOK {
 			return c
 		}
-		return g.run("push", "-u", "origin", next)
+		if c := g.run("push", "-u", "origin", next); c != ExitOK {
+			return c
+		}
+		if held {
+			if c := g.run("push", "origin", "--delete", old); c != ExitOK {
+				return c
+			}
+			fmt.Fprintf(g.env.Stderr, "vcs: origin no longer has %s. A pull request that used %s as its head is closed. Open one for %s with vcs pr create.\n", old, old, next)
+		}
+		return ExitOK
 	}
 	if g.env.RemoteURL == nil || g.env.NewClient == nil {
 		fmt.Fprintln(g.env.Stderr, "vcs: this build can't reach a forge")
@@ -633,9 +676,10 @@ func (g gitRunner) renameRemote(old, next string) int {
 		return ExitUnavailable
 	}
 	if err := r.BranchRename(g.ctx, old, next); err != nil {
-		fmt.Fprintf(g.env.Stderr, "vcs: the host refused to rename %s. Nothing changed locally. %v\n", old, err)
+		fmt.Fprintf(g.env.Stderr, "vcs: the host refused to rename %s on origin. Nothing changed locally. %v\n", old, err)
 		return ExitFail
 	}
+	fmt.Fprintf(g.env.Stderr, "vcs: origin renamed %s to %s. An open pull request keeps its number.\n", old, next)
 	if c := g.run("branch", "-m", old, next); c != ExitOK {
 		return c
 	}
@@ -644,4 +688,28 @@ func (g gitRunner) renameRemote(old, next string) int {
 		return ExitOK
 	}
 	return g.run("branch", "--set-upstream-to=origin/"+next, next)
+}
+
+// originHolds says whether origin has a branch. It reads the local ref, then asks the server.
+func (g gitRunner) originHolds(b string) bool {
+	if _, code := g.query("show-ref", "--verify", "--quiet", "refs/remotes/origin/"+b); code == 0 {
+		return true
+	}
+	_, code := g.query("ls-remote", "--exit-code", "--heads", "origin", b)
+	return code == 0
+}
+
+// forgeOf names the forge of origin. With no origin it reads the home remote of the build.
+func (g gitRunner) forgeOf() string {
+	if h, _, ok := g.remote(); ok {
+		return forgeKind(h)
+	}
+	if g.env.RemoteURL != nil {
+		if url, err := g.env.RemoteURL(); err == nil {
+			if h, _, err := forge.ParseRemote(url); err == nil {
+				return forgeKind(h)
+			}
+		}
+	}
+	return "forgejo"
 }

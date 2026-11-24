@@ -89,6 +89,8 @@ func (s *gitSim) exec(_ context.Context, name string, args []string, stdout, _ i
 		return 0
 	case line == "git symbolic-ref --quiet --short refs/remotes/origin/HEAD":
 		return 1
+	case line == "git show-ref --verify --quiet refs/heads/"+s.branch || strings.HasPrefix(line, "git show-ref --verify --quiet refs/heads/fix/"):
+		return 0
 	case strings.HasPrefix(line, "git show-ref --verify --quiet "):
 		ref := strings.TrimPrefix(line, "git show-ref --verify --quiet ")
 		switch {
