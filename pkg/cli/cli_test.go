@@ -866,3 +866,26 @@ func TestTimeVerbs(t *testing.T) {
 		t.Errorf("unavailable: %d %q", code, errb)
 	}
 }
+
+// `vcs version` and `vcs --version` print the tag on one line. An empty tag prints dev.
+func TestVersion(t *testing.T) {
+	for _, tc := range []struct {
+		args      []string
+		tag, want string
+	}{
+		{[]string{"--version"}, "v0.0.6", "v0.0.6\n"},
+		{[]string{"version"}, "v0.0.6", "v0.0.6\n"},
+		{[]string{"version"}, "dev-1a2b3c4", "dev-1a2b3c4\n"},
+		{[]string{"--version"}, "", "dev\n"},
+	} {
+		var out, errb bytes.Buffer
+		e := Env{Stdout: &out, Stderr: &errb, Getenv: func(string) string { return "" }, Version: tc.tag}
+		if code := Run(context.Background(), tc.args, e); code != ExitOK || out.String() != tc.want || errb.String() != "" {
+			t.Errorf("%v tag %q: code=%d out=%q err=%q", tc.args, tc.tag, code, out.String(), errb.String())
+		}
+	}
+	// Extra arguments are not a version request.
+	if code, _, _ := run(t, fake{}, nil, true, "version", "now"); code != ExitUsage {
+		t.Errorf("version with an argument: code %d", code)
+	}
+}

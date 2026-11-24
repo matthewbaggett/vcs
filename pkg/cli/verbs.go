@@ -824,6 +824,19 @@ var Tree = []Verb{
 		},
 	},
 	{
+		Noun: "version", Name: "",
+		Usage:   "vcs version",
+		Summary: "Print the release tag of this binary. `vcs --version` does the same.",
+		Output:  "One line: the tag, such as v0.0.6. A dev build prints dev-<sha>.",
+		Exits:   []string{"0 printed the tag", "64 usage error"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "",
+			OutUsage:       "run vcs version with no other argument",
+			OutUnavailable: "",
+		},
+	},
+	{
 		Noun: "docs", Name: "gen",
 		Usage:   "vcs docs gen <dir>",
 		Summary: "Write one Markdown page for each verb of the command tree.",
