@@ -17,7 +17,7 @@
 <pre><code class="language-text">vcs issue newer &lt;index&gt; [--state open|all] [--kind issue|any]
 </code></pre>
 <h2 id="output">Output</h2>
-<p>One row for each item, tab-separated, no header: index, kind, author, title. The kind is issue or pr. Issues and pull requests share one index space, so a mark moves on a pull request. An empty list isn't an error.</p>
+<p>One row for each item, tab-separated, no header: index, kind, user, title. The kind is issue or pr. The user is the login that opened the item. Issues and pull requests share one index space, so a mark moves on a pull request. An empty list isn't an error.</p>
 <h2 id="example">Example</h2>
 <p>The output below is an example with made-up data, not a real run.</p>
 <pre><code class="language-text">$ vcs issue newer 180 --kind any

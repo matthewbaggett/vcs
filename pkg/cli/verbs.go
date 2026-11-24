@@ -322,7 +322,7 @@ var Tree = []Verb{
 		Noun: "issue", Name: "newer",
 		Usage:   "vcs issue newer <index> [--state open|all] [--kind issue|any]",
 		Summary: "List the issues with an index higher than a mark, newest first.",
-		Output:  "One row for each item, tab-separated, no header: index, kind, author, title. The kind is issue or pr. Issues and pull requests share one index space, so a mark moves on a pull request. An empty list isn't an error.",
+		Output:  "One row for each item, tab-separated, no header: index, kind, user, title. The kind is issue or pr. The user is the login that opened the item. Issues and pull requests share one index space, so a mark moves on a pull request. An empty list isn't an error.",
 		Flags: []Flag{
 			{"--state", "Keep open items, or all. The default is open."},
 			{"--kind", "Keep issues only, or any item with a pull request too. The default is issue."},

@@ -12,7 +12,7 @@ vcs issue newer <index> [--state open|all] [--kind issue|any]
 
 ## Output
 
-One row for each item, tab-separated, no header: index, kind, author, title. The kind is issue or pr. Issues and pull requests share one index space, so a mark moves on a pull request. An empty list isn't an error.
+One row for each item, tab-separated, no header: index, kind, user, title. The kind is issue or pr. The user is the login that opened the item. Issues and pull requests share one index space, so a mark moves on a pull request. An empty list isn't an error.
 
 ## Example
 
