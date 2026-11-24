@@ -90,7 +90,7 @@ func TestIssueView(t *testing.T) {
 	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v1/repos/o/r/issues/8":
-			w.Write([]byte(`{"number":8,"title":"Thin","state":"open","body":"Body","labels":[{"name":"plan"}],"milestone":{"title":"v1"}}`))
+			w.Write([]byte(`{"id":3990,"html_url":"https://git.grey.ooo/o/r/issues/8","number":8,"title":"Thin","state":"open","body":"Body","labels":[{"name":"plan"}],"milestone":{"title":"v1"}}`))
 		case "/api/v1/repos/o/r/issues/8/comments":
 			w.Write([]byte(`[{"user":{"login":"ann"},"created_at":"2026-01-02T00:00:00Z","body":"Hi"}]`))
 		default:
@@ -101,7 +101,7 @@ func TestIssueView(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Number != 8 || got.Title != "Thin" || got.Body != "Body" || got.Milestone != "v1" || len(got.Comments) != 1 || got.Comments[0].Author != "ann" {
+	if got.Number != 8 || got.Title != "Thin" || got.Body != "Body" || got.Milestone != "v1" || len(got.Comments) != 1 || got.Comments[0].Author != "ann" || got.ID != 3990 || got.URL != "https://git.grey.ooo/o/r/issues/8" {
 		t.Errorf("issue = %+v", got)
 	}
 	if _, err := c.IssueView(context.Background(), 99); err == nil {

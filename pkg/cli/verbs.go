@@ -286,7 +286,7 @@ var Tree = []Verb{
 		Noun: "issue", Name: "view",
 		Usage:   "vcs issue view <n>",
 		Summary: "Print one issue with its body and its comments.",
-		Output:  "A first row, tab-separated: number, title, state, labels, milestone. Then a blank line and the body. Then each comment: a blank line, a row of `comment`, the writer, and the date, and the text.",
+		Output:  "A first row, tab-separated: number, title, state, labels, milestone, global id, web address. The id and the address stay empty when the driver has none. Then a blank line and the body. Then each comment: a blank line, a row of `comment`, the writer, and the date, and the text.",
 		Exits:   []string{"0 printed the issue", "1 the call failed or the issue isn't found", "64 usage error", "69 no usable driver, or the driver has no issue view"},
 		Hints: map[string]string{
 			OutOK:          "",

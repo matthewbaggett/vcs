@@ -851,10 +851,15 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		if err != nil {
 			return fail(env, err)
 		}
-		row(env, strconv.Itoa(i.Number), i.Title, i.State, strings.Join(i.Labels, ","), i.Milestone)
-		fmt.Fprintf(env.Stdout, "\n%s\n", strings.TrimRight(i.Body, "\n"))
+		id := ""
+		if i.ID != 0 {
+			id = strconv.FormatInt(i.ID, 10)
+		}
+		row(env, strconv.Itoa(i.Number), i.Title, i.State, strings.Join(i.Labels, ","), i.Milestone, id, i.URL)
+		text := func(s string) string { return strings.TrimRight(strings.ReplaceAll(s, "\r", ""), "\n") }
+		fmt.Fprintf(env.Stdout, "\n%s\n", text(i.Body))
 		for _, cm := range i.Comments {
-			fmt.Fprintf(env.Stdout, "\ncomment\t%s\t%s\n%s\n", field(cm.Author), field(cm.Created), strings.TrimRight(cm.Body, "\n"))
+			fmt.Fprintf(env.Stdout, "\ncomment\t%s\t%s\n%s\n", field(cm.Author), field(cm.Created), text(cm.Body))
 		}
 	case "ci failed":
 		return ciFailed(ctx, c, env, o.pos[0])

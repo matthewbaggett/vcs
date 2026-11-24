@@ -170,6 +170,8 @@ type IssueInfo struct {
 	Milestone string
 	Body      string
 	Comments  []Comment
+	ID        int64  // the global id of the issue, which differs from the number. Zero when the driver has none
+	URL       string // the web address of the issue. Empty when the driver has none
 }
 
 // Comment is one comment on an issue or a pull request.
