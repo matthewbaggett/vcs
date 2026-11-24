@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The vcs comment edit command | vcs</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="../index.html">vcs</a><a class="jump" href="#pages">Pages</a></header>
+<div class="layout">
+<main>
+<h1 id="the-vcs-comment-edit-command">The <code>vcs comment edit</code> command</h1>
+<p>Replace the text of one comment. Find the id with vcs comment list. The prose lint runs first.</p>
+<p>The command tree generates this page. Don't edit it by hand.</p>
+<h2 id="usage">Usage</h2>
+<pre><code class="language-text">vcs comment edit &lt;id&gt; (--body &lt;text&gt; | --body-file &lt;path&gt;)
+</code></pre>
+<h2 id="output">Output</h2>
+<p>One line: <code>ok</code>.</p>
+<h2 id="example">Example</h2>
+<p>The output below is an example with made-up data, not a real run.</p>
+<pre><code class="language-text">$ vcs comment edit 501 --body &quot;Fixed in the pull request.&quot;
+ok
+</code></pre>
+<h2 id="flags">Flags</h2>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--body</code></td>
+<td>The new comment text.</td>
+</tr>
+<tr>
+<td><code>--body-file</code></td>
+<td>A file that holds the new comment text. Use - for standard input.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="exit-codes">Exit codes</h2>
+<ul>
+<li>0 edited</li>
+<li>1 the call failed or the comment isn't found</li>
+<li>64 usage error, or both or neither of the body flags</li>
+<li>65 the text fails the prose lint, and the command sends nothing</li>
+<li>69 no usable driver, or the driver has no comment support</li>
+</ul>
+<h2 id="agent-hints">Agent hints</h2>
+<p>A person never sees these. An agent sees one as a <code>vcs: next:</code> line on stderr.</p>
+<table>
+<thead>
+<tr>
+<th>Outcome</th>
+<th>Hint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fail</td>
+<td>get the id again with vcs comment list</td>
+</tr>
+<tr>
+<td>lint</td>
+<td>fix each finding that vcs printed, then run the command again</td>
+</tr>
+<tr>
+<td>ok</td>
+<td>run vcs comment list to check the text</td>
+</tr>
+<tr>
+<td>unavailable</td>
+<td>stop and ask the user. This host has no comment support yet</td>
+</tr>
+<tr>
+<td>usage</td>
+<td>give the comment id and one of --body or --body-file</td>
+</tr>
+</tbody>
+</table>
+
+</main>
+<nav class="side" id="pages" aria-label="Pages">
+<h2>Guide</h2>
+<ul>
+<li><a href="../index.html">Overview</a></li>
+<li><a href="../install.html">Install</a></li>
+<li><a href="../quickstart.html">Quickstart</a></li>
+<li><a href="../concepts.html">Concepts</a></li>
+</ul>
+<h2>Reference</h2>
+<ul>
+<li><a href="../configuration.html">Configuration</a></li>
+<li><a href="../artifacts.html">Artifacts</a></li>
+<li><a href="../thin-scripts.html">Thin scripts</a></li>
+<li><a href="../release-pipeline.html">Release pipeline</a></li>
+<li><a href="../contributing.html">Contributing</a></li>
+<li><a href="../commands.html">Commands</a></li>
+<li><a href="../exit-codes.html">Exit codes and agent hints</a></li>
+</ul>
+<h2>vcs attach</h2>
+<ul>
+<li><a href="../commands/attach.html">attach</a></li>
+</ul>
+<h2>vcs board</h2>
+<ul>
+<li><a href="../commands/board-add.html">board add</a></li>
+<li><a href="../commands/board-list.html">board list</a></li>
+<li><a href="../commands/board-move.html">board move</a></li>
+<li><a href="../commands/board-view.html">board view</a></li>
+</ul>
+<h2>vcs ci</h2>
+<ul>
+<li><a href="../commands/ci-artifact-get.html">ci artifact get</a></li>
+<li><a href="../commands/ci-artifacts.html">ci artifacts</a></li>
+<li><a href="../commands/ci-failed.html">ci failed</a></li>
+<li><a href="../commands/ci-jobs.html">ci jobs</a></li>
+<li><a href="../commands/ci-log.html">ci log</a></li>
+<li><a href="../commands/ci-rerun.html">ci rerun</a></li>
+<li><a href="../commands/ci-runs.html">ci runs</a></li>
+</ul>
+<h2>vcs comment</h2>
+<ul>
+<li><a href="../commands/comment-add.html">comment add</a></li>
+<li><a href="../commands/comment-delete.html">comment delete</a></li>
+<li><a href="../commands/comment-edit.html" aria-current="page">comment edit</a></li>
+<li><a href="../commands/comment-list.html">comment list</a></li>
+</ul>
+<h2>vcs docs</h2>
+<ul>
+<li><a href="../commands/docs-gen.html">docs gen</a></li>
+</ul>
+<h2>vcs git</h2>
+<ul>
+<li><a href="../commands/git-branch.html">git branch</a></li>
+<li><a href="../commands/git-commit.html">git commit</a></li>
+<li><a href="../commands/git-merge.html">git merge</a></li>
+<li><a href="../commands/git-push.html">git push</a></li>
+<li><a href="../commands/git-rebase.html">git rebase</a></li>
+</ul>
+<h2>vcs issue</h2>
+<ul>
+<li><a href="../commands/issue-create.html">issue create</a></li>
+<li><a href="../commands/issue-edit.html">issue edit</a></li>
+<li><a href="../commands/issue-list.html">issue list</a></li>
+<li><a href="../commands/issue-view.html">issue view</a></li>
+</ul>
+<h2>vcs label</h2>
+<ul>
+<li><a href="../commands/label-create.html">label create</a></li>
+<li><a href="../commands/label-list.html">label list</a></li>
+<li><a href="../commands/label-rename.html">label rename</a></li>
+</ul>
+<h2>vcs milestone</h2>
+<ul>
+<li><a href="../commands/milestone-create.html">milestone create</a></li>
+<li><a href="../commands/milestone-list.html">milestone list</a></li>
+<li><a href="../commands/milestone-view.html">milestone view</a></li>
+</ul>
+<h2>vcs pr</h2>
+<ul>
+<li><a href="../commands/pr-create.html">pr create</a></li>
+<li><a href="../commands/pr-edit.html">pr edit</a></li>
+<li><a href="../commands/pr-heal.html">pr heal</a></li>
+<li><a href="../commands/pr-list.html">pr list</a></li>
+<li><a href="../commands/pr-merge.html">pr merge</a></li>
+<li><a href="../commands/pr-ready.html">pr ready</a></li>
+<li><a href="../commands/pr-status.html">pr status</a></li>
+<li><a href="../commands/pr-tick.html">pr tick</a></li>
+<li><a href="../commands/pr-watch.html">pr watch</a></li>
+</ul>
+<h2>vcs session</h2>
+<ul>
+<li><a href="../commands/session-import.html">session import</a></li>
+<li><a href="../commands/session-login.html">session login</a></li>
+<li><a href="../commands/session-logout.html">session logout</a></li>
+<li><a href="../commands/session-status.html">session status</a></li>
+</ul>
+<h2>vcs site</h2>
+<ul>
+<li><a href="../commands/site-gen.html">site gen</a></li>
+</ul>
+<h2>vcs stopwatch</h2>
+<ul>
+<li><a href="../commands/stopwatch-list.html">stopwatch list</a></li>
+</ul>
+<h2>vcs time</h2>
+<ul>
+<li><a href="../commands/time-add.html">time add</a></li>
+<li><a href="../commands/time-list.html">time list</a></li>
+<li><a href="../commands/time-total.html">time total</a></li>
+</ul>
+</nav>
+</div>
+</body>
+</html>

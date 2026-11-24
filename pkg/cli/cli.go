@@ -444,7 +444,12 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		if code := lintText(env, o.flags["body"]); code != ExitOK {
 			return code
 		}
-	case "comment add":
+	case "comment list", "comment delete":
+		if len(o.pos) != 1 || !isNum(o.pos[0]) {
+			return usage(env, v)
+		}
+		n, _ = strconv.Atoi(o.pos[0])
+	case "comment add", "comment edit":
 		if len(o.pos) != 1 || (o.flags["body"] == "") == (o.flags["body-file"] == "") {
 			return usage(env, v)
 		}
@@ -630,6 +635,12 @@ func fail(env Env, err error) int {
 
 func field(s string) string {
 	return strings.NewReplacer("\t", " ", "\n", " ", "\r", " ").Replace(s)
+}
+
+// commentLine puts a comment on one line. Each newline becomes the two characters \n.
+func commentLine(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	return strings.NewReplacer("\n", `\n`, "\r", " ").Replace(s)
 }
 
 func row(env Env, cols ...string) {
@@ -1014,6 +1025,32 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 			return fail(env, err)
 		}
 		fmt.Fprintln(env.Stdout, "comment posted")
+	case "comment list", "comment edit", "comment delete":
+		cm, ok := c.(forge.CommentManager)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no comment support yet")
+			return ExitUnavailable
+		}
+		switch v.Name {
+		case "list":
+			rows, err := cm.CommentList(ctx, n)
+			if err != nil {
+				return fail(env, err)
+			}
+			for _, r := range rows {
+				row(env, strconv.FormatInt(r.ID, 10), r.Author, r.Created, commentLine(r.Body), r.Updated)
+			}
+		case "edit":
+			if err := cm.CommentEdit(ctx, int64(n), o.flags["body"]); err != nil {
+				return fail(env, err)
+			}
+			fmt.Fprintln(env.Stdout, "ok")
+		case "delete":
+			if err := cm.CommentDelete(ctx, int64(n)); err != nil {
+				return fail(env, err)
+			}
+			fmt.Fprintln(env.Stdout, "ok")
+		}
 	case "ci log":
 		text, err := c.CILog(ctx, int64(n))
 		if errors.Is(err, forge.ErrNoLog) {
