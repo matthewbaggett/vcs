@@ -279,6 +279,20 @@ var Tree = []Verb{
 		},
 	},
 	{
+		Noun: "pr", Name: "bind",
+		Usage:   "vcs pr bind [<number>] [--branch <name>]",
+		Summary: "Find the pull request of a branch and print what a session needs to start work on it: the state, the CI word, and each red job. It only reads. It starts no watcher. With two open pull requests on one branch, it takes the newest.",
+		Output:  "A pr row: pr, number, state, draft, mergeable, conflicted files, ci, head sha, url. Then one red row for each red job: red, run id, job id, job name, first error. A line on stderr says how to wait: vcs pr watch.",
+		Flags:   []Flag{{"--branch <name>", "The head branch to search for. The default is the current branch of the checkout."}},
+		Exits:   []string{"0 printed the rows", "1 no open pull request has the branch, or a call failed", "64 usage error", "69 no usable driver, or the driver has no pr list"},
+		Hints: map[string]string{
+			OutOK:          "read each red row with vcs ci log <job id>, or wait with vcs pr watch <number>",
+			OutFail:        "check the branch name, and that the pull request is open",
+			OutUsage:       "give one number, or a --branch, not both",
+			OutUnavailable: "stop and ask the user. This host has no pr list yet",
+		},
+	},
+	{
 		Noun: "pr", Name: "list",
 		Usage:   "vcs pr list [--state open|closed|all] [--label <name,name>] [--milestone <title>] [--ci] [--limit <n>]",
 		Summary: "List pull requests, newest first.",
