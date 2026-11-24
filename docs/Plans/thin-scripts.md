@@ -33,7 +33,8 @@ request. It reaches every project that imports that repository.
 | `vcs-issue.sh edit` | `vcs issue edit` | Ready to switch |
 | `vcs-issue.sh` other actions | none | Gap |
 | `vcs-issue-list.sh`, `vcs-issue-view.sh` | `vcs issue list`, `view` | Ready to switch |
-| `vcs-issue-new.sh`, `vcs-issue-timeline.sh` | none | Gap |
+| `vcs-issue-new.sh` | none | Gap |
+| `vcs-issue-timeline.sh` | `vcs issue timeline` | Ready to switch |
 | `vcs-comment.sh` | `vcs comment add` | Ready to switch |
 | `vcs-board.sh` | `vcs board list`, `view`, `add`, `move` | Needs a live proof with a session |
 | `vcs-ci-runs.sh`, `vcs-ci-jobs.sh`, `vcs-ci-log.sh` | `vcs ci runs`, `jobs`, `log` | Ready to switch |

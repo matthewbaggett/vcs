@@ -285,3 +285,37 @@ func TestCommitStatuses(t *testing.T) {
 		t.Errorf("want ErrNotFound, got %v", err)
 	}
 }
+
+func TestIssueTimeline(t *testing.T) {
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/repos/o/r/issues/5/timeline" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.URL.Query().Get("page") != "1" {
+			w.Write([]byte("[]"))
+			return
+		}
+		w.Write([]byte(`[
+ {"id":4,"created_at":"2026-01-02T00:00:00Z","type":"pull_push","body":"{\"is_force_push\":true,\"commit_ids\":[\"aaa\",\"bbb\"]}","user":{"login":"u"}},
+ {"id":3,"created_at":"2026-01-01T00:00:00Z","type":"change_title","old_title":"a","new_title":"b","user":{"login":"u"}},
+ {"id":2,"created_at":"2026-01-01T00:00:00Z","type":"label","body":"1","label":{"name":"x"},"user":{"login":"u"}},
+ {"id":1,"created_at":"2026-01-01T00:00:00Z","type":"label","body":"","label":{"name":"y"},"user":{"login":"u"}},
+ {"id":5,"created_at":"2026-01-03T00:00:00Z","type":"commit_ref","ref_commit_sha":"abc","body":"x","user":{"login":"u"}}]`))
+	})
+	ev, err := c.IssueTimeline(context.Background(), 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, e := range ev {
+		got = append(got, e.Detail)
+	}
+	want := []string{"-y", "+x", "a -> b", "force-push aaa,bbb", "abc"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("details = %q, want %q", got, want)
+	}
+	if _, err := c.IssueTimeline(context.Background(), 6); !errors.Is(err, forge.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
