@@ -3,9 +3,11 @@ package forge
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // PRStatus is the state of one pull request.
@@ -296,5 +298,27 @@ type Error struct {
 }
 
 func (e *Error) Error() string {
-	return fmt.Sprintf("server answered %d for %s", e.Status, e.Path)
+	msg := fmt.Sprintf("server answered %d for %s", e.Status, e.Path)
+	if why := e.Message(); why != "" {
+		msg += ": " + why
+	}
+	return msg
+}
+
+// Message is the reason the host gave, on one line of at most 200 characters. A Forgejo or Gitea
+// body is JSON with a message field. Any other body is used as it is. A body with nothing in it
+// gives an empty string.
+func (e *Error) Message() string {
+	text := strings.TrimSpace(e.Body)
+	var parsed struct {
+		Message string `json:"message"`
+	}
+	if json.Unmarshal([]byte(text), &parsed) == nil && strings.TrimSpace(parsed.Message) != "" {
+		text = parsed.Message
+	}
+	text = strings.Join(strings.Fields(text), " ")
+	if len(text) > 200 {
+		text = text[:200] + "..."
+	}
+	return text
 }
