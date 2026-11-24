@@ -31,6 +31,7 @@ edited 13
 | `--body` | The new body text. |
 | `--body-file` | A file that holds the new body. Use - for standard input. |
 | `--base` | The new base branch. |
+| `--trace` | Name the skill and step that sent the text, as skill or skill:step. $VCS_TRACE is the fallback. The command adds a hidden trace line to the end of the body. |
 
 ## Exit codes
 
