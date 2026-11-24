@@ -736,6 +736,21 @@ var Tree = []Verb{
 		},
 	},
 	{
+		Noun: "workflow", Name: "dispatch",
+		Usage:   "vcs workflow dispatch <file> --ref <branch|tag>",
+		Summary: "Start one run of a workflow that has a workflow_dispatch trigger. The server gives no run id. Find the run with vcs ci runs. The caller decides whether a manual run is safe.",
+		Output:  "ok.",
+		Flags:   []Flag{{"--ref <branch|tag>", "The branch or tag to run the workflow at. Required."}},
+		Exits:   []string{"0 the server accepted the dispatch", "1 the call failed, or the workflow or the ref is missing", "64 usage error", "69 no usable driver", "77 the server refused the token"},
+		Hints: map[string]string{
+			OutOK:          "find the run with vcs ci runs",
+			OutFail:        "check the file name, the ref, and that the workflow has a workflow_dispatch trigger",
+			OutUsage:       "give a file name such as nightly.yml and a --ref of a branch or tag",
+			OutUnavailable: "stop and ask the user. This host has no workflow dispatch yet",
+			OutNoSession:   "stop and ask the user for a token with the write:repository scope",
+		},
+	},
+	{
 		Noun: "protection", Name: "list",
 		Usage:   "vcs protection list [<branch>]",
 		Summary: "List the branch protection rules of the repository. With a branch, keep the rules that cover it. A merge that the server refuses with a green run points at this list.",

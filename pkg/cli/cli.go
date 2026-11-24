@@ -164,7 +164,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true, "remote": true, "kind": true, "value-file": true, "from-env": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true, "remote": true, "kind": true, "value-file": true, "from-env": true, "ref": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true, "pushed": true, "latest": true, "description": true}
@@ -368,6 +368,10 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 	case "time add", "time list", "time total", "stopwatch list":
 		if code := timeCheck(env, v, o); code >= 0 {
 			return code
+		}
+	case "workflow dispatch":
+		if len(o.pos) != 1 || !workflowFile.MatchString(o.pos[0]) || !refOK(o.flags["ref"]) {
+			return usage(env, v)
 		}
 	case "protection list":
 		if len(o.pos) > 1 || (len(o.pos) == 1 && !branchName.MatchString(o.pos[0])) {
@@ -1098,6 +1102,16 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 				return ExitFound
 			}
 		}
+	case "workflow dispatch":
+		wd, ok := c.(forge.WorkflowDispatcher)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no workflow dispatch yet")
+			return ExitUnavailable
+		}
+		if err := wd.WorkflowDispatch(ctx, o.pos[0], o.flags["ref"]); err != nil {
+			return fail(env, err)
+		}
+		fmt.Fprintln(env.Stdout, "ok")
 	case "protection list":
 		pl, ok := c.(forge.ProtectionLister)
 		if !ok {

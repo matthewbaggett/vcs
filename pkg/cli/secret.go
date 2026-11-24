@@ -77,3 +77,19 @@ func protectionCovers(rule, branch string) bool {
 	re, err := regexp.Compile(b.String())
 	return err == nil && re.MatchString(branch)
 }
+
+// workflowFile is the form of a workflow file name that "workflow dispatch" accepts.
+var workflowFile = regexp.MustCompile(`^[A-Za-z0-9._-]+\.ya?ml$`)
+
+// refOK says whether a ref is a plausible branch or tag name: no space, no control character, no "..".
+func refOK(ref string) bool {
+	if ref == "" || strings.Contains(ref, "..") {
+		return false
+	}
+	for _, r := range ref {
+		if r <= ' ' || r == 0x7f {
+			return false
+		}
+	}
+	return true
+}
