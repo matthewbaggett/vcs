@@ -5,6 +5,10 @@ const (
 	ExitOK          = 0
 	ExitFail        = 1
 	ExitFound       = 2 // stopwatch list --check found a stopwatch. It means "found", not "failed".
+	ExitConflict    = 2 // pr watch: the pull request conflicts with its base branch
+	ExitClosed      = 3 // pr watch: the pull request is closed or merged
+	ExitTimeout     = 4 // pr watch: the timeout came first
+	ExitBusy        = 5 // pr watch: another watcher of this pull request is alive
 	ExitUsage       = 64
 	ExitLint        = 65
 	ExitUnavailable = 69
@@ -227,17 +231,19 @@ var Tree = []Verb{
 	},
 	{
 		Noun: "pr", Name: "watch",
-		Usage:   "vcs pr watch <n> [--interval <seconds>] [--timeout <seconds>]",
-		Summary: "Poll the checks and the merge state of one pull request until both are good.",
-		Output:  "One row each time the state changes, in the format of vcs pr status.",
+		Usage:   "vcs pr watch <n> [--interval <seconds>] [--timeout <seconds>] [--remote <name>]\n       vcs pr watch <n> --status",
+		Summary: "Poll the checks and the merge state of one pull request until both settle.",
+		Output:  "One line each time the state changes: time, number, head, ci, and merge. Then a RESULT line. A failed check or a conflict adds a list before the RESULT line. With --status: watching #<n> pid=<pid>, or not watching #<n>.",
 		Flags: []Flag{
 			{"--interval", "Seconds between two polls. The default is 30."},
 			{"--timeout", "Seconds to wait before the command gives up. The default is 3600."},
+			{"--remote", "The git remote that holds the pull request refs. The default is origin."},
+			{"--status", "Tell whether a watcher of this pull request is alive. Exit 0 if one is, 1 if none is."},
 		},
-		Exits: []string{"0 the pull request merged, or its checks are green and its merge state is clean", "1 a check failed, the pull request has a conflict or closed, the call failed, or the wait timed out", "64 usage error", "69 no usable driver"},
+		Exits: []string{"0 every check passed, every required check has a status, and the merge is clean", "1 a check failed, or a read failed", "2 the pull request conflicts with its base branch", "3 the pull request closed or merged", "4 the timeout came first", "5 another watcher of this pull request is alive", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "the pull request is good. Hand it off, or mark it ready with vcs pr ready <n>",
-			OutFail:        "read the last row. If ci is failure, run vcs ci runs --sha <head sha> --limit 3 and vcs ci log. If conflicted files show, merge main in. Then run vcs pr watch <n> again",
+			OutFail:        "read the last lines. If a check failed, run vcs ci runs --sha <head sha> --limit 3 and vcs ci log. If conflicted files show, merge main in. Then run vcs pr watch <n> again",
 			OutUsage:       "run vcs pr watch <n> with the number of one pull request",
 			OutUnavailable: "stop and ask the user. This host has no driver yet",
 		},

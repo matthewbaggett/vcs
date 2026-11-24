@@ -19,6 +19,30 @@ type PRStatus struct {
 	URL             string
 }
 
+// Check is the newest status of one CI context on a commit.
+type Check struct {
+	Context string
+	Status  string // success, failure, error, pending, or warning
+	URL     string
+}
+
+// WatchState is what a watch reads in one poll: the pull request state, the head commit, the
+// base branch, the newest status of each context, and the contexts that the base branch requires.
+// A required context is a glob. An unreadable rule leaves Required empty.
+type WatchState struct {
+	State    string // open, closed, or merged
+	HeadSHA  string
+	Base     string
+	Checks   []Check
+	Required []string
+}
+
+// PRWatcher is the optional interface of a driver that reads a WatchState. A driver without it
+// gets a state that the command builds from PRStatus.
+type PRWatcher interface {
+	PRWatch(ctx context.Context, n int) (WatchState, error)
+}
+
 // CommitTimer is an optional call: the commit time of one commit, in UTC, such as
 // 2026-10-17T10:00:00Z. A driver that has no such call leaves it out.
 type CommitTimer interface {

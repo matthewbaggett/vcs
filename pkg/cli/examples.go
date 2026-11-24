@@ -15,7 +15,7 @@ var Examples = map[string]string{
 	"pr merge":         "$ vcs pr merge 13 --method squash\nmerged 13",
 	"pr heal":          "$ vcs pr heal sweep --live 12,13\ncleared\t9\tclosed\ncleared\t10\tno-worker",
 	"pr tick":          "$ vcs pr tick --dry-run\nWOULD-MERGE\t12\t5888000a1bc3\nDRAFT-RED\t13\t29a8b0f4c2d1",
-	"pr watch":         "$ vcs pr watch 12 --interval 30\nopen\ttrue\ttrue\t0\tpending\t29a8b0f4c2d1\thttps://forge.example/acme/app/pulls/12\nopen\tfalse\ttrue\t0\tsuccess\t29a8b0f4c2d1\thttps://forge.example/acme/app/pulls/12",
+	"pr watch":         "$ vcs pr watch 12 --interval 30\n2026-10-17T10:00:00Z #12 head=29a8b0f ci=pending (1/2 done, 0 failed) merge=clean\n2026-10-17T10:01:00Z #12 head=29a8b0f ci=green (2/2 done, 0 failed) merge=clean\nRESULT: every check passed and the pull request merges cleanly",
 	"pr list":          "$ vcs pr list --state open --ci\n12\tAdd the retry\tfix/retry\tmain\ttrue\tsuccess\tbug\tv1.2\n15\tDocs for the board\tdocs/board\tmain\ttrue\tpending\t\t",
 	"issue list":       "$ vcs issue list --state open --limit 2\n14\tFix the retry\topen\tbug\tv1.2\n16\tAdd the board\topen\t\t",
 	"issue view":       "$ vcs issue view 14\n14\tFix the retry\topen\tbug\tv1.2\n\nThe client gives up after one failed call.\n\ncomment\tmaria\t2026-11-20\nI can reproduce this.",
