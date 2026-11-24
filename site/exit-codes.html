@@ -240,6 +240,10 @@
 <td>0 printed; 1 the call failed; 64 usage error; 69 no usable driver</td>
 </tr>
 <tr>
+<td><a href="commands/workflow-dispatch.html"><code>vcs workflow dispatch</code></a></td>
+<td>0 the server accepted the dispatch; 1 the call failed, or the workflow or the ref is missing; 64 usage error; 69 no usable driver; 77 the server refused the token</td>
+</tr>
+<tr>
 <td><a href="commands/protection-list.html"><code>vcs protection list</code></a></td>
 <td>0 listed, or no rule covers the branch; 1 the call failed; 64 usage error; 69 no usable driver; 77 the server refused the token</td>
 </tr>
@@ -453,6 +457,10 @@
 <h2>vcs version</h2>
 <ul>
 <li><a href="commands/version.html">version</a></li>
+</ul>
+<h2>vcs workflow</h2>
+<ul>
+<li><a href="commands/workflow-dispatch.html">workflow dispatch</a></li>
 </ul>
 </nav>
 </div>
