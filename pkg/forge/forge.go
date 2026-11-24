@@ -64,6 +64,22 @@ type StatusLister interface {
 	CommitStatuses(ctx context.Context, sha string) ([]CommitStatus, error)
 }
 
+// TimelineEvent is one event on the timeline of an issue or a pull request. Detail holds the
+// text that the command prints for the type: a label change as +name or -name, a title change
+// as old -> new, a push as push <sha>,<sha>, and for other types the text of the event.
+type TimelineEvent struct {
+	ID      int64
+	Created string
+	Type    string
+	User    string
+	Detail  string
+}
+
+// Timeliner is the optional interface of a driver that lists the timeline of one issue.
+type Timeliner interface {
+	IssueTimeline(ctx context.Context, n int) ([]TimelineEvent, error)
+}
+
 // Run is one CI run.
 type Run struct {
 	ID     int64

@@ -83,6 +83,19 @@ var Tree = []Verb{
 		},
 	},
 	{
+		Noun: "issue", Name: "timeline",
+		Usage:   "vcs issue timeline <n>",
+		Summary: "Print the events of one issue or pull request, oldest first.",
+		Output:  "Rows, tab-separated, no header: event id, created, type, user, detail. The type is the one that the server gives, such as comment, label, change_title, pull_push, or commit_ref. The detail of a label is +name or -name. The detail of a title change is old -> new. The detail of a push is push or force-push with the commit ids. Other types print their text on one line. An empty timeline isn't an error.",
+		Exits:   []string{"0 printed the rows", "1 the call failed or the issue isn't found", "64 usage error", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "compare the time of the last event with the time of your claim, then decide if the claim is stale",
+			OutFail:        "check the number with vcs issue list, then run the command again",
+			OutUsage:       "run vcs issue timeline <n> with the number of one issue or pull request",
+			OutUnavailable: "stop and ask the user. This host has no driver for timelines yet",
+		},
+	},
+	{
 		Noun: "pr", Name: "create", Sends: true,
 		Usage:   "vcs pr create <title> --head <branch> [--base <branch>] (--body <text> | --body-file <path>) [--draft]",
 		Summary: "Open a pull request. The command checks the branch name and the AI credit line, and the prose lint runs on the title and body.",

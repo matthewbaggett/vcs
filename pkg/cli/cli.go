@@ -313,7 +313,7 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 		if v.Noun == "issue" && o.flags["ci"] != "" {
 			return usage(env, v)
 		}
-	case "issue view":
+	case "issue view", "issue timeline":
 		if len(o.pos) != 1 || !isNum(o.pos[0]) {
 			return usage(env, v)
 		}
@@ -890,6 +890,19 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		return ciFailed(ctx, c, env, o.pos[0])
 	case "pr statuses":
 		return prStatuses(ctx, c, env, o)
+	case "issue timeline":
+		t, ok := c.(forge.Timeliner)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no issue timeline yet")
+			return ExitUnavailable
+		}
+		evs, err := t.IssueTimeline(ctx, n)
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, e := range evs {
+			row(env, strconv.FormatInt(e.ID, 10), e.Created, e.Type, e.User, e.Detail)
+		}
 	case "pr heal":
 		return heal(ctx, c, env, o)
 	case "pr tick":

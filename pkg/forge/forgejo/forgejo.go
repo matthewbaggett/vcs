@@ -183,6 +183,72 @@ func (c *Client) CommitStatuses(ctx context.Context, sha string) ([]forge.Commit
 	return out, nil
 }
 
+// IssueTimeline reads every event of one issue or pull request, oldest first.
+func (c *Client) IssueTimeline(ctx context.Context, n int) ([]forge.TimelineEvent, error) {
+	type row struct {
+		ID        int64                  `json:"id"`
+		Created   string                 `json:"created_at"`
+		Type      string                 `json:"type"`
+		Body      string                 `json:"body"`
+		OldTitle  string                 `json:"old_title"`
+		NewTitle  string                 `json:"new_title"`
+		RefCommit string                 `json:"ref_commit_sha"`
+		User      struct{ Login string } `json:"user"`
+		Label     struct{ Name string }  `json:"label"`
+	}
+	var all []row
+	for page := 1; page <= 20; page++ {
+		body, err := c.get(ctx, fmt.Sprintf("repos/%s/issues/%d/timeline?page=%d&limit=50", c.cfg.Repo, n, page))
+		if err != nil {
+			return nil, err
+		}
+		var rows []row
+		if err := json.Unmarshal(body, &rows); err != nil {
+			return nil, fmt.Errorf("the server did not return the timeline of %d", n)
+		}
+		all = append(all, rows...)
+		if len(rows) == 0 {
+			break
+		}
+	}
+	sort.SliceStable(all, func(i, j int) bool {
+		if all[i].Created != all[j].Created {
+			return all[i].Created < all[j].Created
+		}
+		return all[i].ID < all[j].ID
+	})
+	out := make([]forge.TimelineEvent, 0, len(all))
+	for _, r := range all {
+		d := r.Body
+		switch {
+		case r.Type == "label":
+			sign := "+"
+			if r.Body == "" {
+				sign = "-"
+			}
+			d = sign + r.Label.Name
+		case r.Type == "change_title":
+			d = r.OldTitle + " -> " + r.NewTitle
+		case r.Type == "pull_push":
+			var p struct {
+				Force bool     `json:"is_force_push"`
+				IDs   []string `json:"commit_ids"`
+			}
+			if json.Unmarshal([]byte(r.Body), &p) == nil && (p.IDs != nil || p.Force) {
+				word := "push "
+				if p.Force {
+					word = "force-push "
+				}
+				d = word + strings.Join(p.IDs, ",")
+			}
+		case r.Type == "commit_ref" && r.RefCommit != "":
+			d = r.RefCommit
+		}
+		out = append(out, forge.TimelineEvent{ID: r.ID, Created: r.Created, Type: r.Type, User: r.User.Login, Detail: d})
+	}
+	return out, nil
+}
+
 // ciSummary reads every commit status, keeps the newest row of each context, and takes the worst.
 func (c *Client) ciSummary(ctx context.Context, sha string) (string, error) {
 	rows, err := c.newestStatuses(ctx, sha)

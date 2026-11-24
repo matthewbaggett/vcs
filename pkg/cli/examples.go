@@ -5,6 +5,7 @@ package cli
 // A test fails when a verb has no example.
 var Examples = map[string]string{
 	"pr statuses":      "$ vcs pr statuses 5888000a1bc3 --latest\nci / lint\tsuccess\thttps://forge.example/acme/app/actions/runs/9/jobs/1\nci / test\tpending\thttps://forge.example/acme/app/actions/runs/9/jobs/0",
+	"issue timeline":   "$ vcs issue timeline 14\n101\t2026-11-23T09:12:00Z\tlabel\tmatt\t+in-progress\n102\t2026-11-23T09:20:00Z\tcomment\tmatt\tStarted on this.",
 	"pr status":        "$ vcs pr status 12\nopen\tfalse\ttrue\t0\tsuccess\t5888000a1bc3\thttps://forge.example/acme/app/pulls/12",
 	"pr create":        "$ vcs pr create \"Add the retry\" --head fix/retry --body-file body.md --draft\n13\thttps://forge.example/acme/app/pulls/13",
 	"issue create":     "$ vcs issue create \"Fix the retry\" --body-file body.md\n14\thttps://forge.example/acme/app/issues/14",
