@@ -319,3 +319,35 @@ func TestIssueTimeline(t *testing.T) {
 		t.Errorf("want ErrNotFound, got %v", err)
 	}
 }
+
+func TestIssuesNewer(t *testing.T) {
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/repos/o/r/issues" {
+			http.NotFound(w, r)
+			return
+		}
+		q := r.URL.Query()
+		if q.Get("limit") == "1" {
+			w.Write([]byte(`[{"number":9}]`))
+			return
+		}
+		if q.Get("page") != "1" {
+			w.Write([]byte("[]"))
+			return
+		}
+		w.Write([]byte(`[{"number":9,"title":"pr nine","user":{"login":"a"},"pull_request":{}},
+ {"number":8,"title":"eight","user":{"login":"b"}},
+ {"number":5,"title":"old","user":{"login":"c"}}]`))
+	})
+	rows, err := c.IssuesNewer(context.Background(), 5, "open", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 || rows[0].Number != 9 || rows[0].Kind != "pr" || rows[1].Kind != "issue" || rows[1].Author != "b" {
+		t.Fatalf("rows = %+v", rows)
+	}
+	top, err := c.TopIndex(context.Background())
+	if err != nil || top != 9 {
+		t.Errorf("top = %d, %v", top, err)
+	}
+}

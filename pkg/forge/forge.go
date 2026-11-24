@@ -80,6 +80,22 @@ type Timeliner interface {
 	IssueTimeline(ctx context.Context, n int) ([]TimelineEvent, error)
 }
 
+// NewItem is one row of a list of the issues newer than a mark. Kind is issue or pr.
+type NewItem struct {
+	Number int
+	Kind   string
+	Author string
+	Title  string
+}
+
+// Newer is the optional interface of a driver that lists the items above a mark. Issues and pull
+// requests share one index space. With anyKind a pull request is listed too. State is open or all.
+// TopIndex returns the highest index of any issue or pull request, in any state, or 0.
+type Newer interface {
+	IssuesNewer(ctx context.Context, mark int, state string, anyKind bool) ([]NewItem, error)
+	TopIndex(ctx context.Context) (int, error)
+}
+
 // Run is one CI run.
 type Run struct {
 	ID     int64

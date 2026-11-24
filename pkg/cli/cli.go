@@ -164,7 +164,7 @@ func hint(v Verb, code int, o opts, env Env) {
 }
 
 // valued flags take a value. Every other flag is an error.
-var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true, "remote": true}
+var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true, "remote": true, "kind": true}
 
 // boolean flags take no value.
 var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true, "pushed": true, "latest": true, "description": true}
@@ -311,6 +311,23 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 			return usage(env, v)
 		}
 		if v.Noun == "issue" && o.flags["ci"] != "" {
+			return usage(env, v)
+		}
+	case "issue newer":
+		if len(o.pos) != 1 {
+			return usage(env, v)
+		}
+		if m, err := strconv.Atoi(o.pos[0]); err != nil || m < 0 {
+			return usage(env, v)
+		}
+		if s := o.flags["state"]; s != "" && s != "open" && s != "all" {
+			return usage(env, v)
+		}
+		if k := o.flags["kind"]; k != "" && k != "issue" && k != "any" {
+			return usage(env, v)
+		}
+	case "issue top":
+		if len(o.pos) != 0 {
 			return usage(env, v)
 		}
 	case "issue view", "issue timeline":
@@ -890,6 +907,32 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		return ciFailed(ctx, c, env, o.pos[0])
 	case "pr statuses":
 		return prStatuses(ctx, c, env, o)
+	case "issue newer", "issue top":
+		nw, ok := c.(forge.Newer)
+		if !ok {
+			fmt.Fprintln(env.Stderr, "vcs: this host has no issue index list yet")
+			return ExitUnavailable
+		}
+		if v.Name == "top" {
+			top, err := nw.TopIndex(ctx)
+			if err != nil {
+				return fail(env, err)
+			}
+			row(env, strconv.Itoa(top))
+			break
+		}
+		mark, _ := strconv.Atoi(o.pos[0])
+		state := o.flags["state"]
+		if state == "" {
+			state = "open"
+		}
+		items, err := nw.IssuesNewer(ctx, mark, state, o.flags["kind"] == "any")
+		if err != nil {
+			return fail(env, err)
+		}
+		for _, it := range items {
+			row(env, strconv.Itoa(it.Number), it.Kind, it.Author, it.Title)
+		}
 	case "issue timeline":
 		t, ok := c.(forge.Timeliner)
 		if !ok {
