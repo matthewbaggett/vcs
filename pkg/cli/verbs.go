@@ -143,7 +143,7 @@ var Tree = []Verb{
 		Noun: "pr", Name: "rebase",
 		Usage:   "vcs pr rebase <n>",
 		Summary: "Tick the rebase box in the body of a Renovate pull request. Renovate then rebases the branch. Forgejo only.",
-		Output:  "One line: `ok` when the command ticked the box, or `already` when the box was ticked.",
+		Output:  "One line: `ok` when the command ticks the box, or `already` when the box has a tick.",
 		Exits:   []string{"0 ticked, or already ticked", "1 the call failed, or the pull request has no rebase box", "64 usage error", "69 no usable driver, or the host has no rebase box"},
 		Hints: map[string]string{
 			OutOK:          "",

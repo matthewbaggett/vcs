@@ -12,7 +12,7 @@ vcs pr rebase <n>
 
 ## Output
 
-One line: `ok` when the command ticked the box, or `already` when the box was ticked.
+One line: `ok` when the command ticks the box, or `already` when the box has a tick.
 
 ## Example
 
