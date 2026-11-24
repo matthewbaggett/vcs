@@ -815,7 +815,7 @@ var Tree = []Verb{
 		Usage:   "vcs secret delete <name>",
 		Summary: "Delete one Actions secret.",
 		Output:  "ok.",
-		Exits:   []string{"0 deleted", "1 the call failed, or the secret is missing", "64 usage error", "69 no usable driver", "77 the server refused the token"},
+		Exits:   []string{"0 deleted", "1 the call failed, or the secret doesn't exist", "64 usage error", "69 no usable driver", "77 the server refused the token"},
 		Hints: map[string]string{
 			OutOK:          "",
 			OutFail:        "check the name with vcs secret list",
