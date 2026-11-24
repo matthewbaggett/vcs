@@ -49,6 +49,21 @@ type CommitTimer interface {
 	CommitTime(ctx context.Context, sha string) (string, error)
 }
 
+// CommitStatus is one status row that a CI check posted on a commit. A commit holds many rows for
+// one context. The row with the highest ID is the newest.
+type CommitStatus struct {
+	ID          int64
+	Context     string
+	Status      string // success, pending, failure, error, or warning
+	URL         string // a full web address, or empty
+	Description string
+}
+
+// StatusLister is the optional interface of a driver that lists every status row of a commit.
+type StatusLister interface {
+	CommitStatuses(ctx context.Context, sha string) ([]CommitStatus, error)
+}
+
 // Run is one CI run.
 type Run struct {
 	ID     int64

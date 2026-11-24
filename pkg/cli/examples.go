@@ -4,6 +4,7 @@ package cli
 // Each text is made-up fixture output. It shows the shape of the output, not a real run.
 // A test fails when a verb has no example.
 var Examples = map[string]string{
+	"pr statuses":      "$ vcs pr statuses 5888000a1bc3 --latest\nci / lint\tsuccess\thttps://forge.example/acme/app/actions/runs/9/jobs/1\nci / test\tpending\thttps://forge.example/acme/app/actions/runs/9/jobs/0",
 	"pr status":        "$ vcs pr status 12\nopen\tfalse\ttrue\t0\tsuccess\t5888000a1bc3\thttps://forge.example/acme/app/pulls/12",
 	"pr create":        "$ vcs pr create \"Add the retry\" --head fix/retry --body-file body.md --draft\n13\thttps://forge.example/acme/app/pulls/13",
 	"issue create":     "$ vcs issue create \"Fix the retry\" --body-file body.md\n14\thttps://forge.example/acme/app/issues/14",

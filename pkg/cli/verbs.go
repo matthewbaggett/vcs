@@ -66,6 +66,23 @@ var Tree = []Verb{
 		},
 	},
 	{
+		Noun: "pr", Name: "statuses",
+		Usage:   "vcs pr statuses <sha> [--latest] [--description]",
+		Summary: "Print the status rows of one commit, one line for each row.",
+		Output:  "Rows, tab-separated, no header: context, state, address. The server lists every row it ever got, newest first. A state is success, pending, failure, error, or warning. With --description, a fourth column holds the description of the check. An empty list is not an error.",
+		Flags: []Flag{
+			{"--latest", "Keep the newest row of each context, sorted by context."},
+			{"--description", "Add the description as the last column."},
+		},
+		Exits: []string{"0 printed the rows", "1 the call failed or the commit isn't found", "64 usage error", "69 no usable driver"},
+		Hints: map[string]string{
+			OutOK:          "if a state is failure, run vcs ci runs --sha <sha> --limit 3, then vcs ci jobs <run-id>",
+			OutFail:        "check the commit with git log, then run the command again",
+			OutUsage:       "run vcs pr statuses <sha> with one commit",
+			OutUnavailable: "stop and ask the user. This host has no driver for statuses yet",
+		},
+	},
+	{
 		Noun: "pr", Name: "create", Sends: true,
 		Usage:   "vcs pr create <title> --head <branch> [--base <branch>] (--body <text> | --body-file <path>) [--draft]",
 		Summary: "Open a pull request. The command checks the branch name and the AI credit line, and the prose lint runs on the title and body.",

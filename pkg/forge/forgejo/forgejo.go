@@ -153,6 +153,36 @@ func (c *Client) newestStatuses(ctx context.Context, sha string) ([]statusJSON, 
 	return out, nil
 }
 
+// CommitStatuses reads every status row of one commit. A target address that is a path gets the
+// host in front of it.
+func (c *Client) CommitStatuses(ctx context.Context, sha string) ([]forge.CommitStatus, error) {
+	var out []forge.CommitStatus
+	for page := 1; page <= 20; page++ {
+		body, err := c.get(ctx, fmt.Sprintf("repos/%s/commits/%s/statuses?page=%d&limit=50", c.cfg.Repo, sha, page))
+		if err != nil {
+			return nil, err
+		}
+		var rows []struct {
+			statusJSON
+			Description string `json:"description"`
+		}
+		if err := json.Unmarshal(body, &rows); err != nil {
+			return nil, fmt.Errorf("the server did not return statuses for %s", sha)
+		}
+		for _, r := range rows {
+			u := r.TargetURL
+			if strings.HasPrefix(u, "/") {
+				u = c.cfg.BaseURL + u
+			}
+			out = append(out, forge.CommitStatus{ID: r.ID, Context: r.Context, Status: r.Status, URL: u, Description: r.Description})
+		}
+		if len(rows) == 0 {
+			break
+		}
+	}
+	return out, nil
+}
+
 // ciSummary reads every commit status, keeps the newest row of each context, and takes the worst.
 func (c *Client) ciSummary(ctx context.Context, sha string) (string, error) {
 	rows, err := c.newestStatuses(ctx, sha)

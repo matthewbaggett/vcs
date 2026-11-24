@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -166,7 +167,7 @@ func hint(v Verb, code int, o opts, env Env) {
 var valued = map[string]bool{"user": true, "title": true, "repo": true, "host": true, "caller": true, "branch": true, "sha": true, "status": true, "limit": true, "tail": true, "o": true, "interval": true, "timeout": true, "body": true, "body-file": true, "head": true, "base": true, "state": true, "label": true, "milestone": true, "method": true, "due": true, "desc": true, "add-label": true, "rm-label": true, "live": true, "query": true, "trace": true, "remote": true}
 
 // boolean flags take no value.
-var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true, "pushed": true}
+var boolean = map[string]bool{"failed": true, "comment": true, "all": true, "draft": true, "ci": true, "delete-branch": true, "mine": true, "check": true, "dry-run": true, "pushed": true, "latest": true, "description": true}
 
 func parse(args []string) (opts, error) {
 	o := opts{flags: map[string]string{}}
@@ -335,6 +336,10 @@ func dispatch(ctx context.Context, v Verb, o opts, env Env) int {
 			return usage(env, v)
 		}
 		n, _ = strconv.Atoi(o.pos[0])
+	case "pr statuses":
+		if len(o.pos) != 1 || !regexp.MustCompile(`^[0-9A-Za-z._/-]+$`).MatchString(o.pos[0]) {
+			return usage(env, v)
+		}
 	case "ci failed":
 		if len(o.pos) != 1 || !regexp.MustCompile(`^([0-9]{1,6}|[0-9A-Fa-f]{7,40})$`).MatchString(o.pos[0]) {
 			return usage(env, v)
@@ -883,6 +888,8 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		}
 	case "ci failed":
 		return ciFailed(ctx, c, env, o.pos[0])
+	case "pr statuses":
+		return prStatuses(ctx, c, env, o)
 	case "pr heal":
 		return heal(ctx, c, env, o)
 	case "pr tick":
@@ -1390,4 +1397,40 @@ func firstError(log string) string {
 		}
 	}
 	return ""
+}
+
+// prStatuses prints the status rows of one commit, newest first: context, state, address. With
+// --latest it keeps the newest row of each context, sorted by context. With --description it adds
+// the description as a last column.
+func prStatuses(ctx context.Context, c forge.Client, env Env, o opts) int {
+	l, ok := c.(forge.StatusLister)
+	if !ok {
+		fmt.Fprintln(env.Stderr, "vcs: this host has no pr statuses yet")
+		return ExitUnavailable
+	}
+	rows, err := l.CommitStatuses(ctx, o.pos[0])
+	if err != nil {
+		return fail(env, err)
+	}
+	sort.SliceStable(rows, func(i, j int) bool { return rows[i].ID > rows[j].ID })
+	if o.flags["latest"] == "true" {
+		seen := map[string]bool{}
+		kept := rows[:0:0]
+		for _, r := range rows {
+			if !seen[r.Context] {
+				seen[r.Context] = true
+				kept = append(kept, r)
+			}
+		}
+		sort.SliceStable(kept, func(i, j int) bool { return kept[i].Context < kept[j].Context })
+		rows = kept
+	}
+	for _, r := range rows {
+		cols := []string{r.Context, r.Status, r.URL}
+		if o.flags["description"] == "true" {
+			cols = append(cols, r.Description)
+		}
+		row(env, cols...)
+	}
+	return ExitOK
 }
