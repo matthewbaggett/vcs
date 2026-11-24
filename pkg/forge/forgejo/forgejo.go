@@ -249,6 +249,70 @@ func (c *Client) IssueTimeline(ctx context.Context, n int) ([]forge.TimelineEven
 	return out, nil
 }
 
+// IssuesNewer lists the items with an index above mark, newest first. It reads newest first and
+// stops at the first page that holds an index at or below the mark.
+func (c *Client) IssuesNewer(ctx context.Context, mark int, state string, anyKind bool) ([]forge.NewItem, error) {
+	type row struct {
+		Number int                    `json:"number"`
+		Title  string                 `json:"title"`
+		User   struct{ Login string } `json:"user"`
+		PR     *struct{}              `json:"pull_request"`
+	}
+	base := fmt.Sprintf("repos/%s/issues?sort=created&direction=desc&state=%s", c.cfg.Repo, state)
+	if !anyKind {
+		base += "&type=issues"
+	}
+	var out []forge.NewItem
+	for page := 1; page <= 40; page++ {
+		body, err := c.get(ctx, fmt.Sprintf("%s&limit=50&page=%d", base, page))
+		if err != nil {
+			return nil, err
+		}
+		var rows []row
+		if err := json.Unmarshal(body, &rows); err != nil {
+			return nil, fmt.Errorf("the server did not return a list of issues")
+		}
+		if len(rows) == 0 {
+			break
+		}
+		reached := false
+		for _, r := range rows {
+			if r.Number <= mark {
+				reached = true
+				continue
+			}
+			kind := "issue"
+			if r.PR != nil {
+				kind = "pr"
+			}
+			out = append(out, forge.NewItem{Number: r.Number, Kind: kind, Author: r.User.Login, Title: r.Title})
+		}
+		if reached {
+			break
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Number > out[j].Number })
+	return out, nil
+}
+
+// TopIndex returns the highest index of any issue or pull request, in any state, or 0.
+func (c *Client) TopIndex(ctx context.Context) (int, error) {
+	body, err := c.get(ctx, fmt.Sprintf("repos/%s/issues?sort=created&direction=desc&state=all&limit=1", c.cfg.Repo))
+	if err != nil {
+		return 0, err
+	}
+	var rows []struct {
+		Number int `json:"number"`
+	}
+	if err := json.Unmarshal(body, &rows); err != nil {
+		return 0, fmt.Errorf("the server did not return a list of issues")
+	}
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	return rows[0].Number, nil
+}
+
 // ciSummary reads every commit status, keeps the newest row of each context, and takes the worst.
 func (c *Client) ciSummary(ctx context.Context, sha string) (string, error) {
 	rows, err := c.newestStatuses(ctx, sha)
