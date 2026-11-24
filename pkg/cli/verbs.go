@@ -71,6 +71,7 @@ var Tree = []Verb{
 			{"--base", "The branch to merge into. The default is main."},
 			{"--body", "The body text."},
 			{"--body-file", "A file that holds the body. Use - for standard input."},
+			{"--trace", traceHelp},
 			{"--draft", "Open the pull request as a draft."},
 		},
 		Exits: []string{"0 opened", "1 the call failed", "64 usage error", "65 a guard rule or the prose lint refuses the text, and the command sends nothing", "69 no usable driver"},
@@ -90,6 +91,7 @@ var Tree = []Verb{
 		Flags: []Flag{
 			{"--body", "The body text."},
 			{"--body-file", "A file that holds the body. Use - for standard input."},
+			{"--trace", traceHelp},
 		},
 		Exits: []string{"0 opened", "1 the call failed", "64 usage error", "65 a guard rule or the prose lint refuses the text, and the command sends nothing", "69 no usable driver"},
 		Hints: map[string]string{
@@ -161,6 +163,7 @@ var Tree = []Verb{
 			{"--title", "The new title."},
 			{"--body", "The new body text."},
 			{"--body-file", "A file that holds the new body. Use - for standard input."},
+			{"--trace", traceHelp},
 		},
 		Exits: []string{"0 edited", "1 the call failed or the pull request isn't found", "64 usage error", "65 a guard rule or the prose lint refuses the text, and the command sends nothing", "69 no usable driver, or the driver has no pr edit"},
 		Hints: map[string]string{
@@ -403,6 +406,7 @@ var Tree = []Verb{
 		Flags: []Flag{
 			{"--body", "The comment text."},
 			{"--body-file", "A file that holds the comment text. Use - for standard input."},
+			{"--trace", traceHelp},
 		},
 		Exits: []string{"0 posted", "1 the call failed", "64 usage error, or both or neither of the body flags", "65 the text fails the prose lint, and the command sends nothing", "69 no usable driver"},
 		Hints: map[string]string{
@@ -434,6 +438,7 @@ var Tree = []Verb{
 		Flags: []Flag{
 			{"--body", "The new comment text."},
 			{"--body-file", "A file that holds the new comment text. Use - for standard input."},
+			{"--trace", traceHelp},
 		},
 		Exits: []string{"0 edited", "1 the call failed or the comment isn't found", "64 usage error, or both or neither of the body flags", "65 the text fails the prose lint, and the command sends nothing", "69 no usable driver, or the driver has no comment support"},
 		Hints: map[string]string{
@@ -511,6 +516,7 @@ var Tree = []Verb{
 			{"--title", "The new title."},
 			{"--body", "The new body text."},
 			{"--body-file", "A file that holds the new body. Use - for standard input."},
+			{"--trace", traceHelp},
 			{"--state", "open to reopen the issue, or closed to close it."},
 			{"--milestone", "A milestone title or id. Use none to clear it."},
 			{"--add-label", "Labels to add, separated by commas."},
