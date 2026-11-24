@@ -73,3 +73,24 @@ func TestDetect(t *testing.T) {
 		t.Errorf("none: %v", err)
 	}
 }
+
+func TestErrorShowsTheHostMessage(t *testing.T) {
+	long := strings.Repeat("x", 300)
+	cases := []struct {
+		name string
+		body string
+		want string
+	}{
+		{"json message", `{"message":"the branch already exists","url":"https://x/api/swagger"}`, "server answered 422 for repos/a/b/branches/c: the branch already exists"},
+		{"plain body, lines joined", "  not\nfound  ", "server answered 422 for repos/a/b/branches/c: not found"},
+		{"empty body", "  ", "server answered 422 for repos/a/b/branches/c"},
+		{"json without message", `{"url":"u"}`, `server answered 422 for repos/a/b/branches/c: {"url":"u"}`},
+		{"long body is cut", long, "server answered 422 for repos/a/b/branches/c: " + long[:200] + "..."},
+	}
+	for _, c := range cases {
+		e := &Error{Status: 422, Path: "repos/a/b/branches/c", Body: c.body}
+		if got := e.Error(); got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+}
