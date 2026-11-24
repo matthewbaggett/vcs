@@ -62,7 +62,7 @@ func TestTraceStampEachVerb(t *testing.T) {
 		want string
 	}{
 		{[]string{"pr", "create", "T", "--head", "fix/a", "--body", "Text."}, "fix/a<-main|T|Text.\n\n" + stamped + "\n"},
-		{[]string{"pr", "edit", "5", "--body", "Text."}, "edit 5|-|Text.\n\n" + stamped + "\n"},
+		{[]string{"pr", "edit", "5", "--body", "Text."}, "edit 5|-|Text.\n\n" + stamped + "\n|-"},
 		{[]string{"issue", "create", "T", "--body", "Text."}, "T|Text.\n\n" + stamped + "\n"},
 		{[]string{"issue", "edit", "5", "--body", "Text."}, "issue 5|-|Text.\n\n" + stamped + "\n|-|-|[]|[]"},
 		{[]string{"comment", "add", "5", "--body", "Text."}, "Text.\n\n" + stamped + "\n"},
@@ -105,7 +105,7 @@ func TestTraceStampRules(t *testing.T) {
 	}
 	// A title-only edit sends no body, so it has no trace line.
 	traceRun(t, &sink, nil, nil, "pr", "edit", "5", "--title", "New")
-	if sink != "edit 5|New|-" {
+	if sink != "edit 5|New|-|-" {
 		t.Errorf("title only: %q", sink)
 	}
 }

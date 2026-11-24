@@ -79,8 +79,9 @@ type Client interface {
 	CIRerun(ctx context.Context, runID int64, failedOnly bool) error
 	// Attach uploads files to an issue or a pull request.
 	Attach(ctx context.Context, n int, files []string) ([]Asset, error)
-	// Comment posts one comment on an issue or a pull request.
-	Comment(ctx context.Context, n int, body string) error
+	// Comment posts one comment on an issue or a pull request. It returns the comment id and
+	// the web address of the comment.
+	Comment(ctx context.Context, n int, body string) (int64, string, error)
 	// CreatePR opens a pull request and returns its number and web address.
 	CreatePR(ctx context.Context, in NewPR) (int, string, error)
 	// CreateIssue opens an issue and returns its number and web address.
@@ -127,10 +128,11 @@ type NewPR struct {
 type PREdit struct {
 	Title *string
 	Body  *string
+	Base  *string
 }
 
-// PREditor is the optional interface of a driver that can change the title or the body of
-// a pull request. The command asserts it, so a driver without it needs no stub.
+// PREditor is the optional interface of a driver that can change the title, the body or the base
+// branch of a pull request. The command asserts it, so a driver without it needs no stub.
 type PREditor interface {
 	PREdit(ctx context.Context, n int, in PREdit) error
 }

@@ -117,20 +117,21 @@ var Tree = []Verb{
 	},
 	{
 		Noun: "pr", Name: "edit", Sends: true,
-		Usage:   "vcs pr edit <n> [--title <text>] [--body <text> | --body-file <path>]",
-		Summary: "Change the title or the body of a pull request. The command refuses the AI credit line, and the prose lint runs on the new text. A draft stays a draft.",
+		Usage:   "vcs pr edit <n> [--title <text>] [--body <text> | --body-file <path>] [--base <branch>]",
+		Summary: "Change the title, the body or the base branch of a pull request. The command refuses the AI credit line, and the prose lint runs on the new text. A draft stays a draft.",
 		Output:  "One line: `edited` and the number.",
 		Flags: []Flag{
 			{"--title", "The new title."},
 			{"--body", "The new body text."},
 			{"--body-file", "A file that holds the new body. Use - for standard input."},
+			{"--base", "The new base branch."},
 			{"--trace", traceHelp},
 		},
 		Exits: []string{"0 edited", "1 the call failed or the pull request isn't found", "64 usage error", "65 a guard rule or the prose lint refuses the text, and the command sends nothing", "69 no usable driver, or the driver has no pr edit"},
 		Hints: map[string]string{
 			OutOK:          "run vcs pr status <n> to check the pull request",
 			OutFail:        "check the number and the token",
-			OutUsage:       "give the pull request number and at least one of --title, --body or --body-file",
+			OutUsage:       "give the pull request number and at least one of --title, --body, --body-file or --base",
 			OutLint:        "fix each finding that vcs printed, then run the command again",
 			OutUnavailable: "stop and ask the user. This host has no pr edit yet",
 		},
@@ -363,7 +364,7 @@ var Tree = []Verb{
 		Noun: "comment", Name: "add", Sends: true,
 		Usage:   "vcs comment add <n> (--body <text> | --body-file <path>)",
 		Summary: "Post one comment on an issue or a pull request. The prose lint runs first.",
-		Output:  "One line: `comment posted`.",
+		Output:  "One row: the comment id and its web address.",
 		Flags: []Flag{
 			{"--body", "The comment text."},
 			{"--body-file", "A file that holds the comment text. Use - for standard input."},

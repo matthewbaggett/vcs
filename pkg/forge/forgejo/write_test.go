@@ -113,6 +113,7 @@ func TestAttachAndComment(t *testing.T) {
 			b, _ := io.ReadAll(r.Body)
 			commentBody = string(b)
 			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"id":55,"html_url":"https://git.example/o/r/issues/7#issuecomment-55"}`))
 		}
 	})
 	file := filepath.Join(t.TempDir(), "shot one.png")
@@ -124,8 +125,9 @@ func TestAttachAndComment(t *testing.T) {
 	if gotName != "shot one.png" || gotBody != "PNGDATA" || gotAuth != "token tok" {
 		t.Errorf("name=%q body=%q auth=%q", gotName, gotBody, gotAuth)
 	}
-	if err := c.Comment(context.Background(), 7, "hi"); err != nil || commentBody != `{"body":"hi"}` {
-		t.Errorf("comment: %q %v", commentBody, err)
+	id, addr, err := c.Comment(context.Background(), 7, "hi")
+	if err != nil || commentBody != `{"body":"hi"}` || id != 55 || !strings.HasSuffix(addr, "#issuecomment-55") {
+		t.Errorf("comment: %q %d %q %v", commentBody, id, addr, err)
 	}
 	if _, err := c.Attach(context.Background(), 7, []string{"/no/such/file"}); err == nil {
 		t.Error("missing file should fail")
@@ -203,6 +205,10 @@ func TestPREditKeepsDraft(t *testing.T) {
 	title = "Old"
 	if err := c.PREdit(ctx, 3, forge.PREdit{Title: &nt, Body: &nb}); err != nil || patched["title"] != "New" || patched["body"] != "New body" {
 		t.Fatalf("ready title and body: err=%v patched=%v", err, patched)
+	}
+	nbase := "feature/x"
+	if err := c.PREdit(ctx, 3, forge.PREdit{Base: &nbase}); err != nil || patched["base"] != "feature/x" || len(patched) != 1 {
+		t.Fatalf("base: err=%v patched=%v", err, patched)
 	}
 	patched = map[string]string{"x": "y"}
 	if err := c.PREdit(ctx, 3, forge.PREdit{}); err != nil || patched["x"] != "y" {

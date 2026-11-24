@@ -71,8 +71,37 @@ func (c *Client) Attach(ctx context.Context, n int, files []string) ([]forge.Ass
 }
 
 // Comment posts one comment on an issue or a pull request.
-func (c *Client) Comment(ctx context.Context, n int, body string) error {
-	_, err := c.post(ctx, fmt.Sprintf("repos/%s/issues/%d/comments", c.cfg.Repo, n), map[string]string{"body": body})
+func (c *Client) Comment(ctx context.Context, n int, body string) (int64, string, error) {
+	resp, err := c.post(ctx, fmt.Sprintf("repos/%s/issues/%d/comments", c.cfg.Repo, n), map[string]string{"body": body})
+	if err != nil {
+		return 0, "", err
+	}
+	var out struct {
+		ID      int64  `json:"id"`
+		HTMLURL string `json:"html_url"`
+	}
+	if json.Unmarshal(resp, &out) != nil || out.ID == 0 {
+		return 0, "", fmt.Errorf("the server did not return the new comment")
+	}
+	return out.ID, out.HTMLURL, nil
+}
+
+// PREdit changes the title, the body or the base branch of a pull request.
+func (c *Client) PREdit(ctx context.Context, n int, in forge.PREdit) error {
+	payload := map[string]string{}
+	if in.Title != nil {
+		payload["title"] = *in.Title
+	}
+	if in.Body != nil {
+		payload["body"] = *in.Body
+	}
+	if in.Base != nil {
+		payload["base"] = *in.Base
+	}
+	if len(payload) == 0 {
+		return nil
+	}
+	_, err := c.send(ctx, http.MethodPatch, c.cfg.BaseURL+"/"+fmt.Sprintf("repos/%s/pulls/%d", c.cfg.Repo, n), payload)
 	return err
 }
 
