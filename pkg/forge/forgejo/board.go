@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"git.grey.ooo/packages/vcs/pkg/forge"
+	"git.grey.ooo/packages/vcs/pkg/session"
 )
 
 // Forgejo has no board API. These calls use the web routes, as forgejo-board.sh does. A read of
@@ -41,7 +42,7 @@ func (c *Client) web(ctx context.Context, method, path, ctype string, body []byt
 		req.Header.Set("Content-Type", ctype)
 	}
 	if c.cfg.Cookie != "" {
-		req.AddCookie(&http.Cookie{Name: "i_like_gitea", Value: c.cfg.Cookie})
+		req.AddCookie(&http.Cookie{Name: session.CookieName, Value: c.cfg.Cookie})
 	}
 	hc := *c.cfg.HTTP
 	hc.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }

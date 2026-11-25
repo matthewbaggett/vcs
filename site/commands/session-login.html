@@ -11,10 +11,10 @@
 <div class="layout">
 <main>
 <h1 id="the-vcs-session-login-command">The <code>vcs session login</code> command</h1>
-<p>Sign in to the web side of the forge and keep the session. The password comes from VCS_PASSWORD, never from an argument.</p>
+<p>Sign in to the Forgejo web interface and keep the session. Some verbs, such as ci rerun, need it because the token API can't do them. In a terminal it asks for the user name and the password, and hides the password. A script sets VCS_PASSWORD and passes --user. The password never goes in an argument.</p>
 <p>The command tree generates this page. Don't edit it by hand.</p>
 <h2 id="usage">Usage</h2>
-<pre><code class="language-text">VCS_PASSWORD=... vcs session login --user &lt;name&gt;
+<pre><code class="language-text">vcs session login [--user &lt;name&gt;]
 </code></pre>
 <h2 id="output">Output</h2>
 <p><code>ok</code>.</p>

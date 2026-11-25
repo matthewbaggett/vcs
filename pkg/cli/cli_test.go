@@ -359,6 +359,58 @@ func TestSessionVerbs(t *testing.T) {
 	}
 }
 
+func TestSessionLoginPrompt(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/user/login":
+			r.ParseForm()
+			if r.Method == http.MethodGet {
+				return
+			}
+			if r.PostForm.Get("user_name") != "known" || r.PostForm.Get("password") != "typed" {
+				w.Header().Set("Location", "/user/login")
+				w.WriteHeader(http.StatusSeeOther)
+				return
+			}
+			http.SetCookie(w, &http.Cookie{Name: "i_like_gitea", Value: "good"})
+			w.Header().Set("Location", "/")
+			w.WriteHeader(http.StatusSeeOther)
+		case "/user/settings":
+			if c, err := r.Cookie("i_like_gitea"); err == nil && c.Value == "good" {
+				return
+			}
+			w.WriteHeader(http.StatusSeeOther)
+		}
+	}))
+	defer srv.Close()
+	do := func(stdin string, tty bool) (int, string) {
+		var out, errb bytes.Buffer
+		e := Env{
+			Stdout: &out, Stderr: &errb, Stdin: strings.NewReader(stdin), ConfigDir: t.TempDir(), IsTerminal: tty,
+			Getenv:       func(string) string { return "" },
+			RemoteURL:    func() (string, error) { return "https://git.example/o/r.git", nil },
+			BaseURL:      func(string) string { return srv.URL },
+			ReadPassword: func() (string, error) { return "typed", nil },
+			KnownUser:    func(string) string { return "known" },
+		}
+		return Run(context.Background(), []string{"session", "login"}, e), out.String() + errb.String()
+	}
+	// An empty line accepts the default user name.
+	code, out := do("\n", true)
+	if code != 0 || !strings.Contains(out, "web interface of git.example") || !strings.Contains(out, "[known]") ||
+		!strings.Contains(out, "ci rerun") || strings.Contains(out, "typed") {
+		t.Errorf("accept default: %d %q", code, out)
+	}
+	// A typed user name replaces the default, and here the server refuses it.
+	if code, out := do("other\n", true); code != ExitFail || !strings.Contains(out, "login failed") {
+		t.Errorf("typed user: %d %q", code, out)
+	}
+	// With no terminal there is no prompt.
+	if code, _ := do("", false); code != ExitUsage {
+		t.Errorf("no tty: %d", code)
+	}
+}
+
 func artFake() fake {
 	return fake{
 		runs:    []forge.Run{{ID: 9, Index: 4, URL: "https://git.example/o/r/actions/runs/4"}},

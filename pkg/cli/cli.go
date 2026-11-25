@@ -2,6 +2,7 @@
 package cli
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -31,6 +32,11 @@ type Env struct {
 	Getenv  func(string) string
 	// IsTerminal tells whether stdin and stdout are both terminals.
 	IsTerminal bool
+	// ReadPassword reads a password from the terminal without an echo. A nil value turns the
+	// login prompt off.
+	ReadPassword func() (string, error)
+	// KnownUser returns the user name that an existing tea or fj login holds for a host, or "".
+	KnownUser func(host string) string
 	// RemoteURL returns the URL of the home remote.
 	RemoteURL func() (string, error)
 	// NewClient builds a driver for a host and a repo. It returns forge.ErrUnsupported
@@ -1338,9 +1344,18 @@ func sessionVerb(ctx context.Context, v Verb, o opts, env Env) int {
 			user = env.Getenv("VCS_USER")
 		}
 		pass := env.Getenv("VCS_PASSWORD")
-		if user == "" || pass == "" || len(o.pos) != 0 {
-			fmt.Fprintln(env.Stderr, "vcs: give --user, and set VCS_PASSWORD")
+		if len(o.pos) != 0 {
 			return usage(env, v)
+		}
+		if user == "" || pass == "" {
+			if !env.IsTerminal || env.ReadPassword == nil {
+				fmt.Fprintln(env.Stderr, "vcs: give --user, and set VCS_PASSWORD")
+				return usage(env, v)
+			}
+			var ok bool
+			if user, pass, ok = promptLogin(env, host, user, pass); !ok {
+				return ExitFail
+			}
 		}
 		val, err := session.Login(ctx, base, user, pass)
 		if err != nil {
@@ -1594,4 +1609,43 @@ func prStatuses(ctx context.Context, c forge.Client, env Env, o opts) int {
 		row(env, cols...)
 	}
 	return ExitOK
+}
+
+// promptLogin asks for what a login still lacks. It says what the login is for, offers a known
+// user name, and reads the password without an echo. It never prints the password.
+func promptLogin(env Env, host, user, pass string) (string, string, bool) {
+	fmt.Fprintf(env.Stderr, "This signs in to the Forgejo web interface of %s.\n"+
+		"The token API cannot do some verbs, such as `vcs ci rerun`. They need a web session.\n"+
+		"vcs keeps the session cookie, never the password.\n", host)
+	if user == "" {
+		def := ""
+		if env.KnownUser != nil {
+			def = env.KnownUser(host)
+		}
+		if def != "" {
+			fmt.Fprintf(env.Stderr, "User name [%s]: ", def)
+		} else {
+			fmt.Fprint(env.Stderr, "User name: ")
+		}
+		line, _ := bufio.NewReader(env.Stdin).ReadString('\n')
+		user = strings.TrimSpace(line)
+		if user == "" {
+			user = def
+		}
+		if user == "" {
+			fmt.Fprintln(env.Stderr, "vcs: no user name given")
+			return "", "", false
+		}
+	}
+	if pass == "" {
+		fmt.Fprintf(env.Stderr, "Password for %s: ", user)
+		p, err := env.ReadPassword()
+		fmt.Fprintln(env.Stderr)
+		if err != nil || p == "" {
+			fmt.Fprintln(env.Stderr, "vcs: no password given")
+			return "", "", false
+		}
+		pass = p
+	}
+	return user, pass, true
 }

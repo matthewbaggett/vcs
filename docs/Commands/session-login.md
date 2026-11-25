@@ -1,13 +1,13 @@
 # The `vcs session login` command
 
-Sign in to the web side of the forge and keep the session. The password comes from VCS_PASSWORD, never from an argument.
+Sign in to the Forgejo web interface and keep the session. Some verbs, such as ci rerun, need it because the token API can't do them. In a terminal it asks for the user name and the password, and hides the password. A script sets VCS_PASSWORD and passes --user. The password never goes in an argument.
 
 The command tree generates this page. Don't edit it by hand.
 
 ## Usage
 
 ```text
-VCS_PASSWORD=... vcs session login --user <name>
+vcs session login [--user <name>]
 ```
 
 ## Output

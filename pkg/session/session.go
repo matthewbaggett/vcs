@@ -7,10 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -87,17 +90,49 @@ func Check(ctx context.Context, baseURL, value string) error {
 	return nil
 }
 
+// csrfField finds the hidden _csrf input of a login page. Older servers have one. Newer
+// servers check the Origin and Sec-Fetch-Site headers instead and have none.
+var csrfField = regexp.MustCompile(`<input[^>]*name="_csrf"[^>]*value="([^"]*)"`)
+
+// sameOrigin marks a request as a form post from the page of the host itself.
+func sameOrigin(req *http.Request, baseURL string) {
+	req.Header.Set("Origin", baseURL)
+	req.Header.Set("Referer", baseURL+"/user/login")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+}
+
 // Login signs in with a user name and a password and returns the cookie value.
 // An account with a second factor needs Import.
 func Login(ctx context.Context, baseURL, user, password string) (string, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		return "", err
+	}
+	c := client()
+	c.Jar = jar
+	// Get the login page first. It sets any CSRF cookie and holds the CSRF field.
+	get, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/user/login", nil)
+	if err != nil {
+		return "", err
+	}
+	page, err := c.Do(get)
+	if err != nil {
+		return "", err
+	}
+	html, _ := io.ReadAll(io.LimitReader(page.Body, 1<<20))
+	page.Body.Close()
 	form := url.Values{"user_name": {user}, "password": {password}}
+	if m := csrfField.FindSubmatch(html); m != nil {
+		form.Set("_csrf", string(m[1]))
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/user/login", strings.NewReader(form.Encode()))
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := client().Do(req)
+	sameOrigin(req, baseURL)
+	resp, err := c.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -107,16 +142,21 @@ func Login(ctx context.Context, baseURL, user, password string) (string, error) 
 	}
 	loc := resp.Header.Get("Location")
 	if strings.Contains(loc, "/user/two_factor") || strings.Contains(loc, "/user/webauthn") {
-		return "", errors.New("this account needs a second factor. Copy i_like_gitea from a browser, then run: vcs session import")
+		return "", fmt.Errorf("this account needs a second factor. Copy %s from a browser, then run: vcs session import", CookieName)
+	}
+	if strings.HasSuffix(strings.SplitN(loc, "?", 2)[0], "/user/login") {
+		return "", errors.New("the login failed. Check the user name and password")
 	}
 	value := ""
-	for _, c := range resp.Cookies() {
-		if c.Name == CookieName {
-			value = c.Value
+	var names []string
+	for _, ck := range resp.Cookies() {
+		names = append(names, ck.Name)
+		if ck.Name == CookieName {
+			value = ck.Value
 		}
 	}
 	if value == "" {
-		return "", errors.New("the server set no session cookie")
+		return "", fmt.Errorf("the server set no %s cookie. It set: %s", CookieName, strings.Join(names, ", "))
 	}
 	if err := Check(ctx, baseURL, value); err != nil {
 		return "", err
