@@ -19,9 +19,9 @@ import (
 // Forgejo. A session saved with no name has this one.
 const CookieName = "i_like_gitea"
 
-// Candidates are the names of the session cookie that vcs tries first. Forgejo has used
+// Candidates are the names of the session cookie that vcs tries first. git.grey.ooo names it session. Forgejo has used
 // i_like_forgejo since release 1.20. The server setting [session] COOKIE_NAME can change it.
-var Candidates = []string{"i_like_forgejo", CookieName}
+var Candidates = []string{"session", "i_like_forgejo", CookieName}
 
 // ErrNoSession means the host has no session, or the server no longer accepts it.
 var ErrNoSession = errors.New("no session")
