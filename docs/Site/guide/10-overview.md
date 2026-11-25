@@ -5,6 +5,14 @@ labels, milestones, boards, time, and CI runs. It also wraps the git steps of a 
 
 The command has no server step and no runtime. It's one static binary.
 
+## Language enforcement
+
+`vcs` checks the words of each text before it sends the text. The [lexi](dependencies.md#the-lexi-checker)
+checker finds insensitive words and profanity. It's a Go port of alex. [Vale](dependencies.md#vale)
+applies the style rules, such as [ASD-STE100](dependencies.md#the-writing-standard). A text with one finding goes nowhere, and
+the verb exits 65. Both linters run inside the binary. See [Language
+enforcement](language-enforcement.md).
+
 ## Why it exists
 
 A team that works with agents needs one stable command. The command checks each text it sends. It
@@ -15,6 +23,8 @@ on every forge.
 
 | You want to | Read |
 |---|---|
+| See how `vcs` checks language | [Language enforcement](language-enforcement.md) |
+| See what `vcs` builds on | [Dependencies](dependencies.md) |
 | Install the binary | [Install](install.md) |
 | Run your first commands | [Quickstart](quickstart.md) |
 | Learn how the drivers work | [Concepts](concepts.md) |

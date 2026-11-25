@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Language enforcement | vcs</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html">vcs</a><a class="jump" href="#pages">Pages</a></header>
+<div class="layout">
+<main>
+<h1 id="language-enforcement">Language enforcement</h1>
+<p><code>vcs</code> checks the words of each text before it sends the text. The check is the core of the tool.
+It runs in the binary. It needs no Node, no Vale install, and no extra program on the path.</p>
+<h2 id="what-it-does">What it does</h2>
+<p>Each verb that sends text runs the checkers first. Issue bodies, pull request bodies, comments,
+and commit messages all count. A text with one finding goes nowhere. The verb exits 65 and prints
+each finding on stderr.</p>
+<table>
+<thead>
+<tr>
+<th>Checker</th>
+<th>What it finds</th>
+<th>Where the rules come from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>lexi</td>
+<td>Insensitive and inconsiderate words, and profanity</td>
+<td>The rules of <a href="https://github.com/get-alex/alex">alex</a>, in a Go port</td>
+</tr>
+<tr>
+<td>Vale</td>
+<td>Prose that breaks the style rules, such as ASD-STE100</td>
+<td>The <code>.vale.ini</code> of the working directory</td>
+</tr>
+<tr>
+<td>Credit guard</td>
+<td>An AI credit line in a commit message or a pull request body</td>
+<td>Built into <code>vcs</code></td>
+</tr>
+</tbody>
+</table>
+<p>The checkers run in this order, and <code>vcs</code> sorts the findings by line and column. Each finding
+names the checker, the position, the message, and the rule.</p>
+<pre><code class="language-text">vcs: lint: &lt;checker&gt;:&lt;line&gt;:&lt;column&gt;: &lt;message&gt; (&lt;rule&gt;)
+vcs: lint: 1 finding(s). Nothing was sent
+</code></pre>
+<h2 id="strict-by-design">Strict by design</h2>
+<ul>
+<li>A checker that fails to run makes the verb exit 65. A text that no checker saw never goes out.</li>
+<li>A checker that can't start stops <code>vcs</code> with exit 69, before the verb runs.</li>
+<li>There is no warning tier. Vale reports each match, whatever its severity. Each match is a finding.</li>
+<li>An agent can't skip the check. The lint runs inside the verb, not in a separate script that an
+agent can turn off.</li>
+</ul>
+<h2 id="how-you-set-it-up">How you set it up</h2>
+<table>
+<thead>
+<tr>
+<th>You want</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Inclusive-language checks</td>
+<td>Nothing. lexi always runs. Add an <code>.alexrc</code> in JSON or YAML to tune it</td>
+</tr>
+<tr>
+<td>ASD-STE100 or another Vale style</td>
+<td>Put a <code>.vale.ini</code> in the working directory. Vale runs when the file exists</td>
+</tr>
+<tr>
+<td>No Vale</td>
+<td>Leave out <code>.vale.ini</code>. Only lexi and the credit guard run</td>
+</tr>
+</tbody>
+</table>
+<p>lexi reads the same <code>.alexrc</code> options as alex. See <a href="dependencies.html">Dependencies</a> for what each
+project does, and <a href="configuration.html">Configuration</a> for the variables.</p>
+<h2 id="why-a-controlled-language">Why a controlled language</h2>
+<p>Agents and people read the text that <code>vcs</code> sends. A short, plain sentence leaves less room for a
+wrong guess. The <a href="dependencies.html#the-writing-standard">ASD-STE100</a> standard gives a clear rule set for such
+text. The Vale styles turn those rules into checks. The checks run on every send, so the rules
+hold without a person to remind the writer.</p>
+
+</main>
+<nav class="side" id="pages" aria-label="Pages">
+<h2>Guide</h2>
+<ul>
+<li><a href="index.html">Overview</a></li>
+<li><a href="language-enforcement.html" aria-current="page">Language enforcement</a></li>
+<li><a href="dependencies.html">Dependencies</a></li>
+<li><a href="install.html">Install</a></li>
+<li><a href="quickstart.html">Quickstart</a></li>
+<li><a href="concepts.html">Concepts</a></li>
+</ul>
+<h2>Reference</h2>
+<ul>
+<li><a href="configuration.html">Configuration</a></li>
+<li><a href="artifacts.html">Artifacts</a></li>
+<li><a href="thin-scripts.html">Thin scripts</a></li>
+<li><a href="release-pipeline.html">Release pipeline</a></li>
+<li><a href="contributing.html">Contributing</a></li>
+<li><a href="commands.html">Commands</a></li>
+<li><a href="exit-codes.html">Exit codes and agent hints</a></li>
+</ul>
+<h2>vcs attach</h2>
+<ul>
+<li><a href="commands/attach.html">attach</a></li>
+</ul>
+<h2>vcs board</h2>
+<ul>
+<li><a href="commands/board-add.html">board add</a></li>
+<li><a href="commands/board-list.html">board list</a></li>
+<li><a href="commands/board-move.html">board move</a></li>
+<li><a href="commands/board-view.html">board view</a></li>
+</ul>
+<h2>vcs ci</h2>
+<ul>
+<li><a href="commands/ci-artifact-get.html">ci artifact get</a></li>
+<li><a href="commands/ci-artifacts.html">ci artifacts</a></li>
+<li><a href="commands/ci-failed.html">ci failed</a></li>
+<li><a href="commands/ci-jobs.html">ci jobs</a></li>
+<li><a href="commands/ci-log.html">ci log</a></li>
+<li><a href="commands/ci-rerun.html">ci rerun</a></li>
+<li><a href="commands/ci-runs.html">ci runs</a></li>
+</ul>
+<h2>vcs comment</h2>
+<ul>
+<li><a href="commands/comment-add.html">comment add</a></li>
+<li><a href="commands/comment-delete.html">comment delete</a></li>
+<li><a href="commands/comment-edit.html">comment edit</a></li>
+<li><a href="commands/comment-list.html">comment list</a></li>
+</ul>
+<h2>vcs docs</h2>
+<ul>
+<li><a href="commands/docs-gen.html">docs gen</a></li>
+</ul>
+<h2>vcs git</h2>
+<ul>
+<li><a href="commands/git-branch.html">git branch</a></li>
+<li><a href="commands/git-commit.html">git commit</a></li>
+<li><a href="commands/git-merge.html">git merge</a></li>
+<li><a href="commands/git-push.html">git push</a></li>
+<li><a href="commands/git-rebase.html">git rebase</a></li>
+</ul>
+<h2>vcs issue</h2>
+<ul>
+<li><a href="commands/issue-create.html">issue create</a></li>
+<li><a href="commands/issue-edit.html">issue edit</a></li>
+<li><a href="commands/issue-list.html">issue list</a></li>
+<li><a href="commands/issue-newer.html">issue newer</a></li>
+<li><a href="commands/issue-timeline.html">issue timeline</a></li>
+<li><a href="commands/issue-top.html">issue top</a></li>
+<li><a href="commands/issue-view.html">issue view</a></li>
+</ul>
+<h2>vcs label</h2>
+<ul>
+<li><a href="commands/label-create.html">label create</a></li>
+<li><a href="commands/label-list.html">label list</a></li>
+<li><a href="commands/label-rename.html">label rename</a></li>
+</ul>
+<h2>vcs milestone</h2>
+<ul>
+<li><a href="commands/milestone-create.html">milestone create</a></li>
+<li><a href="commands/milestone-list.html">milestone list</a></li>
+<li><a href="commands/milestone-view.html">milestone view</a></li>
+</ul>
+<h2>vcs package</h2>
+<ul>
+<li><a href="commands/package-delete.html">package delete</a></li>
+<li><a href="commands/package-list.html">package list</a></li>
+<li><a href="commands/package-upload.html">package upload</a></li>
+</ul>
+<h2>vcs pr</h2>
+<ul>
+<li><a href="commands/pr-bind.html">pr bind</a></li>
+<li><a href="commands/pr-close.html">pr close</a></li>
+<li><a href="commands/pr-create.html">pr create</a></li>
+<li><a href="commands/pr-draft.html">pr draft</a></li>
+<li><a href="commands/pr-edit.html">pr edit</a></li>
+<li><a href="commands/pr-heal.html">pr heal</a></li>
+<li><a href="commands/pr-list.html">pr list</a></li>
+<li><a href="commands/pr-merge.html">pr merge</a></li>
+<li><a href="commands/pr-ready.html">pr ready</a></li>
+<li><a href="commands/pr-rebase.html">pr rebase</a></li>
+<li><a href="commands/pr-status.html">pr status</a></li>
+<li><a href="commands/pr-statuses.html">pr statuses</a></li>
+<li><a href="commands/pr-tick.html">pr tick</a></li>
+<li><a href="commands/pr-watch.html">pr watch</a></li>
+</ul>
+<h2>vcs protection</h2>
+<ul>
+<li><a href="commands/protection-list.html">protection list</a></li>
+</ul>
+<h2>vcs runners</h2>
+<ul>
+<li><a href="commands/runners-list.html">runners list</a></li>
+</ul>
+<h2>vcs secret</h2>
+<ul>
+<li><a href="commands/secret-delete.html">secret delete</a></li>
+<li><a href="commands/secret-list.html">secret list</a></li>
+<li><a href="commands/secret-set.html">secret set</a></li>
+</ul>
+<h2>vcs session</h2>
+<ul>
+<li><a href="commands/session-import.html">session import</a></li>
+<li><a href="commands/session-login.html">session login</a></li>
+<li><a href="commands/session-logout.html">session logout</a></li>
+<li><a href="commands/session-status.html">session status</a></li>
+</ul>
+<h2>vcs site</h2>
+<ul>
+<li><a href="commands/site-gen.html">site gen</a></li>
+</ul>
+<h2>vcs stopwatch</h2>
+<ul>
+<li><a href="commands/stopwatch-list.html">stopwatch list</a></li>
+</ul>
+<h2>vcs time</h2>
+<ul>
+<li><a href="commands/time-add.html">time add</a></li>
+<li><a href="commands/time-list.html">time list</a></li>
+<li><a href="commands/time-total.html">time total</a></li>
+</ul>
+<h2>vcs version</h2>
+<ul>
+<li><a href="commands/version.html">version</a></li>
+</ul>
+<h2>vcs workflow</h2>
+<ul>
+<li><a href="commands/workflow-dispatch.html">workflow dispatch</a></li>
+</ul>
+</nav>
+</div>
+</body>
+</html>

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dependencies | vcs</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html">vcs</a><a class="jump" href="#pages">Pages</a></header>
+<div class="layout">
+<main>
+<h1 id="dependencies">Dependencies</h1>
+<p><code>vcs</code> builds on four projects. Three are Go modules in <code>go.mod</code>. One is a standard that the rules
+enforce. Each section says what the project does in <code>vcs</code>, and where <code>vcs</code> uses it.</p>
+<table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Kind</th>
+<th>Used for</th>
+<th>Where in <code>vcs</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/matthewbaggett/lexi">lexi</a></td>
+<td>Go module</td>
+<td>Inclusive-language check</td>
+<td><code>pkg/lint</code>, on every send</td>
+</tr>
+<tr>
+<td><a href="https://github.com/matthewbaggett/vale">Vale</a> fork</td>
+<td>Go module</td>
+<td>Style check</td>
+<td><code>pkg/lint</code>, when <code>.vale.ini</code> exists</td>
+</tr>
+<tr>
+<td><a href="https://github.com/yuin/goldmark">goldmark</a></td>
+<td>Go module</td>
+<td>Markdown to HTML</td>
+<td><code>pkg/site</code>, in <code>vcs site gen</code></td>
+</tr>
+<tr>
+<td><a href="https://www.asd-ste100.org/">ASD-STE100</a></td>
+<td>Standard</td>
+<td>The writing rules</td>
+<td>The Vale styles of the project</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-lexi-checker">The lexi checker</h2>
+<p>lexi is a static Go port of <a href="https://github.com/get-alex/alex">alex</a>, the inclusive-language
+linter. <code>vcs</code> calls lexi in process, in place of Node alex. The binary needs no Node.</p>
+<ul>
+<li><strong>What it finds.</strong> Words that hurt, exclude, or insult. It also finds profanity. The
+<code>profanitySureness</code> setting of <code>.alexrc</code> sets how sure a match must be.</li>
+<li><strong>How <code>vcs</code> uses it.</strong> On start, <code>vcs</code> reads the <code>.alexrc</code> of the working directory. It builds
+one lexi checker. It scans each text as Markdown.</li>
+<li><strong>Parity.</strong> lexi matches alex 11.0.1. It uses <code>retext-equality</code> 6.6.0 and <code>retext-profanities</code>
+7.2.2. A corpus of more than 30,000 recorded cases checks the match.</li>
+<li><strong>Gaps.</strong> lexi reads <code>.alexrc</code> as JSON or YAML only. It doesn't run <code>.alexrc.js</code>.</li>
+</ul>
+<p>Source: <a href="https://github.com/matthewbaggett/lexi">github.com/matthewbaggett/lexi</a>. Upstream:
+<a href="https://github.com/get-alex/alex">github.com/get-alex/alex</a>.</p>
+<h2 id="vale">Vale</h2>
+<p><a href="https://github.com/vale-cli/vale">Vale</a> is a linter for prose. It reads a set of style rules and
+reports each place where a text breaks one. <code>vcs</code> uses a fork, <code>github.com/matthewbaggett/vale/v3</code>,
+at version <code>v3.28.2-fork.1</code>.</p>
+<ul>
+<li><strong>What the fork adds.</strong> A Go package, <code>pkg/vale</code>, that lints a string in process. Upstream Vale
+is a command. The fork lets <code>vcs</code> call it as a library.</li>
+<li><strong>How <code>vcs</code> uses it.</strong> When the working directory holds a <code>.vale.ini</code>, <code>vcs</code> loads that file. It
+lints each text as Markdown. Each match becomes a finding, whatever its severity.</li>
+<li><strong>What the rules are.</strong> The <code>.vale.ini</code> of the project names them. The ASD-STE100 styles are
+one set.</li>
+</ul>
+<p>Source: <a href="https://github.com/matthewbaggett/vale">github.com/matthewbaggett/vale</a>. Upstream:
+<a href="https://github.com/vale-cli/vale">github.com/vale-cli/vale</a>.</p>
+<h2 id="the-goldmark-renderer">The goldmark renderer</h2>
+<p><a href="https://github.com/yuin/goldmark">goldmark</a> is a Markdown parser and renderer for Go. It follows
+the CommonMark rules.</p>
+<ul>
+<li><strong>How <code>vcs</code> uses it.</strong> <code>vcs site gen</code> turns the Markdown pages of <code>docs/Site</code> into the HTML pages
+you read now. It turns on the table extension and automatic heading IDs.</li>
+<li><strong>What it doesn't do.</strong> goldmark has no part in the language check. It builds this site only.</li>
+</ul>
+<p>Source: <a href="https://github.com/yuin/goldmark">github.com/yuin/goldmark</a>.</p>
+<h2 id="the-writing-standard">The writing standard</h2>
+<p>ASD-STE100 is a standard for controlled technical English. The Aerospace, Security and Defence
+Industries Association of Europe (ASD) publishes it. Aircraft maintenance manuals use it. Its aim
+is text that a reader with limited English can follow without doubt.</p>
+<ul>
+<li><strong>What the rules ask for.</strong> Short sentences. One fact or one step in each sentence. Active
+voice. Plain, consistent words.</li>
+<li><strong>How <code>vcs</code> enforces it.</strong> The Vale styles of the project turn the rules into checks. <code>vcs</code> runs
+those checks on each text that it sends.</li>
+<li><strong>A limit.</strong> The styles are a practical adaptation. The standard itself is larger. The
+official edition wins when the two disagree.</li>
+</ul>
+<p>Source: <a href="https://www.asd-ste100.org/">asd-ste100.org</a>.</p>
+<h2 id="where-to-go-next">Where to go next</h2>
+<p>Read <a href="language-enforcement.html">Language enforcement</a> for the full flow of a check.</p>
+
+</main>
+<nav class="side" id="pages" aria-label="Pages">
+<h2>Guide</h2>
+<ul>
+<li><a href="index.html">Overview</a></li>
+<li><a href="language-enforcement.html">Language enforcement</a></li>
+<li><a href="dependencies.html" aria-current="page">Dependencies</a></li>
+<li><a href="install.html">Install</a></li>
+<li><a href="quickstart.html">Quickstart</a></li>
+<li><a href="concepts.html">Concepts</a></li>
+</ul>
+<h2>Reference</h2>
+<ul>
+<li><a href="configuration.html">Configuration</a></li>
+<li><a href="artifacts.html">Artifacts</a></li>
+<li><a href="thin-scripts.html">Thin scripts</a></li>
+<li><a href="release-pipeline.html">Release pipeline</a></li>
+<li><a href="contributing.html">Contributing</a></li>
+<li><a href="commands.html">Commands</a></li>
+<li><a href="exit-codes.html">Exit codes and agent hints</a></li>
+</ul>
+<h2>vcs attach</h2>
+<ul>
+<li><a href="commands/attach.html">attach</a></li>
+</ul>
+<h2>vcs board</h2>
+<ul>
+<li><a href="commands/board-add.html">board add</a></li>
+<li><a href="commands/board-list.html">board list</a></li>
+<li><a href="commands/board-move.html">board move</a></li>
+<li><a href="commands/board-view.html">board view</a></li>
+</ul>
+<h2>vcs ci</h2>
+<ul>
+<li><a href="commands/ci-artifact-get.html">ci artifact get</a></li>
+<li><a href="commands/ci-artifacts.html">ci artifacts</a></li>
+<li><a href="commands/ci-failed.html">ci failed</a></li>
+<li><a href="commands/ci-jobs.html">ci jobs</a></li>
+<li><a href="commands/ci-log.html">ci log</a></li>
+<li><a href="commands/ci-rerun.html">ci rerun</a></li>
+<li><a href="commands/ci-runs.html">ci runs</a></li>
+</ul>
+<h2>vcs comment</h2>
+<ul>
+<li><a href="commands/comment-add.html">comment add</a></li>
+<li><a href="commands/comment-delete.html">comment delete</a></li>
+<li><a href="commands/comment-edit.html">comment edit</a></li>
+<li><a href="commands/comment-list.html">comment list</a></li>
+</ul>
+<h2>vcs docs</h2>
+<ul>
+<li><a href="commands/docs-gen.html">docs gen</a></li>
+</ul>
+<h2>vcs git</h2>
+<ul>
+<li><a href="commands/git-branch.html">git branch</a></li>
+<li><a href="commands/git-commit.html">git commit</a></li>
+<li><a href="commands/git-merge.html">git merge</a></li>
+<li><a href="commands/git-push.html">git push</a></li>
+<li><a href="commands/git-rebase.html">git rebase</a></li>
+</ul>
+<h2>vcs issue</h2>
+<ul>
+<li><a href="commands/issue-create.html">issue create</a></li>
+<li><a href="commands/issue-edit.html">issue edit</a></li>
+<li><a href="commands/issue-list.html">issue list</a></li>
+<li><a href="commands/issue-newer.html">issue newer</a></li>
+<li><a href="commands/issue-timeline.html">issue timeline</a></li>
+<li><a href="commands/issue-top.html">issue top</a></li>
+<li><a href="commands/issue-view.html">issue view</a></li>
+</ul>
+<h2>vcs label</h2>
+<ul>
+<li><a href="commands/label-create.html">label create</a></li>
+<li><a href="commands/label-list.html">label list</a></li>
+<li><a href="commands/label-rename.html">label rename</a></li>
+</ul>
+<h2>vcs milestone</h2>
+<ul>
+<li><a href="commands/milestone-create.html">milestone create</a></li>
+<li><a href="commands/milestone-list.html">milestone list</a></li>
+<li><a href="commands/milestone-view.html">milestone view</a></li>
+</ul>
+<h2>vcs package</h2>
+<ul>
+<li><a href="commands/package-delete.html">package delete</a></li>
+<li><a href="commands/package-list.html">package list</a></li>
+<li><a href="commands/package-upload.html">package upload</a></li>
+</ul>
+<h2>vcs pr</h2>
+<ul>
+<li><a href="commands/pr-bind.html">pr bind</a></li>
+<li><a href="commands/pr-close.html">pr close</a></li>
+<li><a href="commands/pr-create.html">pr create</a></li>
+<li><a href="commands/pr-draft.html">pr draft</a></li>
+<li><a href="commands/pr-edit.html">pr edit</a></li>
+<li><a href="commands/pr-heal.html">pr heal</a></li>
+<li><a href="commands/pr-list.html">pr list</a></li>
+<li><a href="commands/pr-merge.html">pr merge</a></li>
+<li><a href="commands/pr-ready.html">pr ready</a></li>
+<li><a href="commands/pr-rebase.html">pr rebase</a></li>
+<li><a href="commands/pr-status.html">pr status</a></li>
+<li><a href="commands/pr-statuses.html">pr statuses</a></li>
+<li><a href="commands/pr-tick.html">pr tick</a></li>
+<li><a href="commands/pr-watch.html">pr watch</a></li>
+</ul>
+<h2>vcs protection</h2>
+<ul>
+<li><a href="commands/protection-list.html">protection list</a></li>
+</ul>
+<h2>vcs runners</h2>
+<ul>
+<li><a href="commands/runners-list.html">runners list</a></li>
+</ul>
+<h2>vcs secret</h2>
+<ul>
+<li><a href="commands/secret-delete.html">secret delete</a></li>
+<li><a href="commands/secret-list.html">secret list</a></li>
+<li><a href="commands/secret-set.html">secret set</a></li>
+</ul>
+<h2>vcs session</h2>
+<ul>
+<li><a href="commands/session-import.html">session import</a></li>
+<li><a href="commands/session-login.html">session login</a></li>
+<li><a href="commands/session-logout.html">session logout</a></li>
+<li><a href="commands/session-status.html">session status</a></li>
+</ul>
+<h2>vcs site</h2>
+<ul>
+<li><a href="commands/site-gen.html">site gen</a></li>
+</ul>
+<h2>vcs stopwatch</h2>
+<ul>
+<li><a href="commands/stopwatch-list.html">stopwatch list</a></li>
+</ul>
+<h2>vcs time</h2>
+<ul>
+<li><a href="commands/time-add.html">time add</a></li>
+<li><a href="commands/time-list.html">time list</a></li>
+<li><a href="commands/time-total.html">time total</a></li>
+</ul>
+<h2>vcs version</h2>
+<ul>
+<li><a href="commands/version.html">version</a></li>
+</ul>
+<h2>vcs workflow</h2>
+<ul>
+<li><a href="commands/workflow-dispatch.html">workflow dispatch</a></li>
+</ul>
+</nav>
+</div>
+</body>
+</html>
