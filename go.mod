@@ -6,6 +6,8 @@ require (
 	git.grey.ooo/grey.ooo/lexi v0.2.1-0.20261123133525-a51b8100664f
 	github.com/matthewbaggett/vale/v3 v3.28.2-fork.1
 	github.com/yuin/goldmark v1.8.6
+	golang.org/x/term v0.47.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -44,9 +46,7 @@ require (
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	gopkg.in/neurosnap/sentences.v1 v1.0.7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

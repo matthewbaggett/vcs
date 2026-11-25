@@ -21,6 +21,7 @@ import (
 	"git.grey.ooo/packages/vcs/pkg/lint"
 	"git.grey.ooo/packages/vcs/pkg/session"
 	"github.com/matthewbaggett/vale/v3/pkg/vale"
+	"golang.org/x/term"
 )
 
 // version is the release tag. The build sets it with -ldflags "-X main.version=<tag>".
@@ -89,6 +90,17 @@ func main() {
 		Version:    buildVersion(),
 		Getenv:     os.Getenv,
 		IsTerminal: isTTY(os.Stdin) && isTTY(os.Stdout),
+		ReadPassword: func() (string, error) {
+			b, err := term.ReadPassword(int(os.Stdin.Fd()))
+			return string(b), err
+		},
+		KnownUser: func(host string) string {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return ""
+			}
+			return session.KnownUser(home, host)
+		},
 		Exec: func(ctx context.Context, name string, args []string, stdout, stderr io.Writer) int {
 			cmd := exec.CommandContext(ctx, name, args...)
 			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, stdout, stderr
@@ -125,7 +137,7 @@ func main() {
 				cfg.Login, cfg.Password = forge.NetrcLogin(host)
 			}
 			// A missing session is not an error here. A verb that needs one says so.
-			cfg.Cookie, _ = session.Load(configDir(), host)
+			cfg.CookieName, cfg.Cookie, _ = session.Load(configDir(), host)
 			return forgejo.New(cfg), nil
 		},
 	}

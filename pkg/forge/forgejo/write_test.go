@@ -505,3 +505,12 @@ func TestBranchRename(t *testing.T) {
 		t.Errorf("sent %q", sent)
 	}
 }
+
+func TestCookieNameFollowsTheConfig(t *testing.T) {
+	if n := New(Config{BaseURL: "http://x", Repo: "o/r"}).cookieName(); n != "i_like_gitea" {
+		t.Errorf("default: %q", n)
+	}
+	if n := New(Config{BaseURL: "http://x", Repo: "o/r", CookieName: "i_like_forgejo"}).cookieName(); n != "i_like_forgejo" {
+		t.Errorf("set: %q", n)
+	}
+}

@@ -15,14 +15,21 @@ import (
 	"time"
 )
 
-// CookieName is the name of the session cookie of Forgejo and Gitea.
+// CookieName is the legacy name of the session cookie. Gitea uses it, and so did older
+// Forgejo. A session saved with no name has this one.
 const CookieName = "i_like_gitea"
+
+// Candidates are the names of the session cookie that vcs tries first. Forgejo has used
+// i_like_forgejo since release 1.20. The server setting [session] COOKIE_NAME can change it.
+var Candidates = []string{"i_like_forgejo", CookieName}
 
 // ErrNoSession means the host has no session, or the server no longer accepts it.
 var ErrNoSession = errors.New("no session")
 
 type file struct {
-	Host  string `json:"host"`
+	Host string `json:"host"`
+	// Name is the cookie name. Older files have none, and then it is CookieName.
+	Name  string `json:"name,omitempty"`
 	Value string `json:"i_like_gitea"`
 }
 
@@ -31,26 +38,29 @@ func Path(dir, host string) string {
 	return filepath.Join(dir, "session."+host+".json")
 }
 
-// Save writes the cookie value of a host. The file is private to the user.
-func Save(dir, host, value string) error {
+// Save writes the cookie name and value of a host. The file is private to the user.
+func Save(dir, host, name, value string) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
-	data, _ := json.Marshal(file{Host: host, Value: value})
+	data, _ := json.Marshal(file{Host: host, Name: name, Value: value})
 	return os.WriteFile(Path(dir, host), data, 0o600)
 }
 
-// Load reads the cookie value of a host. It returns ErrNoSession when there is none.
-func Load(dir, host string) (string, error) {
+// Load reads the cookie name and value of a host. It returns ErrNoSession when there is none.
+func Load(dir, host string) (name, value string, err error) {
 	data, err := os.ReadFile(Path(dir, host))
 	if err != nil {
-		return "", ErrNoSession
+		return "", "", ErrNoSession
 	}
 	var f file
 	if json.Unmarshal(data, &f) != nil || f.Value == "" {
-		return "", ErrNoSession
+		return "", "", ErrNoSession
 	}
-	return f.Value, nil
+	if f.Name == "" {
+		f.Name = CookieName
+	}
+	return f.Name, f.Value, nil
 }
 
 // Remove deletes the session of a host. A missing session is not an error.
@@ -69,57 +79,104 @@ func client() *http.Client {
 	}
 }
 
-// Check asks the server whether it accepts the cookie value.
-func Check(ctx context.Context, baseURL, value string) error {
+// Check asks the server whether it accepts the cookie.
+func Check(ctx context.Context, baseURL, name, value string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(baseURL, "/")+"/user/settings", nil)
 	if err != nil {
 		return err
 	}
-	req.AddCookie(&http.Cookie{Name: CookieName, Value: value})
+	req.AddCookie(&http.Cookie{Name: name, Value: value})
 	resp, err := client().Do(req)
 	if err != nil {
 		return err
 	}
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: the server did not accept the cookie (HTTP %d)", ErrNoSession, resp.StatusCode)
+		return fmt.Errorf("%w: the server did not accept the cookie %s (HTTP %d)", ErrNoSession, name, resp.StatusCode)
 	}
 	return nil
 }
 
-// Login signs in with a user name and a password and returns the cookie value.
-// An account with a second factor needs Import.
-func Login(ctx context.Context, baseURL, user, password string) (string, error) {
+// CheckAny tries a bare cookie value under each candidate name and returns the name that the
+// server accepts.
+func CheckAny(ctx context.Context, baseURL, value string) (string, error) {
+	var last error
+	for _, n := range Candidates {
+		if last = Check(ctx, baseURL, n, value); last == nil {
+			return n, nil
+		}
+	}
+	return "", fmt.Errorf("%w: the server accepted the value under none of %s", ErrNoSession, strings.Join(Candidates, ", "))
+}
+
+// sameOrigin marks a request as a form post from the page of the host itself.
+func sameOrigin(req *http.Request, baseURL string) {
+	req.Header.Set("Origin", baseURL)
+	req.Header.Set("Referer", baseURL+"/user/login")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+}
+
+// notSession names cookies that never hold the login.
+var notSession = map[string]bool{"persistent": true, "redirect_to": true, "lang": true, "_csrf": true, "_flash": true, "gitea_incredible": true, "macaron_flash": true}
+
+// Login signs in with a user name and a password and returns the name and value of the
+// session cookie. The name comes from the server. An account with a second factor needs Import.
+func Login(ctx context.Context, baseURL, user, password string) (string, string, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
 	form := url.Values{"user_name": {user}, "password": {password}}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/user/login", strings.NewReader(form.Encode()))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	sameOrigin(req, baseURL)
 	resp, err := client().Do(req)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	resp.Body.Close()
-	if resp.StatusCode != http.StatusSeeOther {
-		return "", fmt.Errorf("the login was refused (HTTP %d). Check the user name and password", resp.StatusCode)
-	}
 	loc := resp.Header.Get("Location")
-	if strings.Contains(loc, "/user/two_factor") || strings.Contains(loc, "/user/webauthn") {
-		return "", errors.New("this account needs a second factor. Copy i_like_gitea from a browser, then run: vcs session import")
-	}
-	value := ""
-	for _, c := range resp.Cookies() {
-		if c.Name == CookieName {
-			value = c.Value
+	var set []*http.Cookie
+	var names []string
+	for _, ck := range resp.Cookies() {
+		if ck.MaxAge < 0 || ck.Value == "" {
+			continue
+		}
+		names = append(names, ck.Name)
+		if !notSession[ck.Name] {
+			set = append(set, ck)
 		}
 	}
-	if value == "" {
-		return "", errors.New("the server set no session cookie")
+	// The report names the redirect and the cookie names. It never holds a value.
+	report := fmt.Sprintf("HTTP %d, Location %q, cookies set: [%s]", resp.StatusCode, loc, strings.Join(names, " "))
+	if resp.StatusCode != http.StatusSeeOther {
+		return "", "", fmt.Errorf("the login was refused (%s). Check the user name and password", report)
 	}
-	if err := Check(ctx, baseURL, value); err != nil {
-		return "", err
+	if strings.Contains(loc, "/user/two_factor") || strings.Contains(loc, "/user/webauthn") {
+		return "", "", errors.New("this account needs a second factor. Copy the session cookie from a browser, then run: vcs session import")
 	}
-	return value, nil
+	if strings.HasSuffix(strings.SplitN(loc, "?", 2)[0], "/user/login") {
+		return "", "", fmt.Errorf("the login failed (%s). Check the user name and password", report)
+	}
+	// Try the known names first, then every other cookie. The server must accept the pair.
+	for _, want := range append(append([]string{}, Candidates...), "") {
+		for _, ck := range set {
+			if (want == "" && contains(Candidates, ck.Name)) || (want != "" && ck.Name != want) {
+				continue
+			}
+			if err := Check(ctx, baseURL, ck.Name, ck.Value); err == nil {
+				return ck.Name, ck.Value, nil
+			}
+		}
+	}
+	return "", "", fmt.Errorf("the server set no session cookie that it accepts (%s)", report)
+}
+
+func contains(l []string, s string) bool {
+	for _, x := range l {
+		if x == s {
+			return true
+		}
+	}
+	return false
 }

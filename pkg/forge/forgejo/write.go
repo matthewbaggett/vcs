@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"git.grey.ooo/packages/vcs/pkg/forge"
+	"git.grey.ooo/packages/vcs/pkg/session"
 )
 
 func (c *Client) authorize(req *http.Request) {
@@ -53,7 +54,7 @@ func (c *Client) webPost(ctx context.Context, path string) error {
 	if err != nil {
 		return err
 	}
-	req.AddCookie(&http.Cookie{Name: "i_like_gitea", Value: c.cfg.Cookie})
+	req.AddCookie(&http.Cookie{Name: c.cookieName(), Value: c.cfg.Cookie})
 	// Forgejo checks these two headers on a web write. A same-origin value passes.
 	req.Header.Set("Origin", c.cfg.BaseURL)
 	req.Header.Set("Sec-Fetch-Site", "same-origin")
@@ -357,4 +358,12 @@ func (c *Client) PRReady(ctx context.Context, n int) error {
 	c.authorize(patch)
 	_, err = c.send(patch, path)
 	return err
+}
+
+// cookieName is the name of the session cookie that the host uses.
+func (c *Client) cookieName() string {
+	if c.cfg.CookieName != "" {
+		return c.cfg.CookieName
+	}
+	return session.CookieName
 }

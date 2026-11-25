@@ -1,5 +1,7 @@
 package cli
 
+import "git.grey.ooo/packages/vcs/pkg/session"
+
 // Exit codes. They follow sysexits.h where it fits.
 const (
 	ExitOK          = 0
@@ -989,8 +991,8 @@ var Tree = []Verb{
 	},
 	{
 		Noun: "session", Name: "login",
-		Usage:   "VCS_PASSWORD=... vcs session login --user <name>",
-		Summary: "Sign in to the web side of the forge and keep the session. The password comes from VCS_PASSWORD, never from an argument.",
+		Usage:   "vcs session login [--user <name>]",
+		Summary: "Sign in to the Forgejo web interface and keep the session. Some verbs, such as ci rerun, need it because the token API can't do them. In a terminal it asks for the user name and the password, and hides the password. A script sets VCS_PASSWORD and passes --user. The password never goes in an argument.",
 		Output:  "`ok`.",
 		Flags:   []Flag{{"--user", "The user name. VCS_USER is the fallback."}},
 		Exits:   []string{"0 signed in", "1 the server refused the login, or the account needs a second factor", "64 usage error"},
@@ -1004,7 +1006,7 @@ var Tree = []Verb{
 	{
 		Noun: "session", Name: "import",
 		Usage:   "vcs session import < cookie-value",
-		Summary: "Keep the i_like_gitea cookie of a browser session, read from standard input. Use it for an account with a second factor.",
+		Summary: "Keep the " + session.CookieName + " cookie of a browser session, read from standard input. Use it for an account with a second factor.",
 		Output:  "`ok`.",
 		Exits:   []string{"0 saved", "1 the server didn't accept the cookie", "64 usage error"},
 		Hints: map[string]string{
