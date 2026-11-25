@@ -53,8 +53,8 @@ vcs: lint: 1 finding(s). Nothing was sent
 <li>A checker that fails to run makes the verb exit 65. A text that no checker saw never goes out.</li>
 <li>A checker that can't start stops <code>vcs</code> with exit 69, before the verb runs.</li>
 <li>There is no warning tier. Vale reports each match, whatever its severity. Each match is a finding.</li>
-<li>An agent can't skip the check. The lint runs inside the verb, not in a hook that an agent can
-turn off.</li>
+<li>An agent can't skip the check. The lint runs inside the verb, not in a separate script that an
+agent can turn off.</li>
 </ul>
 <h2 id="how-you-set-it-up">How you set it up</h2>
 <table>
