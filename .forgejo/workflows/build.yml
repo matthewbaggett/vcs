@@ -134,3 +134,35 @@ jobs:
               -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/octet-stream" \
               --data-binary "@$f" -o /dev/null
           done
+
+  # Push the image to ghcr.io. Without the secret GHCR_TOKEN the job prints a notice and passes.
+  # The token needs the scope write:packages. The job needs a runner with a Docker daemon.
+  image:
+    name: Publish the image
+    needs: build
+    if: needs.build.outputs.built == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+      IMAGE: ghcr.io/matthewbaggett/vcs
+      GHCR_USER: matthewbaggett
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      # A v* tag makes <version> and latest. A main build makes dev-<short sha> and dev.
+      - name: Build the image
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then floating=latest; else floating=dev; fi
+          docker build --build-arg "VERSION=${VERSION}" \
+            -t "${IMAGE}:${VERSION}" -t "${IMAGE}:${floating}" .
+          docker run --rm "${IMAGE}:${VERSION}" --version
+          echo "FLOATING=${floating}" >> "$GITHUB_ENV"
+      - name: Push the image
+        run: |
+          if [ -z "$GHCR_TOKEN" ]; then
+            echo "::notice::The secret GHCR_TOKEN is absent. Skipping the image push."
+            exit 0
+          fi
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+          docker push "${IMAGE}:${VERSION}"
+          docker push "${IMAGE}:${FLOATING}"
