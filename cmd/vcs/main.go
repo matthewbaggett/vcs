@@ -137,7 +137,7 @@ func main() {
 				cfg.Login, cfg.Password = forge.NetrcLogin(host)
 			}
 			// A missing session is not an error here. A verb that needs one says so.
-			cfg.Cookie, _ = session.Load(configDir(), host)
+			cfg.CookieName, cfg.Cookie, _ = session.Load(configDir(), host)
 			return forgejo.New(cfg), nil
 		},
 	}

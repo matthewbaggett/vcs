@@ -354,6 +354,12 @@ func TestSessionVerbs(t *testing.T) {
 	if code, _ := do(" good \n", nil, "session", "import"); code != 0 {
 		t.Errorf("import good: %d", code)
 	}
+	if code, _ := do("i_like_gitea=good\n", nil, "session", "import"); code != 0 {
+		t.Errorf("import name=value: %d", code)
+	}
+	if code, _ := do("other_name=good\n", nil, "session", "import"); code != ExitFail {
+		t.Errorf("import wrong name: %d", code)
+	}
 	if code, _ := do("", nil, "session", "login", "--user", "me"); code != ExitUsage {
 		t.Errorf("login with no password: %d", code)
 	}

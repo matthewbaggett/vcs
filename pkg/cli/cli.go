@@ -1357,12 +1357,12 @@ func sessionVerb(ctx context.Context, v Verb, o opts, env Env) int {
 				return ExitFail
 			}
 		}
-		val, err := session.Login(ctx, base, user, pass)
+		name, val, err := session.Login(ctx, base, user, pass)
 		if err != nil {
 			fmt.Fprintf(env.Stderr, "vcs: %v\n", err)
 			return ExitFail
 		}
-		if err := session.Save(env.ConfigDir, host, val); err != nil {
+		if err := session.Save(env.ConfigDir, host, name, val); err != nil {
 			fmt.Fprintf(env.Stderr, "vcs: %v\n", err)
 			return ExitFail
 		}
@@ -1372,18 +1372,28 @@ func sessionVerb(ctx context.Context, v Verb, o opts, env Env) int {
 		if err != nil || val == "" {
 			return usage(env, v)
 		}
-		if err := session.Check(ctx, base, val); err != nil {
+		// The input is the value alone, or name=value. A bare value goes under each known name.
+		name := ""
+		if n, rest, ok := strings.Cut(val, "="); ok && n != "" && !strings.Contains(n, ";") {
+			name, val = n, rest
+		}
+		if name == "" {
+			name, err = session.CheckAny(ctx, base, val)
+		} else {
+			err = session.Check(ctx, base, name, val)
+		}
+		if err != nil {
 			fmt.Fprintf(env.Stderr, "vcs: %v\n", err)
 			return ExitFail
 		}
-		if err := session.Save(env.ConfigDir, host, val); err != nil {
+		if err := session.Save(env.ConfigDir, host, name, val); err != nil {
 			fmt.Fprintf(env.Stderr, "vcs: %v\n", err)
 			return ExitFail
 		}
 	case "status":
-		val, err := session.Load(env.ConfigDir, host)
+		name, val, err := session.Load(env.ConfigDir, host)
 		if err == nil {
-			err = session.Check(ctx, base, val)
+			err = session.Check(ctx, base, name, val)
 		}
 		if err != nil {
 			fmt.Fprintf(env.Stderr, "vcs: no good session for %s. %v\n", host, err)
