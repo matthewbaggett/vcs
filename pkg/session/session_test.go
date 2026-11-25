@@ -117,7 +117,7 @@ func loginForge(t *testing.T, mode, cookie string) *httptest.Server {
 }
 
 func TestLoginTakesTheCookieNameFromTheServer(t *testing.T) {
-	for _, name := range []string{"i_like_forgejo", "i_like_gitea", "my_own_session"} {
+	for _, name := range []string{"session", "i_like_forgejo", "i_like_gitea", "my_own_session"} {
 		srv := loginForge(t, "ok", name)
 		n, v, err := Login(context.Background(), srv.URL, "me", "pw")
 		if err != nil || n != name || v != "abc123" {
@@ -143,8 +143,8 @@ func TestLoginReportNamesCookiesNotValues(t *testing.T) {
 }
 
 func TestCheckAny(t *testing.T) {
-	srv := loginForge(t, "ok", "i_like_forgejo")
-	if n, err := CheckAny(context.Background(), srv.URL, "abc123"); err != nil || n != "i_like_forgejo" {
+	srv := loginForge(t, "ok", "session")
+	if n, err := CheckAny(context.Background(), srv.URL, "abc123"); err != nil || n != "session" {
 		t.Errorf("n=%q err=%v", n, err)
 	}
 	if _, err := CheckAny(context.Background(), srv.URL, "bad"); !errors.Is(err, ErrNoSession) {
