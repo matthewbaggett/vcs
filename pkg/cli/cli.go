@@ -120,13 +120,16 @@ func Run(ctx context.Context, args []string, env Env) int {
 		hint(verb, ExitOK, opts{}, env)
 		return ExitOK
 	}
+	if len(args) > 0 && (args[0] == "help" || args[0] == "--help" || args[0] == "-h") {
+		return help(args[1:], env)
+	}
 	o, err := parse(args)
 	if err != nil {
 		fmt.Fprintf(env.Stderr, "vcs: %v\n", err)
 		return ExitUsage
 	}
 	if len(o.pos) < 2 && !(len(o.pos) == 1 && o.pos[0] == "attach") {
-		fmt.Fprintln(env.Stderr, "usage: vcs <noun> <verb> [args]")
+		fmt.Fprintln(env.Stderr, "usage: vcs <noun> <verb> [args]. Run: vcs help")
 		return ExitUsage
 	}
 	noun, name, rest := o.pos[0], "", o.pos[1:]

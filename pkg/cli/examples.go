@@ -69,6 +69,7 @@ var Examples = map[string]string{
 	"session import":    "$ vcs session import < cookie-value\nok",
 	"session status":    "$ vcs session status\nok",
 	"session logout":    "$ vcs session logout\nok",
+	"help":              "$ vcs help session login\nusage: vcs session login [--user <name>]\n...",
 	"version":           "$ vcs version\nv0.0.6",
 	"docs gen":          "$ vcs docs gen docs/Commands\npr-status.md\npr-create.md",
 	"site gen":          "$ vcs site gen docs/Site site\nindex.html\ncommands/pr-status.html",
