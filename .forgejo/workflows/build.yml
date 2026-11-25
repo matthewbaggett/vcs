@@ -153,7 +153,7 @@ jobs:
       - name: Build the image
         run: |
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then floating=latest; else floating=dev; fi
-          docker build --build-arg "VERSION=${VERSION}" \
+          docker build --load --build-arg "VERSION=${VERSION}" \
             -t "${IMAGE}:${VERSION}" -t "${IMAGE}:${floating}" .
           docker run --rm "${IMAGE}:${VERSION}" --version
           echo "FLOATING=${floating}" >> "$GITHUB_ENV"
