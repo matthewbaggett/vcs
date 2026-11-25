@@ -7,9 +7,9 @@ The command has no server step and no runtime. It's one static binary.
 
 ## Language enforcement
 
-`vcs` checks the words of each text before it sends the text. The [lexi](dependencies.md#lexi)
+`vcs` checks the words of each text before it sends the text. The [lexi](dependencies.md#the-lexi-checker)
 checker finds insensitive words and profanity. It's a Go port of alex. [Vale](dependencies.md#vale)
-applies the style rules, such as [ASD-STE100](dependencies.md#asd-ste100). A text with one finding goes nowhere, and
+applies the style rules, such as [ASD-STE100](dependencies.md#the-writing-standard). A text with one finding goes nowhere, and
 the verb exits 65. Both linters run inside the binary. See [Language
 enforcement](language-enforcement.md).
 

@@ -26,9 +26,9 @@ vcs: lint: 1 finding(s). Nothing was sent
 ## Strict by design
 
 - A checker that fails to run makes the verb exit 65. A text that no checker saw never goes out.
-- A checker that cannot start stops `vcs` with exit 69, before the verb runs.
-- There is no warning tier. Vale reports each alert, whatever its severity. Each alert is a finding.
-- An agent cannot skip the check. The lint runs inside the verb, not in a hook that an agent can
+- A checker that can't start stops `vcs` with exit 69, before the verb runs.
+- There is no warning tier. Vale reports each match, whatever its severity. Each match is a finding.
+- An agent can't skip the check. The lint runs inside the verb, not in a hook that an agent can
   turn off.
 
 ## How you set it up
@@ -45,6 +45,6 @@ project does, and [Configuration](configuration.md) for the variables.
 ## Why a controlled language
 
 Agents and people read the text that `vcs` sends. A short, plain sentence leaves less room for a
-wrong guess. The [ASD-STE100](dependencies.md#asd-ste100) standard gives a clear rule set for such
+wrong guess. The [ASD-STE100](dependencies.md#the-writing-standard) standard gives a clear rule set for such
 text. The Vale styles turn those rules into checks. The checks run on every send, so the rules
 hold without a person to remind the writer.

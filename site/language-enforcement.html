@@ -51,9 +51,9 @@ vcs: lint: 1 finding(s). Nothing was sent
 <h2 id="strict-by-design">Strict by design</h2>
 <ul>
 <li>A checker that fails to run makes the verb exit 65. A text that no checker saw never goes out.</li>
-<li>A checker that cannot start stops <code>vcs</code> with exit 69, before the verb runs.</li>
-<li>There is no warning tier. Vale reports each alert, whatever its severity. Each alert is a finding.</li>
-<li>An agent cannot skip the check. The lint runs inside the verb, not in a hook that an agent can
+<li>A checker that can't start stops <code>vcs</code> with exit 69, before the verb runs.</li>
+<li>There is no warning tier. Vale reports each match, whatever its severity. Each match is a finding.</li>
+<li>An agent can't skip the check. The lint runs inside the verb, not in a hook that an agent can
 turn off.</li>
 </ul>
 <h2 id="how-you-set-it-up">How you set it up</h2>
@@ -83,7 +83,7 @@ turn off.</li>
 project does, and <a href="configuration.html">Configuration</a> for the variables.</p>
 <h2 id="why-a-controlled-language">Why a controlled language</h2>
 <p>Agents and people read the text that <code>vcs</code> sends. A short, plain sentence leaves less room for a
-wrong guess. The <a href="dependencies.html#asd-ste100">ASD-STE100</a> standard gives a clear rule set for such
+wrong guess. The <a href="dependencies.html#the-writing-standard">ASD-STE100</a> standard gives a clear rule set for such
 text. The Vale styles turn those rules into checks. The checks run on every send, so the rules
 hold without a person to remind the writer.</p>
 

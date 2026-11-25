@@ -15,9 +15,9 @@
 labels, milestones, boards, time, and CI runs. It also wraps the git steps of a normal change.</p>
 <p>The command has no server step and no runtime. It's one static binary.</p>
 <h2 id="language-enforcement">Language enforcement</h2>
-<p><code>vcs</code> checks the words of each text before it sends the text. The <a href="dependencies.html#lexi">lexi</a>
+<p><code>vcs</code> checks the words of each text before it sends the text. The <a href="dependencies.html#the-lexi-checker">lexi</a>
 checker finds insensitive words and profanity. It's a Go port of alex. <a href="dependencies.html#vale">Vale</a>
-applies the style rules, such as <a href="dependencies.html#asd-ste100">ASD-STE100</a>. A text with one finding goes nowhere, and
+applies the style rules, such as <a href="dependencies.html#the-writing-standard">ASD-STE100</a>. A text with one finding goes nowhere, and
 the verb exits 65. Both linters run inside the binary. See <a href="language-enforcement.html">Language
 enforcement</a>.</p>
 <h2 id="why-it-exists">Why it exists</h2>

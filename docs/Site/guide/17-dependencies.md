@@ -10,7 +10,7 @@ enforce. Each section says what the project does in `vcs`, and where `vcs` uses 
 | [goldmark](https://github.com/yuin/goldmark) | Go module | Markdown to HTML | `pkg/site`, in `vcs site gen` |
 | [ASD-STE100](https://www.asd-ste100.org/) | Standard | The writing rules | The Vale styles of the project |
 
-## lexi
+## The lexi checker
 
 lexi is a static Go port of [alex](https://github.com/get-alex/alex), the inclusive-language
 linter. `vcs` calls lexi in process, in place of Node alex. The binary needs no Node.
@@ -21,7 +21,7 @@ linter. `vcs` calls lexi in process, in place of Node alex. The binary needs no 
   one lexi checker. It scans each text as Markdown.
 - **Parity.** lexi matches alex 11.0.1. It uses `retext-equality` 6.6.0 and `retext-profanities`
   7.2.2. A corpus of more than 30,000 recorded cases checks the match.
-- **Gaps.** lexi reads `.alexrc` as JSON or YAML only. It does not run `.alexrc.js`.
+- **Gaps.** lexi reads `.alexrc` as JSON or YAML only. It doesn't run `.alexrc.js`.
 
 Source: [github.com/matthewbaggett/lexi](https://github.com/matthewbaggett/lexi). Upstream:
 [github.com/get-alex/alex](https://github.com/get-alex/alex).
@@ -35,14 +35,14 @@ at version `v3.28.2-fork.1`.
 - **What the fork adds.** A Go package, `pkg/vale`, that lints a string in process. Upstream Vale
   is a command. The fork lets `vcs` call it as a library.
 - **How `vcs` uses it.** When the working directory holds a `.vale.ini`, `vcs` loads that file. It
-  lints each text as Markdown. Each alert becomes a finding, whatever its severity.
+  lints each text as Markdown. Each match becomes a finding, whatever its severity.
 - **What the rules are.** The `.vale.ini` of the project names them. The ASD-STE100 styles are
   one set.
 
 Source: [github.com/matthewbaggett/vale](https://github.com/matthewbaggett/vale). Upstream:
 [github.com/vale-cli/vale](https://github.com/vale-cli/vale).
 
-## goldmark
+## The goldmark renderer
 
 [goldmark](https://github.com/yuin/goldmark) is a Markdown parser and renderer for Go. It follows
 the CommonMark rules.
@@ -53,7 +53,7 @@ the CommonMark rules.
 
 Source: [github.com/yuin/goldmark](https://github.com/yuin/goldmark).
 
-## ASD-STE100
+## The writing standard
 
 ASD-STE100 is a standard for controlled technical English. The Aerospace, Security and Defence
 Industries Association of Europe (ASD) publishes it. Aircraft maintenance manuals use it. Its aim

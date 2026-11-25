@@ -49,7 +49,7 @@ enforce. Each section says what the project does in <code>vcs</code>, and where 
 </tr>
 </tbody>
 </table>
-<h2 id="lexi">lexi</h2>
+<h2 id="the-lexi-checker">The lexi checker</h2>
 <p>lexi is a static Go port of <a href="https://github.com/get-alex/alex">alex</a>, the inclusive-language
 linter. <code>vcs</code> calls lexi in process, in place of Node alex. The binary needs no Node.</p>
 <ul>
@@ -59,7 +59,7 @@ linter. <code>vcs</code> calls lexi in process, in place of Node alex. The binar
 one lexi checker. It scans each text as Markdown.</li>
 <li><strong>Parity.</strong> lexi matches alex 11.0.1. It uses <code>retext-equality</code> 6.6.0 and <code>retext-profanities</code>
 7.2.2. A corpus of more than 30,000 recorded cases checks the match.</li>
-<li><strong>Gaps.</strong> lexi reads <code>.alexrc</code> as JSON or YAML only. It does not run <code>.alexrc.js</code>.</li>
+<li><strong>Gaps.</strong> lexi reads <code>.alexrc</code> as JSON or YAML only. It doesn't run <code>.alexrc.js</code>.</li>
 </ul>
 <p>Source: <a href="https://github.com/matthewbaggett/lexi">github.com/matthewbaggett/lexi</a>. Upstream:
 <a href="https://github.com/get-alex/alex">github.com/get-alex/alex</a>.</p>
@@ -71,13 +71,13 @@ at version <code>v3.28.2-fork.1</code>.</p>
 <li><strong>What the fork adds.</strong> A Go package, <code>pkg/vale</code>, that lints a string in process. Upstream Vale
 is a command. The fork lets <code>vcs</code> call it as a library.</li>
 <li><strong>How <code>vcs</code> uses it.</strong> When the working directory holds a <code>.vale.ini</code>, <code>vcs</code> loads that file. It
-lints each text as Markdown. Each alert becomes a finding, whatever its severity.</li>
+lints each text as Markdown. Each match becomes a finding, whatever its severity.</li>
 <li><strong>What the rules are.</strong> The <code>.vale.ini</code> of the project names them. The ASD-STE100 styles are
 one set.</li>
 </ul>
 <p>Source: <a href="https://github.com/matthewbaggett/vale">github.com/matthewbaggett/vale</a>. Upstream:
 <a href="https://github.com/vale-cli/vale">github.com/vale-cli/vale</a>.</p>
-<h2 id="goldmark">goldmark</h2>
+<h2 id="the-goldmark-renderer">The goldmark renderer</h2>
 <p><a href="https://github.com/yuin/goldmark">goldmark</a> is a Markdown parser and renderer for Go. It follows
 the CommonMark rules.</p>
 <ul>
@@ -86,7 +86,7 @@ you read now. It turns on the table extension and automatic heading IDs.</li>
 <li><strong>What it doesn't do.</strong> goldmark has no part in the language check. It builds this site only.</li>
 </ul>
 <p>Source: <a href="https://github.com/yuin/goldmark">github.com/yuin/goldmark</a>.</p>
-<h2 id="asd-ste100">ASD-STE100</h2>
+<h2 id="the-writing-standard">The writing standard</h2>
 <p>ASD-STE100 is a standard for controlled technical English. The Aerospace, Security and Defence
 Industries Association of Europe (ASD) publishes it. Aircraft maintenance manuals use it. Its aim
 is text that a reader with limited English can follow without doubt.</p>
