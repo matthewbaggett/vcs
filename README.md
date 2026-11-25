@@ -8,6 +8,37 @@ labels, milestones, boards, and time from one place, with the same exit codes on
 `vcs` is one static binary. It has no server and no runtime. It checks each text it sends. After
 each run it prints a short hint on stderr for an agent, so the agent knows what to do next.
 
+## Language enforcement
+
+`vcs` checks the words of each text before it sends the text. The check runs inside the binary.
+It needs no Node, no Vale install, and no extra program on the path.
+
+| Checker | What it finds | Runs |
+|---|---|---|
+| [lexi](https://github.com/matthewbaggett/lexi) | Insensitive words and profanity. lexi is a Go port of [alex](https://github.com/get-alex/alex) | On every send |
+| [Vale](https://github.com/vale-cli/vale) | Prose that breaks the style rules, such as [ASD-STE100](https://www.asd-ste100.org/) | When the working directory holds a `.vale.ini` |
+| Credit guard | An AI credit line in a commit message or a pull request body | On every send |
+
+A text with one finding goes nowhere. The verb exits 65 and prints each finding on stderr. A
+checker that fails to run also exits 65, so a text that no checker saw never goes out. There is no
+warning tier. An agent can't skip the check, because it runs inside the verb.
+
+```bash
+vcs issue create "Fix the thing" --body-file body.md   # exit 65 if the body has a finding
+```
+
+## What `vcs` builds on
+
+| Project | What it does in `vcs` |
+|---|---|
+| [lexi](https://github.com/matthewbaggett/lexi) | The inclusive-language check. It matches alex 11.0.1 and reads the same `.alexrc` options, in JSON or YAML |
+| [Vale](https://github.com/matthewbaggett/vale), a fork of [vale-cli/vale](https://github.com/vale-cli/vale) | The style check. The fork adds a Go package that lints a string in process. `vcs` loads your `.vale.ini` |
+| [goldmark](https://github.com/yuin/goldmark) | The Markdown renderer. `vcs site gen` builds the HTML pages of the site with it. It plays no part in the language check |
+| [ASD-STE100](https://www.asd-ste100.org/) | The controlled-English standard. The Vale styles of a project turn its rules into checks |
+
+The site holds [one section for each](site/dependencies.html). See also [Language
+enforcement](site/language-enforcement.html).
+
 ## Install
 
 Each release holds six binaries and one checksum file. Get them from [the latest
@@ -109,6 +140,8 @@ second watcher runs.
 | Page | What it holds |
 |---|---|
 | [Site](site/index.html) | The overview, install steps, and quick start |
+| [Language enforcement](site/language-enforcement.html) | The checkers, the exit code, and the setup |
+| [Dependencies](site/dependencies.html) | lexi, Vale, goldmark, and ASD-STE100 |
 | [Commands](site/commands.html) | One page for each verb |
 | [Exit codes](site/exit-codes.html) | The exit codes and the agent hints |
 | [Configuration](site/configuration.html) | Each variable and the config directory |

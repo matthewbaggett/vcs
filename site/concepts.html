@@ -51,7 +51,8 @@ makes the verb exit 69. The hint then tells the agent to stop and ask.</p>
 <p>A person at a terminal never sees that line. Use <code>--human</code> to force it off.</p>
 <h2 id="text-checks">Text checks</h2>
 <p>Each verb that sends text runs the prose lint first. A failed lint exits 65 and sends nothing. The
-verb also refuses text that holds an AI credit line.</p>
+verb also refuses text that holds an AI credit line. See <a href="language-enforcement.html">Language
+enforcement</a>.</p>
 <h2 id="sessions">Sessions</h2>
 <p>Some actions have no token API, such as the project board. A web session covers them. Run
 <code>vcs session login</code>, or <code>vcs session import</code>. A verb that needs a session and finds none exits 77.</p>
@@ -64,6 +65,8 @@ verb also refuses text that holds an AI credit line.</p>
 <h2>Guide</h2>
 <ul>
 <li><a href="index.html">Overview</a></li>
+<li><a href="language-enforcement.html">Language enforcement</a></li>
+<li><a href="dependencies.html">Dependencies</a></li>
 <li><a href="install.html">Install</a></li>
 <li><a href="quickstart.html">Quickstart</a></li>
 <li><a href="concepts.html" aria-current="page">Concepts</a></li>

@@ -14,6 +14,12 @@
 <p><code>vcs</code> is one Go command for Forgejo, Gitea, and GitHub. It reads and writes pull requests, issues,
 labels, milestones, boards, time, and CI runs. It also wraps the git steps of a normal change.</p>
 <p>The command has no server step and no runtime. It's one static binary.</p>
+<h2 id="language-enforcement">Language enforcement</h2>
+<p><code>vcs</code> checks the words of each text before it sends the text. The <a href="dependencies.html#lexi">lexi</a>
+checker finds insensitive words and profanity. It's a Go port of alex. <a href="dependencies.html#vale">Vale</a>
+applies the style rules, such as <a href="dependencies.html#asd-ste100">ASD-STE100</a>. A text with one finding goes nowhere, and
+the verb exits 65. Both linters run inside the binary. See <a href="language-enforcement.html">Language
+enforcement</a>.</p>
 <h2 id="why-it-exists">Why it exists</h2>
 <p>A team that works with agents needs one stable command. The command checks each text it sends. It
 gives a short hint after each run, so an agent knows what to do next. It exits with the same codes
@@ -27,6 +33,14 @@ on every forge.</p>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>See how <code>vcs</code> checks language</td>
+<td><a href="language-enforcement.html">Language enforcement</a></td>
+</tr>
+<tr>
+<td>See what <code>vcs</code> builds on</td>
+<td><a href="dependencies.html">Dependencies</a></td>
+</tr>
 <tr>
 <td>Install the binary</td>
 <td><a href="install.html">Install</a></td>
@@ -93,6 +107,8 @@ canonical one.</p>
 <h2>Guide</h2>
 <ul>
 <li><a href="index.html" aria-current="page">Overview</a></li>
+<li><a href="language-enforcement.html">Language enforcement</a></li>
+<li><a href="dependencies.html">Dependencies</a></li>
 <li><a href="install.html">Install</a></li>
 <li><a href="quickstart.html">Quickstart</a></li>
 <li><a href="concepts.html">Concepts</a></li>

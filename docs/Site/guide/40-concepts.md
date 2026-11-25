@@ -37,7 +37,8 @@ A person at a terminal never sees that line. Use `--human` to force it off.
 ## Text checks
 
 Each verb that sends text runs the prose lint first. A failed lint exits 65 and sends nothing. The
-verb also refuses text that holds an AI credit line.
+verb also refuses text that holds an AI credit line. See [Language
+enforcement](language-enforcement.md).
 
 ## Sessions
 
