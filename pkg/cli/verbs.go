@@ -1045,6 +1045,19 @@ var Tree = []Verb{
 		},
 	},
 	{
+		Noun: "help", Name: "",
+		Usage:   "vcs help [<noun> [<verb>]]",
+		Summary: "Show the nouns, the verbs of a noun, or the page of one verb. In a terminal, a bare `vcs help` opens a menu. In a pipe, it prints plain text and never waits for input.",
+		Output:  "Plain text: the nouns with one line each, the verbs of a noun, or the usage, flags, exit codes, and one example of a verb. A verb that needs a web session says so.",
+		Exits:   []string{"0 printed", "64 no such noun or verb"},
+		Hints: map[string]string{
+			OutOK:          "",
+			OutFail:        "",
+			OutUsage:       "run vcs help to list the nouns",
+			OutUnavailable: "",
+		},
+	},
+	{
 		Noun: "version", Name: "",
 		Usage:   "vcs version",
 		Summary: "Print the release tag of this binary. `vcs --version` does the same.",
