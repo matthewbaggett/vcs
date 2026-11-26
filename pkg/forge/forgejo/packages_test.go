@@ -62,3 +62,36 @@ func TestPackageWrites(t *testing.T) {
 		t.Errorf("a 500 gave no error")
 	}
 }
+
+func TestPackageLinkTwice(t *testing.T) {
+	links := 0
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/-/link/") {
+			links++
+			if links > 1 {
+				w.WriteHeader(400)
+				_, _ = w.Write([]byte(`{"message":"The package is already linked to a repository"}`))
+				return
+			}
+		}
+		w.WriteHeader(201)
+	})
+	for _, v := range []string{"0.0.1", "0.0.2"} {
+		if err := c.PackageUpload(context.Background(), "tool", v, "tool.tgz", strings.NewReader("D"), 1); err != nil {
+			t.Fatal(err)
+		}
+		if err := c.PackageLink(context.Background(), "tool"); err != nil {
+			t.Fatalf("link after upload of %s: %v", v, err)
+		}
+	}
+	if links != 2 {
+		t.Errorf("link calls: %d", links)
+	}
+	other := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(400)
+		_, _ = w.Write([]byte(`{"message":"bad name"}`))
+	})
+	if err := other.PackageLink(context.Background(), "tool"); err == nil {
+		t.Errorf("an unrelated 400 gave no error")
+	}
+}
