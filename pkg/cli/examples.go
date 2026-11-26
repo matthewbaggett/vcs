@@ -71,6 +71,8 @@ var Examples = map[string]string{
 	"session logout":    "$ vcs session logout\nok",
 	"help":              "$ vcs help session login\nusage: vcs session login [--user <name>]\n...",
 	"version":           "$ vcs version\nv0.0.6",
+	"lexi":              "$ echo \"His network looks good\" | vcs lexi --stdin\n<stdin>\n  1:1-1:4  warning  `His` may be insensitive, when referring to a person, use `Their`, `Theirs`, `Them` instead  her-him  retext-equality\n\n⚠ 1 warning",
+	"alex":              "$ echo \"His network looks good\" | vcs alex --stdin\n<stdin>\n  1:1-1:4  warning  `His` may be insensitive, when referring to a person, use `Their`, `Theirs`, `Them` instead  her-him  retext-equality\n\n⚠ 1 warning",
 	"docs gen":          "$ vcs docs gen docs/Commands\npr-status.md\npr-create.md",
 	"site gen":          "$ vcs site gen docs/Site site\nindex.html\ncommands/pr-status.html",
 }

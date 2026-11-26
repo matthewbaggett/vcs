@@ -3,7 +3,7 @@ module git.grey.ooo/packages/vcs
 go 1.27.3
 
 require (
-	git.grey.ooo/grey.ooo/lexi v0.2.1-0.20261123133525-a51b8100664f
+	git.grey.ooo/grey.ooo/lexi v0.2.1-0.20261126194215-111074718fb8
 	github.com/matthewbaggett/vale/v3 v3.28.2-fork.1
 	github.com/yuin/goldmark v1.8.6
 	golang.org/x/term v0.47.0
@@ -21,6 +21,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.7.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.6.0 // indirect
 	github.com/d5/tengo/v2 v2.17.0 // indirect
+	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/errata-ai/ini v1.63.0 // indirect
 	github.com/expr-lang/expr v1.17.7 // indirect
 	github.com/gobwas/glob v1.1.0 // indirect

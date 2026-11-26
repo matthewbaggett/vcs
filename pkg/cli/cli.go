@@ -110,6 +110,10 @@ func Run(ctx context.Context, args []string, env Env) int {
 		hint(verb, code, opts{}, env)
 		return code
 	}
+	if len(args) >= 1 && (args[0] == "lexi" || args[0] == "alex") {
+		// lexi and alex pass every argument to lexi. The flag parser would refuse its flags.
+		return lexiMain(args[1:], env)
+	}
 	if len(args) == 1 && (args[0] == "--version" || args[0] == "version") {
 		verb, _ := Find("version", "")
 		v := env.Version

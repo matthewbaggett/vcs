@@ -1,5 +1,5 @@
-git.grey.ooo/grey.ooo/lexi v0.2.1-0.20261123133525-a51b8100664f h1:zlWinMhIBQiMKxQqWO8FI17gX7j0YwqI6nBUsAnP51A=
-git.grey.ooo/grey.ooo/lexi v0.2.1-0.20261123133525-a51b8100664f/go.mod h1:xRdYg5TKh2QYIancRSG+A6Cp9OIXpI5dMAPq50IpwCA=
+git.grey.ooo/grey.ooo/lexi v0.2.1-0.20261126194215-111074718fb8 h1:m3HGDfAQDLXjCk7yts0NQ3ixTITGiSED1xLDZ5Hxlk0=
+git.grey.ooo/grey.ooo/lexi v0.2.1-0.20261126194215-111074718fb8/go.mod h1:xRdYg5TKh2QYIancRSG+A6Cp9OIXpI5dMAPq50IpwCA=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/MarvinJWendt/testza v0.1.0/go.mod h1:7AxNvlfeHP7Z/hDQ5JtE3OKYT3XFUeLCDE2DQninSqs=
@@ -32,6 +32,8 @@ github.com/d5/tengo/v2 v2.17.0/go.mod h1:XRGjEs5I9jYIKTxly6HCF8oiiilk5E/RYXOZ5b0
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/dlclark/regexp2 v1.11.5 h1:Q/sSnsKerHeCkc/jSTNq1oCm7KiVgUMZRDUoRu0JQZQ=
+github.com/dlclark/regexp2 v1.11.5/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
 github.com/errata-ai/ini v1.63.0 h1:XRFKXTn7FvF8mnC9RPOlYaL4Ud7dP0i35LnLcbIhWYU=
 github.com/errata-ai/ini v1.63.0/go.mod h1:PhjYff6ijif0unCnaJtXxnVsmlY95CSiNJDLXQYXdX8=
 github.com/expr-lang/expr v1.17.7 h1:Q0xY/e/2aCIp8g9s/LGvMDCC5PxYlvHgDZRQ4y16JX8=
