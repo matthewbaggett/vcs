@@ -52,6 +52,7 @@ A person never sees these. An agent sees one as a `vcs: next:` line on stderr.
 
 | Outcome | Hint |
 |---|---|
+| closed | the pull request has landed or someone closed it. You can't watch it or mark it ready. Run vcs pr status <n> to see which. If it landed, pull the base branch |
 | fail | read the last lines. If a check failed, run vcs ci runs --sha <head sha> --limit 3 and vcs ci log. If conflicted files show, merge main in. Then run vcs pr watch <n> again |
 | ok | the pull request is good. Hand it off, or mark it ready with vcs pr ready <n> |
 | unavailable | stop and ask the user. This host has no driver yet |

@@ -166,6 +166,10 @@ func hint(v Verb, code int, o opts, env Env) {
 		out = OutUnavailable
 	case ExitNoSession:
 		out = OutNoSession
+	case ExitClosed:
+		if v.Hints[OutClosed] != "" {
+			out = OutClosed
+		}
 	}
 	if h := v.Hints[out]; h != "" {
 		fmt.Fprintf(env.Stderr, "vcs: next: %s\n", h)

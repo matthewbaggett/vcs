@@ -378,3 +378,37 @@ func TestStatusFlagParse(t *testing.T) {
 		t.Fatalf("valued: %v %v", o.flags, err)
 	}
 }
+
+// A merged pull request gets its own hint. It must not tell the agent to mark it ready.
+func TestWatchMergedHint(t *testing.T) {
+	watchRepo(t, false)
+	_, _, errs, _ := wrun(t, states(forge.WatchState{State: "merged"}), "--caller", "agent")
+	if !strings.Contains(errs, "has landed or someone closed it") || strings.Contains(errs, "pr ready") {
+		t.Fatalf("hint=%q", errs)
+	}
+}
+
+// --repo names a repo other than the one the folder holds. The fetch of origin would fail, so
+// the verb reads the conflict list of the server and never fetches.
+func TestWatchForeignRepoSkipsFetch(t *testing.T) {
+	clone := watchRepo(t, false)
+	gitIn(t, clone, "remote", "set-url", "origin", "/nonexistent/path")
+	green := openState(ck("a", "success"))
+	code, out, errs, _ := wrun(t, wfakeStatus{wfake: states(green).(wfake), status: forge.PRStatus{}}, "--host", "git.example", "--repo", "o/scratch")
+	if code != ExitOK || strings.Contains(errs, "git fetch") {
+		t.Fatalf("code=%d out=%s err=%s", code, out, errs)
+	}
+	conflict := wfakeStatus{wfake: states(green).(wfake), status: forge.PRStatus{ConflictedFiles: []string{"x.txt"}}}
+	code, out, _, _ = wrun(t, conflict, "--host", "git.example", "--repo", "o/scratch")
+	if code != ExitConflict || !strings.Contains(out, "  x.txt\n") {
+		t.Fatalf("conflict: code=%d out=%s", code, out)
+	}
+}
+
+// wfakeStatus is a PRWatcher with a PRStatus of its own.
+type wfakeStatus struct {
+	wfake
+	status forge.PRStatus
+}
+
+func (w wfakeStatus) PRStatus(context.Context, int) (forge.PRStatus, error) { return w.status, nil }
