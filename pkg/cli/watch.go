@@ -93,6 +93,23 @@ func mergeConflicts(ctx context.Context, env Env, remote, base string, n int) ([
 	return nil, fmt.Errorf("git merge-tree failed (exit %d)", code)
 }
 
+// foreignFolder reports whether --host and --repo name a repo other than the one the remote of
+// the working folder points to. A folder with no readable remote counts as foreign too.
+func foreignFolder(ctx context.Context, env Env, remote string, o opts) bool {
+	if o.host == "" && o.repo == "" {
+		return false
+	}
+	out, code := gitOut(ctx, env, "remote", "get-url", remote)
+	if code != 0 {
+		return true
+	}
+	h, r, err := forge.ParseRemote(strings.TrimSpace(out))
+	if err != nil {
+		return true
+	}
+	return (o.host != "" && !strings.EqualFold(o.host, h)) || (o.repo != "" && !strings.EqualFold(o.repo, r))
+}
+
 // pidFile gives the path of the pid file of one watch. It lives in the shared git dir, so every
 // worktree of the repository sees it.
 func pidFile(ctx context.Context, env Env, n int) (string, error) {
@@ -179,6 +196,7 @@ func poll(ctx context.Context, c forge.Client, env Env, n int, o opts) int {
 	if remote == "" {
 		remote = "origin"
 	}
+	foreign := foreignFolder(ctx, env, remote, o)
 	sleep := env.Sleep
 	if sleep == nil {
 		sleep = func(ctx context.Context, d time.Duration) {
@@ -207,7 +225,15 @@ func poll(ctx context.Context, c forge.Client, env Env, n int, o opts) int {
 			return result(ExitClosed, "the pull request is "+ws.State)
 		}
 		if !fromServer {
-			if conflicted, err = mergeConflicts(ctx, env, remote, ws.Base, n); err != nil {
+			if foreign {
+				// The folder belongs to another repo, so a fetch can't reach the pull request.
+				// The conflict list of the server stands in for the local merge check.
+				s, err := c.PRStatus(ctx, n)
+				if err != nil {
+					return fail(env, err)
+				}
+				conflicted = s.ConflictedFiles
+			} else if conflicted, err = mergeConflicts(ctx, env, remote, ws.Base, n); err != nil {
 				fmt.Fprintf(env.Stderr, "vcs: pr watch: %v\n", err)
 				return ExitFail
 			}

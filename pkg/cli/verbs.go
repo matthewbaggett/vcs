@@ -25,6 +25,7 @@ const (
 	OutLint        = "lint"
 	OutUnavailable = "unavailable"
 	OutNoSession   = "nosession"
+	OutClosed      = "closed"
 )
 
 // Verb is one command of the command tree. The docs build from this table.
@@ -276,6 +277,7 @@ var Tree = []Verb{
 		Hints: map[string]string{
 			OutOK:          "the pull request is good. Hand it off, or mark it ready with vcs pr ready <n>",
 			OutFail:        "read the last lines. If a check failed, run vcs ci runs --sha <head sha> --limit 3 and vcs ci log. If conflicted files show, merge main in. Then run vcs pr watch <n> again",
+			OutClosed:      "the pull request has landed or someone closed it. You can't watch it or mark it ready. Run vcs pr status <n> to see which. If it landed, pull the base branch",
 			OutUsage:       "run vcs pr watch <n> with the number of one pull request",
 			OutUnavailable: "stop and ask the user. This host has no driver yet",
 		},

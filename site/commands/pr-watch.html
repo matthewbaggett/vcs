@@ -75,6 +75,10 @@ RESULT: every check passed and the pull request merges cleanly
 </thead>
 <tbody>
 <tr>
+<td>closed</td>
+<td>the pull request has landed or someone closed it. You can't watch it or mark it ready. Run vcs pr status <n> to see which. If it landed, pull the base branch</td>
+</tr>
+<tr>
 <td>fail</td>
 <td>read the last lines. If a check failed, run vcs ci runs --sha <head sha> --limit 3 and vcs ci log. If conflicted files show, merge main in. Then run vcs pr watch <n> again</td>
 </tr>
