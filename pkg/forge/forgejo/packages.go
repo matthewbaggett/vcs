@@ -3,6 +3,7 @@ package forgejo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -72,10 +73,15 @@ func (c *Client) PackageUpload(ctx context.Context, name, version, file string, 
 	return err
 }
 
-// PackageLink links a package to the repository.
+// PackageLink links a package to the repository. A package that already has the link gives a 400
+// that says so. That case is a success, because the wanted state holds.
 func (c *Client) PackageLink(ctx context.Context, name string) error {
 	owner, repo := c.packageOwner()
 	_, err := c.sendJSON(ctx, "POST", fmt.Sprintf("packages/%s/generic/%s/-/link/%s", url.PathEscape(owner), url.PathEscape(name), url.PathEscape(repo)), nil)
+	var he *forge.Error
+	if errors.As(err, &he) && he.Status == http.StatusBadRequest && strings.Contains(strings.ToLower(he.Message()), "already") {
+		return nil
+	}
 	return err
 }
 
