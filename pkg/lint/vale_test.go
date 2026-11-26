@@ -36,3 +36,33 @@ func TestValeFindsAlert(t *testing.T) {
 		t.Fatalf("fs=%v err=%v", fs, err)
 	}
 }
+
+func TestValeSkipsReadabilityForShortText(t *testing.T) {
+	dir := t.TempDir()
+	styles := filepath.Join(dir, "styles", "Readability")
+	if err := os.MkdirAll(styles, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rule := "extends: existence\nmessage: \"Score '%s'.\"\nlevel: error\nignorecase: true\ntokens:\n  - renamed\n  - hello\n"
+	if err := os.WriteFile(filepath.Join(styles, "Score.yml"), []byte(rule), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ini := "StylesPath = styles\nMinAlertLevel = suggestion\n[*.md]\nBasedOnStyles = Readability\n"
+	cfg := filepath.Join(dir, ".vale.ini")
+	if err := os.WriteFile(cfg, []byte(ini), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	v, err := NewVale(vale.Options{ConfigPath: cfg})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fs, err := Run("Renamed issue\n", v)
+	if err != nil || len(fs) != 0 {
+		t.Fatalf("short title: fs=%v err=%v", fs, err)
+	}
+	long := "Hello there, this text has more than twenty words in it so the readability rules apply to it as they should do now.\n"
+	fs, err = Run(long, v)
+	if err != nil || len(fs) != 1 || fs[0].Rule != "Readability.Score" {
+		t.Fatalf("long text: fs=%v err=%v", fs, err)
+	}
+}
