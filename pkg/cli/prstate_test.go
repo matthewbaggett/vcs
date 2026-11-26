@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"git.grey.ooo/packages/vcs/pkg/forge"
@@ -64,5 +65,18 @@ func TestPRStateErrors(t *testing.T) {
 	}
 	if code, _, _ := run(t, stater{last: &last, err: errors.New("boom")}, nil, true, "pr", "draft", "13"); code != ExitFail {
 		t.Errorf("fail: code=%d", code)
+	}
+}
+
+func TestPRReadyDraftRefuseClosed(t *testing.T) {
+	for _, state := range []string{"closed", "merged"} {
+		for _, verb := range []string{"ready", "draft"} {
+			var last string
+			c := stater{fake: fake{pr: forge.PRStatus{State: state}}, last: &last}
+			code, out, errOut := run(t, c, nil, true, "pr", verb, "13")
+			if code != ExitFail || out != "" || last != "" || !strings.Contains(errOut, state) {
+				t.Errorf("%s on %s: code=%d out=%q last=%q err=%q", verb, state, code, out, last, errOut)
+			}
+		}
 	}
 }

@@ -741,6 +741,20 @@ func row(env Env, cols ...string) {
 	fmt.Fprintln(env.Stdout, strings.Join(cols, "\t"))
 }
 
+// refuseClosed reads the state of a pull request. For a closed or merged one it prints a message
+// and returns ExitFail, so the verb never reports a change that did not happen.
+func refuseClosed(ctx context.Context, c forge.Client, env Env, verb string, n int) int {
+	s, err := c.PRStatus(ctx, n)
+	if err != nil {
+		return fail(env, err)
+	}
+	if s.State == "closed" || s.State == "merged" {
+		fmt.Fprintf(env.Stderr, "vcs: pull request %d is %s, so pr %s changes nothing\n", n, s.State, verb)
+		return ExitFail
+	}
+	return ExitOK
+}
+
 func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit, tail int, runIndex int64) int {
 	switch v.Key() {
 	case "pr watch":
@@ -857,6 +871,9 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		}
 		row(env, strconv.Itoa(num), addr)
 	case "pr ready":
+		if code := refuseClosed(ctx, c, env, v.Name, n); code != ExitOK {
+			return code
+		}
 		if err := c.PRReady(ctx, n); err != nil {
 			return fail(env, err)
 		}
@@ -869,6 +886,9 @@ func call(ctx context.Context, v Verb, c forge.Client, env Env, o opts, n, limit
 		}
 		switch v.Name {
 		case "draft":
+			if code := refuseClosed(ctx, c, env, v.Name, n); code != ExitOK {
+				return code
+			}
 			if err := sc.PRDraft(ctx, n); err != nil {
 				return fail(env, err)
 			}
