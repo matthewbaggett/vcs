@@ -1,7 +1,7 @@
 # Live tests
 
 The unit tests fake the forge. They check what `vcs` sends and prints. They can't check how a
-real server answers. The live suite in `live/` can. It builds the binary and runs it against a
+real server answers. The live suite in `live/` can. It builds the binary and runs it on a
 real repository.
 
 ## What it covers
@@ -51,5 +51,5 @@ pushes to `main` of that repository.
 
 ## When a live test fails
 
-A live failure means the real server did something that the fake server did not. Fix the verb.
-Then update the fake so it matches the real answer. Do not weaken the live test.
+A live failure means the real server did something that the fake server didn't. Fix the verb.
+Then update the fake so it matches the real answer. Don't weaken the live test.
