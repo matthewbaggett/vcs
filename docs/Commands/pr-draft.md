@@ -26,7 +26,7 @@ draft 13
 ## Exit codes
 
 - 0 draft
-- 1 the call failed or the pull request isn't found
+- 1 the call failed, the pull request isn't found, or the pull request has the state closed or merged
 - 64 usage error
 - 69 no usable driver, or the driver has no draft support
 

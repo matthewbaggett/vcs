@@ -143,7 +143,7 @@ var Tree = []Verb{
 		Usage:   "vcs pr ready <n>",
 		Summary: "Take a pull request out of draft. A pull request that isn't a draft stays as it is.",
 		Output:  "One line: `ready` and the number.",
-		Exits:   []string{"0 ready", "1 the call failed or the pull request isn't found", "64 usage error", "69 no usable driver"},
+		Exits:   []string{"0 ready", "1 the call failed, the pull request isn't found, or the pull request has the state closed or merged", "64 usage error", "69 no usable driver"},
 		Hints: map[string]string{
 			OutOK:          "run vcs pr status <n> to check the merge state",
 			OutFail:        "check the number and the token",
@@ -156,7 +156,7 @@ var Tree = []Verb{
 		Usage:   "vcs pr draft <n>",
 		Summary: "Turn a pull request back into a draft. A draft stays a draft.",
 		Output:  "One line: `draft` and the number.",
-		Exits:   []string{"0 draft", "1 the call failed or the pull request isn't found", "64 usage error", "69 no usable driver, or the driver has no draft support"},
+		Exits:   []string{"0 draft", "1 the call failed, the pull request isn't found, or the pull request has the state closed or merged", "64 usage error", "69 no usable driver, or the driver has no draft support"},
 		Hints: map[string]string{
 			OutOK:          "run vcs pr status <n> to check the draft flag",
 			OutFail:        "check the number and the token",
