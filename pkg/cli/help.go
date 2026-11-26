@@ -33,7 +33,7 @@ var NounPurpose = map[string]string{
 	"help":       "Show this help.",
 	"version":    "Print the version.",
 	"lexi":       "Check text for insensitive words, like the lexi binary.",
-	"alex":       "An alias of lexi.",
+	"alex":       "The same as lexi, under the name of alex.",
 	"workflow":   "Read and run workflows.",
 }
 

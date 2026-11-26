@@ -1,6 +1,6 @@
 # The `vcs alex` command
 
-An alias of `vcs lexi`. It runs lexi with the flags and the output of alex.
+The same command as `vcs lexi`, under the name of alex. It runs lexi with the flags and the output of alex.
 
 The command tree generates this page. Don't edit it by hand.
 

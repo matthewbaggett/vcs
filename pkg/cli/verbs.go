@@ -1079,7 +1079,7 @@ var Tree = []Verb{
 			{"--stdin", "Read the text from stdin."},
 			{"-t, --text", "Treat the input as plain text."},
 			{"-l, --html", "Treat the input as HTML."},
-			{"--mdx", "Treat the input as MDX."},
+			{"--mdx", "Treat the input as Markdown with JSX."},
 			{"-q, --quiet", "Print only warnings and errors."},
 			{"-w, --why", "Print the sources of a finding."},
 			{"-d, --diff", "Ignore unchanged lines."},
@@ -1096,7 +1096,7 @@ var Tree = []Verb{
 	{
 		Noun: "alex", Name: "",
 		Usage:   "vcs alex [<flags>] [<globs>...]",
-		Summary: "An alias of `vcs lexi`. It runs lexi with the flags and the output of alex.",
+		Summary: "The same command as `vcs lexi`, under the name of alex. It runs lexi with the flags and the output of alex.",
 		Output:  "The same as `vcs lexi`.",
 		Exits:   []string{"The exit code of lexi: 0 no finding, 1 a finding or an error"},
 		Hints: map[string]string{

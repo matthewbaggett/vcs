@@ -33,7 +33,7 @@ $ echo "His network looks good" | vcs lexi --stdin
 | `--stdin` | Read the text from stdin. |
 | `-t, --text` | Treat the input as plain text. |
 | `-l, --html` | Treat the input as HTML. |
-| `--mdx` | Treat the input as MDX. |
+| `--mdx` | Treat the input as Markdown with JSX. |
 | `-q, --quiet` | Print only warnings and errors. |
 | `-w, --why` | Print the sources of a finding. |
 | `-d, --diff` | Ignore unchanged lines. |
